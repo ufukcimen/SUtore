@@ -1,0 +1,279 @@
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { ChevronRight, Cpu, Laptop, Menu, Monitor, ShoppingCart, Search, Sparkles, User, X,} from "lucide-react";
+import {categoryCards, extraMenuItems,} from "../data/storefrontContent";
+import { CategoryArtwork } from "../components/StorefrontArtwork";
+
+const categoryIcons = {
+  laptop: Laptop,
+  desktop: Cpu,
+  monitor: Monitor,
+  components: Sparkles,
+};
+
+export function HomePage() {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  return (
+    <div className="min-h-screen overflow-hidden bg-[linear-gradient(135deg,#f7fbff_0%,#ecfeff_45%,#fff8eb_100%)] text-slate-950">
+      <div className="absolute inset-0 bg-grid bg-[size:28px_28px] opacity-25" />
+      <div className="absolute -left-20 top-16 h-72 w-72 rounded-full bg-brand-glow/30 blur-3xl" />
+      <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-brand-gold/20 blur-3xl" />
+      <div className="absolute bottom-20 left-1/3 h-72 w-72 rounded-full bg-cyan-200/30 blur-3xl" />
+
+      <header className="relative z-20 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-[90rem] flex-wrap items-center gap-4 px-2 py-4 sm:px-4 lg:flex-nowrap lg:justify-between lg:px-5">
+          <div className="flex shrink-0 items-center gap-4 lg:min-w-[18rem]">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((current) => !current)}
+              className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-white transition hover:bg-white/10"
+              aria-label="Open store menu"
+              aria-expanded={menuOpen}
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+
+            <Link to="/" className="shrink-0 min-w-fit">
+              <div className="flex items-center gap-3">
+                <div className="rounded-2xl bg-[linear-gradient(135deg,#22d3ee,#2563eb)] px-3 py-2 text-sm font-bold uppercase tracking-[0.3em] text-slate-950">
+                  SU
+                </div>
+                <div>
+                  <p className="text-2xl font-semibold tracking-tight text-white">SUtore</p>
+                  <p className="text-xs uppercase tracking-[0.32em] text-cyan-200/70">
+                    Electronics Store
+                  </p>
+                </div>
+              </div>
+            </Link>
+          </div>
+
+          <div className="order-3 w-full md:order-none md:flex-1 md:px-6 lg:mx-auto lg:max-w-3xl lg:min-w-0 lg:px-10">
+            <label className="flex h-14 items-center gap-3 rounded-[1.4rem] border border-white/10 bg-white/5 px-4 text-slate-300 shadow-lg shadow-cyan-950/20">
+              <Search className="h-5 w-5 text-cyan-200" />
+              <input
+                type="search"
+                placeholder="Search laptops, monitors, GPUs, storage..."
+                className="h-full w-full bg-transparent text-sm outline-none placeholder:text-slate-500"
+              />
+            </label>
+          </div>
+
+          <div className="ml-auto flex shrink-0 items-center gap-2 lg:min-w-[8rem] lg:justify-end">
+            <button
+              type="button"
+              className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10"
+              aria-label="Profile"
+            >
+              <User className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10"
+              aria-label="Cart"
+            >
+              <ShoppingCart className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div
+        className={`relative z-10 transition-[padding] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          menuOpen ? "lg:pl-[24rem]" : "lg:pl-0"
+        }`}
+      >
+        <div
+          className={`pointer-events-none absolute left-0 top-0 z-30 hidden h-full w-full max-w-sm transition-opacity duration-300 lg:block ${
+            menuOpen ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          <div
+            className={`pointer-events-auto h-full min-h-[calc(100vh-5.5rem)] w-full border-r border-slate-200/80 bg-[linear-gradient(180deg,rgba(13,27,42,0.98),rgba(8,17,31,0.98))] px-6 py-6 text-white shadow-2xl shadow-cyan-950/20 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+              menuOpen ? "translate-x-0" : "-translate-x-full"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.32em] text-cyan-200/70">
+                  Store Menu
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold text-white">More departments</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMenuOpen(false)}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-white transition hover:bg-white/10"
+                aria-label="Close store menu"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-8 space-y-3">
+              {extraMenuItems.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-4 text-left text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10"
+                >
+                  <span>{item}</span>
+                  <ChevronRight className="h-4 w-4 text-cyan-200" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-10 lg:py-10 xl:pl-14 xl:pr-8">
+          <section>
+          <div
+            id="custom-pc-creator"
+            className="rounded-[2rem] border border-slate-200/80 bg-white/70 p-6 shadow-[0_28px_80px_rgba(7,17,31,0.12)] backdrop-blur-xl sm:p-8"
+          >
+            <div className="mt-2 flex flex-wrap gap-3">
+              <a
+                href="#custom-pc-creator"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
+              >
+                Custom PC Creator
+                <ChevronRight className="h-4 w-4" />
+              </a>
+            </div>
+
+            <div className="mt-8 grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
+              <div className="rounded-[1.75rem] border border-cyan-200/70 bg-[linear-gradient(180deg,rgba(217,249,247,0.95),rgba(240,249,255,0.9))] p-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
+                  Builder spotlight
+                </p>
+                <h2 className="mt-4 text-3xl font-semibold leading-tight text-brand-ink sm:text-4xl">
+                  Build your own.
+                </h2>
+                <p className="mt-4 max-w-xl text-sm leading-7 text-slate-600 sm:text-base">
+                  Shape the system around your own performance target, visual style, and
+                  budget. Start with the parts that matter and assemble a cleaner custom
+                  rig path from the homepage.
+                </p>
+
+                <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                  {[
+                    "Choose the CPU, GPU, cooling, and case you actually want",
+                    "Tune for gaming, creator workloads, or balanced everyday power",
+                  ].map((item) => (
+                    <div
+                      key={item}
+                      className="rounded-[1.25rem] border border-slate-200 bg-white/80 p-4 text-sm leading-6 text-slate-700"
+                    >
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-[1.75rem] border border-slate-200/70 bg-[linear-gradient(180deg,rgba(13,27,42,0.98),rgba(8,17,31,0.98))] p-5">
+                <div className="relative h-full min-h-[18rem] overflow-hidden rounded-[1.35rem] border border-white/10 bg-slate-950/75 p-5">
+                  <div className="absolute -left-10 top-0 h-32 w-32 rounded-full bg-cyan-400/20 blur-3xl" />
+                  <div className="absolute -right-12 bottom-0 h-40 w-40 rounded-full bg-brand-gold/20 blur-3xl" />
+
+                  <div className="relative mx-auto flex h-full max-w-sm flex-col justify-between">
+                    <div className="rounded-[1.4rem] border border-white/10 bg-slate-900/80 p-4 shadow-lg shadow-cyan-950/20">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200/80">
+                          Custom loadout
+                        </span>
+                        <span className="rounded-full bg-cyan-400/15 px-3 py-1 text-xs font-semibold text-cyan-100">
+                          Live concept
+                        </span>
+                      </div>
+                      <div className="mt-4 grid grid-cols-[1fr_auto] gap-4">
+                        <div className="space-y-3">
+                          <div className="h-3 rounded-full bg-cyan-300/80" />
+                          <div className="h-3 w-5/6 rounded-full bg-slate-600" />
+                          <div className="h-3 w-4/6 rounded-full bg-slate-700" />
+                        </div>
+                        <div className="grid h-20 w-20 place-items-center rounded-2xl border border-cyan-300/30 bg-slate-950">
+                          <div className="grid h-12 w-12 place-items-center rounded-xl border border-cyan-300/30 bg-cyan-400/10">
+                            <Cpu className="h-6 w-6 text-cyan-200" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mx-auto mt-6 grid w-[15rem] grid-cols-[1fr_0.8fr] gap-4">
+                      <div className="rounded-[1.5rem] border border-white/10 bg-slate-900/80 p-4">
+                        <div className="mx-auto grid h-24 w-24 place-items-center rounded-[1.4rem] border border-cyan-300/30 bg-[radial-gradient(circle_at_30%_30%,rgba(34,211,238,0.22),transparent_35%),#0f172a]">
+                          <div className="grid h-14 w-14 place-items-center rounded-2xl border border-cyan-300/30 bg-slate-950">
+                            <Sparkles className="h-7 w-7 text-cyan-200" />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-3 self-center">
+                        <div className="h-9 rounded-xl border border-white/10 bg-slate-900/80" />
+                        <div className="h-9 rounded-xl border border-white/10 bg-slate-900/65" />
+                        <div className="h-9 rounded-xl border border-cyan-300/20 bg-cyan-400/10" />
+                      </div>
+                    </div>
+
+                    <p className="mt-6 text-center text-sm font-medium uppercase tracking-[0.24em] text-cyan-100/85">
+                      Pick parts. Tune power. Build your own.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          </section>
+
+          <section className="mt-8">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-3xl font-bold uppercase tracking-[0.16em] text-brand-ink sm:text-4xl">
+                Featured categories
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            {categoryCards.map((card) => {
+              const Icon = categoryIcons[card.type];
+
+              return (
+                <article
+                  key={card.title}
+                  id={card.type === "desktop" ? "oem-pc-builds" : undefined}
+                  className="group overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/75 p-4 shadow-[0_18px_40px_rgba(7,17,31,0.08)] transition duration-200 hover:-translate-y-1 hover:border-cyan-300/40 hover:shadow-[0_26px_48px_rgba(7,17,31,0.12)]"
+                >
+                  <div className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-slate-950/90">
+                    <CategoryArtwork type={card.type} />
+                  </div>
+
+                  <div className="mt-4 flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-xl font-semibold text-brand-ink">{card.title}</h3>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">
+                        {card.description}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-cyan-100 bg-cyan-50 p-3 text-brand-accent">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-brand-accent transition group-hover:text-brand-ink"
+                  >
+                    Explore category
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+          </section>
+        </main>
+      </div>
+    </div>
+  );
+}
