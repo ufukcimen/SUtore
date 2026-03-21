@@ -1,39 +1,20 @@
 CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
-    full_name VARCHAR(100) NOT NULL,
-    email VARCHAR(120) UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL
+    user_id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    tax_id VARCHAR(50),
+    email VARCHAR(150),
+    home_address TEXT,
+    password_hash TEXT
 );
-
-
-CREATE TABLE user_addresses (
-    id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    phone VARCHAR(20),
-    address_line TEXT,
-    city VARCHAR(100),
-    country VARCHAR(100)
-);
-
-
-CREATE TABLE categories (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) UNIQUE NOT NULL,
-    description TEXT
-);
-
 
 CREATE TABLE products (
-    id SERIAL PRIMARY KEY,
-    category_id INT REFERENCES categories(id) ON DELETE SET NULL,
-    name VARCHAR(150) NOT NULL,
+    product_id SERIAL PRIMARY KEY,
+    name VARCHAR(200),
     model VARCHAR(100),
-    serial_number VARCHAR(100) UNIQUE NOT NULL,
+    serial_number VARCHAR(100),
     description TEXT,
-    stock_quantity INT DEFAULT 0,
-    price NUMERIC(10,2) NOT NULL,
-    warranty_status VARCHAR(100),
-    distributor_info TEXT,
-    image_url TEXT,
-    is_active BOOLEAN DEFAULT TRUE
+    price NUMERIC(10, 2),
+    warranty_status BOOLEAN,
+    distributor VARCHAR(200),
+    stock_quantity INTEGER
 );
