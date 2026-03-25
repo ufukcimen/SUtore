@@ -28,7 +28,8 @@ export function LoginPage() {
     setSubmitState({ kind: "idle", message: "" });
 
     try {
-      await http.post("/auth/login", form);
+      const response = await http.post("/auth/login", form);
+      localStorage.setItem("sutoreUser", JSON.stringify(response.data.user));
       navigate("/");
     } catch (error) {
       setSubmitState({

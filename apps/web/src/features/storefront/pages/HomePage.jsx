@@ -11,8 +11,19 @@ const categoryIcons = {
   components: Sparkles,
 };
 
+function getStoredUser() {
+  try {
+    const storedUser = localStorage.getItem("sutoreUser");
+    return storedUser ? JSON.parse(storedUser) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function HomePage() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [user] = useState(() => getStoredUser());
+  const displayName = user?.name?.trim() || user?.email?.split("@")[0] || "";
 
   return (
     <div className="min-h-screen overflow-hidden bg-[linear-gradient(135deg,#f7fbff_0%,#ecfeff_45%,#fff8eb_100%)] text-slate-950">
@@ -61,13 +72,26 @@ export function HomePage() {
           </div>
 
           <div className="ml-auto flex shrink-0 items-center gap-2 lg:min-w-[8rem] lg:justify-end">
-            <Link
-              to="/login"
-              className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10"
-              aria-label="Profile"
-            >
-              <User className="h-5 w-5" />
-            </Link>
+            {user ? (
+              <Link
+                to="/login"
+                className="inline-flex h-12 items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10"
+                aria-label="Profile"
+              >
+                <User className="h-5 w-5 shrink-0" />
+                <span className="max-w-32 truncate text-sm font-medium text-white">
+                  {displayName}
+                </span>
+              </Link>
+            ) : (
+              <Link
+                to="/login"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10"
+                aria-label="Profile"
+              >
+                <User className="h-5 w-5" />
+              </Link>
+            )}
             <button
               type="button"
               className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10"
