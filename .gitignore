@@ -3,6 +3,13 @@ dist/
 .vite/
 .DS_Store
 *.log
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
 .env
 .env.*
 !.env.example

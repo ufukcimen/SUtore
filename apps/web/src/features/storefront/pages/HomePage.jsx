@@ -1,6 +1,19 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { ChevronRight, Cpu, Laptop, Menu, Monitor, ShoppingCart, Search, Sparkles, User, X,} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  ChevronDown,
+  ChevronRight,
+  Cpu,
+  Laptop,
+  LogOut,
+  Menu,
+  Monitor,
+  Search,
+  ShoppingCart,
+  Sparkles,
+  User,
+  X,
+} from "lucide-react";
 import {categoryCards, extraMenuItems,} from "../data/storefrontContent";
 import { CategoryArtwork } from "../components/StorefrontArtwork";
 
@@ -10,6 +23,12 @@ const categoryIcons = {
   monitor: Monitor,
   components: Sparkles,
 };
+
+const WELCOME_STORAGE_KEY = "sutoreWelcomeUser";
+
+function getUserDisplayName(user) {
+  return user?.name?.trim() || user?.email?.split("@")[0] || "";
+}
 
 function getStoredUser() {
   try {
@@ -21,9 +40,66 @@ function getStoredUser() {
 }
 
 export function HomePage() {
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [user] = useState(() => getStoredUser());
-  const displayName = user?.name?.trim() || user?.email?.split("@")[0] || "";
+  const [user, setUser] = useState(() => getStoredUser());
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [welcomeName, setWelcomeName] = useState("");
+  const profileMenuRef = useRef(null);
+  const displayName = getUserDisplayName(user);
+
+  useEffect(() => {
+    try {
+      const storedWelcomeUser = sessionStorage.getItem(WELCOME_STORAGE_KEY);
+      if (!storedWelcomeUser) {
+        return;
+      }
+
+      const parsedUser = JSON.parse(storedWelcomeUser);
+      const nextWelcomeName = getUserDisplayName(parsedUser);
+      if (nextWelcomeName) {
+        setWelcomeName(nextWelcomeName);
+      }
+    } catch {
+      setWelcomeName("");
+    } finally {
+      sessionStorage.removeItem(WELCOME_STORAGE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!profileMenuOpen) {
+      return undefined;
+    }
+
+    function handlePointerDown(event) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setProfileMenuOpen(false);
+      }
+    }
+
+    function handleEscape(event) {
+      if (event.key === "Escape") {
+        setProfileMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [profileMenuOpen]);
+
+  function handleLogout() {
+    localStorage.removeItem("sutoreUser");
+    setUser(null);
+    setProfileMenuOpen(false);
+    setWelcomeName("");
+    navigate("/");
+  }
 
   return (
     <div className="min-h-screen overflow-hidden bg-[linear-gradient(135deg,#f7fbff_0%,#ecfeff_45%,#fff8eb_100%)] text-slate-950">
@@ -31,6 +107,32 @@ export function HomePage() {
       <div className="absolute -left-20 top-16 h-72 w-72 rounded-full bg-brand-glow/30 blur-3xl" />
       <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-brand-gold/20 blur-3xl" />
       <div className="absolute bottom-20 left-1/3 h-72 w-72 rounded-full bg-cyan-200/30 blur-3xl" />
+
+      {welcomeName ? (
+        <div className="fixed inset-x-4 top-24 z-40 flex justify-start sm:inset-x-6 lg:top-28 lg:px-10">
+          <div className="flex w-full max-w-sm items-start gap-4 rounded-[1.75rem] border border-cyan-200/70 bg-white/90 px-5 py-4 text-slate-900 shadow-[0_24px_60px_rgba(7,17,31,0.18)] backdrop-blur-xl">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-cyan-400/20 text-brand-accent">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
+                Signed in
+              </p>
+              <p className="mt-1 text-base font-semibold text-brand-ink">
+                Hello, {welcomeName}.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setWelcomeName("")}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 transition hover:border-cyan-300/50 hover:text-brand-ink"
+              aria-label="Close welcome message"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <header className="relative z-20 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[90rem] flex-wrap items-center gap-4 px-2 py-4 sm:px-4 lg:flex-nowrap lg:justify-between lg:px-5">
@@ -73,16 +175,38 @@ export function HomePage() {
 
           <div className="ml-auto flex shrink-0 items-center gap-2 lg:min-w-[8rem] lg:justify-end">
             {user ? (
-              <Link
-                to="/login"
-                className="inline-flex h-12 items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10"
-                aria-label="Profile"
-              >
-                <User className="h-5 w-5 shrink-0" />
-                <span className="max-w-32 truncate text-sm font-medium text-white">
-                  {displayName}
-                </span>
-              </Link>
+              <div className="relative" ref={profileMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setProfileMenuOpen((current) => !current)}
+                  className="inline-flex h-12 items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10"
+                  aria-label="Profile"
+                  aria-expanded={profileMenuOpen}
+                >
+                  <User className="h-5 w-5 shrink-0" />
+                  <span className="max-w-32 truncate text-sm font-medium text-white">
+                    {displayName}
+                  </span>
+                  <ChevronDown
+                    className={`h-4 w-4 shrink-0 text-cyan-200 transition-transform ${
+                      profileMenuOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {profileMenuOpen ? (
+                  <div className="absolute right-0 top-[calc(100%+0.75rem)] z-40 min-w-[13rem] overflow-hidden rounded-[1.4rem] border border-slate-200/80 bg-white/95 p-2 shadow-[0_24px_50px_rgba(7,17,31,0.18)] backdrop-blur-xl">
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="flex w-full items-center gap-3 rounded-[1rem] px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-brand-ink"
+                    >
+                      <LogOut className="h-4 w-4 text-brand-accent" />
+                      Logout
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             ) : (
               <Link
                 to="/login"

@@ -27,6 +27,13 @@ Update `.env` with your PostgreSQL connection string:
 DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST:5432/DATABASE
 ```
 
+The API always loads `apps/api/.env`, even if you start `uvicorn` from the repository
+root. Values in `.env` override the defaults in `app/core/config.py`.
+
+If you are using Neon or another hosted Postgres instance, make sure the database name
+at the end of `DATABASE_URL` matches the actual database that contains your `users`
+table and login data.
+
 If you want the API to create the `users` and `products` tables automatically
 from the SQLAlchemy models on startup, set:
 

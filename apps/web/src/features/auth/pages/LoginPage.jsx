@@ -6,6 +6,8 @@ import { http } from "../../../lib/http";
 import { AuthShell } from "../components/AuthShell";
 import { AuthInput } from "../components/AuthInput";
 
+const WELCOME_STORAGE_KEY = "sutoreWelcomeUser";
+
 export function LoginPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
@@ -30,6 +32,7 @@ export function LoginPage() {
     try {
       const response = await http.post("/auth/login", form);
       localStorage.setItem("sutoreUser", JSON.stringify(response.data.user));
+      sessionStorage.setItem(WELCOME_STORAGE_KEY, JSON.stringify(response.data.user));
       navigate("/");
     } catch (error) {
       setSubmitState({
