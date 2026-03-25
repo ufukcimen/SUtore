@@ -61,13 +61,13 @@ export function HomePage() {
           </div>
 
           <div className="ml-auto flex shrink-0 items-center gap-2 lg:min-w-[8rem] lg:justify-end">
-            <button
-              type="button"
+            <Link
+              to="/login"
               className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10"
               aria-label="Profile"
             >
               <User className="h-5 w-5" />
-            </button>
+            </Link>
             <button
               type="button"
               className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10"

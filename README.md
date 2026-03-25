@@ -1,28 +1,37 @@
 # SUtore
 
-Tech-parts e-commerce course project scaffolded for a production-style split frontend/backend setup.
+Tech-parts e-commerce course project split into a React frontend and a FastAPI
+backend.
 
 ## Structure
 
 - `apps/web`: React, Tailwind, Axios, React Router frontend
-- `apps/api`: reserved FastAPI + SQLAlchemy service structure
+- `apps/api`: FastAPI, SQLAlchemy, PostgreSQL backend
 
-## Current scope
-
-This iteration includes only the visual login and signup pages.
-No backend endpoints, database logic, or authentication flows were implemented.
-
-## Frontend run commands
+## Frontend
 
 From the repository root:
 
 ```bash
-npm.cmd install
-npm.cmd run dev:web
+npm install
+npm run dev:web
 ```
 
 Build the frontend:
 
 ```bash
-npm.cmd run build:web
+npm run build:web
 ```
+
+## Backend
+
+```bash
+cd apps/api
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+cp .env.example .env
+uvicorn app.main:app --reload
+```
+
+Set `DATABASE_URL` in `apps/api/.env` to point at your PostgreSQL instance.

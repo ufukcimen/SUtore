@@ -1,19 +1,49 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, BadgeCheck } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
+import { http } from "../../../lib/http";
 import { AuthShell } from "../components/AuthShell";
 import { AuthInput } from "../components/AuthInput";
 
 export function LoginPage() {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     email: "",
     password: "",
   });
+  const [submitState, setSubmitState] = useState({
+    kind: "idle",
+    message: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (field) => (event) => {
     setForm((current) => ({ ...current, [field]: event.target.value }));
   };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setSubmitState({ kind: "idle", message: "" });
+
+    try {
+      await http.post("/auth/login", form);
+      navigate("/");
+    } catch (error) {
+      setSubmitState({
+        kind: "error",
+        message: error.response?.data?.detail ?? "Login failed.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const statusClassName =
+    submitState.kind === "error"
+      ? "border-rose-200 bg-rose-50 text-rose-900"
+      : "border-emerald-100 bg-emerald-50 text-emerald-900";
 
   return (
     <AuthShell
@@ -29,7 +59,7 @@ export function LoginPage() {
         </p>
       }
     >
-      <form className="space-y-5">
+      <form className="space-y-5" onSubmit={handleSubmit}>
         <AuthInput
           id="login-email"
           label="Email address"
@@ -60,22 +90,28 @@ export function LoginPage() {
         </div>
 
         <Button
-          type="button"
+          type="submit"
+          disabled={isSubmitting}
           className="w-full gap-2 bg-brand-ink text-white hover:bg-slate-900"
         >
-          Sign in
+          {isSubmitting ? "Signing in..." : "Sign in"}
           <ArrowRight className="h-4 w-4" />
         </Button>
 
-        <div className="flex items-start gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-          <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0" />
-          <p>
-            This page is visual-only for now. It is ready to connect to your FastAPI
-            auth endpoints later without redesigning the layout.
-          </p>
-        </div>
+        {submitState.message ? (
+          <div
+            className={`flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm ${statusClassName}`}
+          >
+            <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>{submitState.message}</p>
+          </div>
+        ) : (
+          <div className="flex items-start gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+            <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>The form now posts to the FastAPI login endpoint at submit time.</p>
+          </div>
+        )}
       </form>
     </AuthShell>
   );
 }
-

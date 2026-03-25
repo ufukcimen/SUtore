@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
+import { http } from "../../../lib/http";
 import { AuthShell } from "../components/AuthShell";
 import { AuthInput } from "../components/AuthInput";
 
@@ -12,10 +13,45 @@ export function SignupPage() {
     email: "",
     password: "",
   });
+  const [submitState, setSubmitState] = useState({
+    kind: "idle",
+    message: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (field) => (event) => {
     setForm((current) => ({ ...current, [field]: event.target.value }));
   };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setSubmitState({ kind: "idle", message: "" });
+
+    try {
+      const response = await http.post("/auth/signup", {
+        name: `${form.firstName} ${form.lastName}`.trim(),
+        email: form.email,
+        password: form.password,
+      });
+      setSubmitState({
+        kind: "success",
+        message: response.data.message,
+      });
+    } catch (error) {
+      setSubmitState({
+        kind: "error",
+        message: error.response?.data?.detail ?? "Signup failed.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const statusClassName =
+    submitState.kind === "error"
+      ? "border-rose-200 bg-rose-50 text-rose-900"
+      : "border-amber-100 bg-amber-50 text-amber-900";
 
   return (
     <AuthShell
@@ -31,7 +67,7 @@ export function SignupPage() {
         </p>
       }
     >
-      <form className="space-y-5">
+      <form className="space-y-5" onSubmit={handleSubmit}>
         <div className="grid gap-5 sm:grid-cols-2">
           <AuthInput
             id="signup-first-name"
@@ -80,22 +116,28 @@ export function SignupPage() {
         </div>
 
         <Button
-          type="button"
+          type="submit"
+          disabled={isSubmitting}
           className="w-full gap-2 bg-brand-accent text-brand-ink hover:bg-brand-glow"
         >
-          Create account
+          {isSubmitting ? "Creating account..." : "Create account"}
           <ArrowRight className="h-4 w-4" />
         </Button>
 
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
-          <p>
-            The page is intentionally frontend-only. Your teammate can later connect the
-            same fields to PostgreSQL-backed signup flows in FastAPI.
-          </p>
-        </div>
+        {submitState.message ? (
+          <div
+            className={`flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm ${statusClassName}`}
+          >
+            <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>{submitState.message}</p>
+          </div>
+        ) : (
+          <div className="flex items-start gap-3 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>The form now posts to the FastAPI signup endpoint at submit time.</p>
+          </div>
+        )}
       </form>
     </AuthShell>
   );
 }
-

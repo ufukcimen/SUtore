@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sutore-api"
+version = "0.1.0"
+description = "FastAPI backend for the SUtore project"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.116,<1.0",
+  "uvicorn[standard]>=0.35,<1.0",
+  "sqlalchemy>=2.0,<3.0",
+  "psycopg[binary]>=3.2,<4.0",
+  "pydantic-settings>=2.10,<3.0",
+  "passlib[bcrypt]>=1.7,<2.0",
+  "email-validator>=2.2,<3.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
