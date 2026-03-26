@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, BadgeCheck } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
 import { http } from "../../../lib/http";
@@ -9,14 +9,17 @@ import { AuthInput } from "../components/AuthInput";
 const WELCOME_STORAGE_KEY = "sutoreWelcomeUser";
 
 export function LoginPage() {
+  const location = useLocation();
   const navigate = useNavigate();
+  const signupMessage = location.state?.signupMessage ?? "";
+  const signupEmail = location.state?.signupEmail ?? "";
   const [form, setForm] = useState({
-    email: "",
+    email: signupEmail,
     password: "",
   });
   const [submitState, setSubmitState] = useState({
-    kind: "idle",
-    message: "",
+    kind: signupMessage ? "success" : "idle",
+    message: signupMessage,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
