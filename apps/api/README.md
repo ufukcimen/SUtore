@@ -45,8 +45,11 @@ AUTO_CREATE_TABLES=true
 
 ```bash
 cd apps/api
-uvicorn app.main:app --reload
+python -B -m uvicorn app.main:app --reload
 ```
+
+The `-B` flag disables Python bytecode writes, so local runs do not generate
+`__pycache__` directories or `.pyc` files in the repository.
 
 ## Available routes
 

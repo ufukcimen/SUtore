@@ -31,7 +31,10 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -e .
 cp .env.example .env
-uvicorn app.main:app --reload
+cd ../..
+npm run dev:api
 ```
 
 Set `DATABASE_URL` in `apps/api/.env` to point at your PostgreSQL instance.
+The backend dev script runs Python with `-B`, which prevents `__pycache__` and
+`.pyc` files from being written into the repository during normal local runs.

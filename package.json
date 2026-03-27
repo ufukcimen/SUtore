@@ -6,9 +6,9 @@
     "apps/web"
   ],
   "scripts": {
+    "dev:api": "cd apps/api && python -B -m uvicorn app.main:app --reload",
     "dev:web": "npm --workspace apps/web run dev",
     "build:web": "npm --workspace apps/web run build",
     "preview:web": "npm --workspace apps/web run preview"
   }
 }
-
