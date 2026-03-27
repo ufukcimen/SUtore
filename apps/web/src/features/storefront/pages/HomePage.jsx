@@ -5,6 +5,7 @@ import {
   ChevronRight,
   Cpu,
   Laptop,
+  LoaderCircle,
   LogOut,
   Menu,
   Monitor,
@@ -44,8 +45,10 @@ export function HomePage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState(() => getStoredUser());
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [welcomeName, setWelcomeName] = useState("");
   const profileMenuRef = useRef(null);
+  const logoutTimeoutRef = useRef(null);
   const displayName = getUserDisplayName(user);
 
   useEffect(() => {
@@ -93,12 +96,25 @@ export function HomePage() {
     };
   }, [profileMenuOpen]);
 
+  useEffect(() => {
+    return () => {
+      if (logoutTimeoutRef.current) {
+        window.clearTimeout(logoutTimeoutRef.current);
+      }
+    };
+  }, []);
+
   function handleLogout() {
-    localStorage.removeItem("sutoreUser");
-    setUser(null);
     setProfileMenuOpen(false);
-    setWelcomeName("");
-    navigate("/");
+    setIsLoggingOut(true);
+
+    logoutTimeoutRef.current = window.setTimeout(() => {
+      localStorage.removeItem("sutoreUser");
+      setUser(null);
+      setWelcomeName("");
+      setIsLoggingOut(false);
+      navigate("/", { replace: true });
+    }, 700);
   }
 
   return (
@@ -107,6 +123,22 @@ export function HomePage() {
       <div className="absolute -left-20 top-16 h-72 w-72 rounded-full bg-brand-glow/30 blur-3xl" />
       <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-brand-gold/20 blur-3xl" />
       <div className="absolute bottom-20 left-1/3 h-72 w-72 rounded-full bg-cyan-200/30 blur-3xl" />
+
+      {isLoggingOut ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-md">
+          <div className="w-full max-w-sm rounded-[1.9rem] border border-white/60 bg-white/90 px-6 py-6 text-center shadow-[0_28px_80px_rgba(7,17,31,0.2)]">
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-cyan-400/20 text-brand-accent">
+              <LoaderCircle className="h-6 w-6 animate-spin" />
+            </div>
+            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
+              Signing out
+            </p>
+            <p className="mt-2 text-lg font-semibold text-brand-ink">
+              Closing your session.
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       {welcomeName ? (
         <div className="fixed inset-x-4 top-24 z-40 flex justify-start sm:inset-x-6 lg:top-28 lg:px-10">
@@ -134,7 +166,11 @@ export function HomePage() {
         </div>
       ) : null}
 
-      <header className="relative z-20 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl">
+      <header
+        className={`relative z-20 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl transition duration-500 ${
+          isLoggingOut ? "scale-[0.99] opacity-0" : "opacity-100"
+        }`}
+      >
         <div className="mx-auto flex max-w-[90rem] flex-wrap items-center gap-4 px-2 py-4 sm:px-4 lg:flex-nowrap lg:justify-between lg:px-5">
           <div className="flex shrink-0 items-center gap-4 lg:min-w-[18rem]">
             <button
@@ -274,7 +310,11 @@ export function HomePage() {
           </div>
         </div>
 
-        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-10 lg:py-10 xl:pl-14 xl:pr-8">
+        <main
+          className={`mx-auto max-w-7xl px-4 py-8 transition duration-500 sm:px-6 lg:px-10 lg:py-10 xl:pl-14 xl:pr-8 ${
+            isLoggingOut ? "translate-y-3 opacity-0" : "translate-y-0 opacity-100"
+          }`}
+        >
           <section>
           <div
             id="custom-pc-creator"
