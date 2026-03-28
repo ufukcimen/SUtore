@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
 import { http } from "../../../lib/http";
@@ -7,6 +7,7 @@ import { AuthShell } from "../components/AuthShell";
 import { AuthInput } from "../components/AuthInput";
 
 export function SignupPage() {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -34,9 +35,13 @@ export function SignupPage() {
         email: form.email,
         password: form.password,
       });
-      setSubmitState({
-        kind: "success",
-        message: response.data.message,
+      navigate("/login", {
+        state: {
+          signupMessage:
+            response.data.message ??
+            "Your account is ready. Sign in with the email and password you just created.",
+          signupEmail: form.email,
+        },
       });
     } catch (error) {
       setSubmitState({
