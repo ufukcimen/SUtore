@@ -1,4 +1,5 @@
-import { Cpu, ShieldCheck, Truck } from "lucide-react";
+import { ArrowLeft, Cpu, ShieldCheck, Truck } from "lucide-react";
+import { Link } from "react-router-dom";
 import { authHighlights, trustedBrands } from "../data/authContent";
 
 const iconMap = [ShieldCheck, Cpu, Truck];
@@ -18,6 +19,15 @@ export function AuthShell({ eyebrow, title, description, children, alternateLink
                 <p className="text-sm uppercase tracking-[0.35em] text-brand-glow/80">
                   SUtore
                 </p>
+                <div className="mt-5">
+                  <Link
+                    to="/"
+                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-cyan-300/40 hover:bg-white/10 hover:text-white"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to main page
+                  </Link>
+                </div>
                 <h1 className="mt-3 max-w-md text-4xl font-semibold leading-tight sm:text-5xl">
                   Premium tech storefront for parts, performance, and trust.
                 </h1>

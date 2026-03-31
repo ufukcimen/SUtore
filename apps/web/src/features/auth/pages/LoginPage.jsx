@@ -8,6 +8,17 @@ import { AuthInput } from "../components/AuthInput";
 
 const WELCOME_STORAGE_KEY = "sutoreWelcomeUser";
 
+function getErrorMessage(error, fallback) {
+  const detail = error.response?.data?.detail;
+  if (typeof detail === "string") {
+    return detail;
+  }
+  if (Array.isArray(detail) && detail.length > 0) {
+    return detail.map((item) => item?.msg).filter(Boolean).join(" ");
+  }
+  return fallback;
+}
+
 export function LoginPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -40,7 +51,7 @@ export function LoginPage() {
     } catch (error) {
       setSubmitState({
         kind: "error",
-        message: error.response?.data?.detail ?? "Login failed.",
+        message: getErrorMessage(error, "Login failed."),
       });
     } finally {
       setIsSubmitting(false);

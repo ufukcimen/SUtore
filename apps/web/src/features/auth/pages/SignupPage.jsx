@@ -1,10 +1,134 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Check, Circle, Sparkles } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
 import { http } from "../../../lib/http";
 import { AuthShell } from "../components/AuthShell";
 import { AuthInput } from "../components/AuthInput";
+
+const PASSWORD_RULES = [
+  {
+    id: "length",
+    label: "At least 8 characters",
+    test: (value) => value.length >= 8,
+  },
+  {
+    id: "uppercase",
+    label: "At least 1 uppercase letter",
+    test: (value) => /[A-Z]/.test(value),
+  },
+  {
+    id: "lowercase",
+    label: "At least 1 lowercase letter",
+    test: (value) => /[a-z]/.test(value),
+  },
+  {
+    id: "number",
+    label: "At least 1 number",
+    test: (value) => /\d/.test(value),
+  },
+  {
+    id: "special",
+    label: "At least 1 special character",
+    test: (value) => /[^\w\s]/.test(value),
+  },
+  {
+    id: "spaces",
+    label: "No spaces",
+    test: (value) => !/\s/.test(value),
+  },
+];
+
+function evaluatePassword(value) {
+  const checks = PASSWORD_RULES.map((rule) => ({
+    ...rule,
+    passed: rule.test(value),
+  }));
+  const passedCount = checks.filter((rule) => rule.passed).length;
+  const totalRules = checks.length;
+
+  if (!value) {
+    return {
+      checks,
+      passedCount,
+      totalRules,
+      isValid: false,
+      label: "Start typing",
+      fillClass: "bg-slate-300",
+      textClass: "text-slate-500",
+      chipClass: "border-slate-200 bg-slate-100 text-slate-500",
+      fillPercent: 0,
+    };
+  }
+
+  if (passedCount <= 2) {
+    return {
+      checks,
+      passedCount,
+      totalRules,
+      isValid: false,
+      label: "Weak",
+      fillClass: "bg-rose-400",
+      textClass: "text-rose-700",
+      chipClass: "border-rose-200 bg-rose-50 text-rose-700",
+      fillPercent: Math.max((passedCount / totalRules) * 100, 18),
+    };
+  }
+
+  if (passedCount <= 4) {
+    return {
+      checks,
+      passedCount,
+      totalRules,
+      isValid: false,
+      label: "Fair",
+      fillClass: "bg-amber-400",
+      textClass: "text-amber-700",
+      chipClass: "border-amber-200 bg-amber-50 text-amber-700",
+      fillPercent: (passedCount / totalRules) * 100,
+    };
+  }
+
+  if (passedCount === 5) {
+    return {
+      checks,
+      passedCount,
+      totalRules,
+      isValid: false,
+      label: "Strong",
+      fillClass: "bg-cyan-500",
+      textClass: "text-cyan-700",
+      chipClass: "border-cyan-200 bg-cyan-50 text-cyan-700",
+      fillPercent: (passedCount / totalRules) * 100,
+    };
+  }
+
+  return {
+    checks,
+    passedCount,
+    totalRules,
+    isValid: true,
+    label: "Very strong",
+    fillClass: "bg-emerald-500",
+    textClass: "text-emerald-700",
+    chipClass: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    fillPercent: 100,
+  };
+}
+
+const PASSWORD_ERROR_MESSAGE =
+  "Password must be at least 8 characters and include uppercase, lowercase, number, special character, and no spaces.";
+
+function getErrorMessage(error, fallback) {
+  const detail = error.response?.data?.detail;
+  if (typeof detail === "string") {
+    return detail;
+  }
+  if (Array.isArray(detail) && detail.length > 0) {
+    return detail[0]?.msg ?? fallback;
+  }
+  return fallback;
+}
 
 export function SignupPage() {
   const navigate = useNavigate();
@@ -19,6 +143,7 @@ export function SignupPage() {
     message: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const passwordState = evaluatePassword(form.password);
 
   const handleChange = (field) => (event) => {
     setForm((current) => ({ ...current, [field]: event.target.value }));
@@ -26,6 +151,14 @@ export function SignupPage() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (!passwordState.isValid) {
+      setSubmitState({
+        kind: "error",
+        message: PASSWORD_ERROR_MESSAGE,
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitState({ kind: "idle", message: "" });
 
@@ -46,7 +179,7 @@ export function SignupPage() {
     } catch (error) {
       setSubmitState({
         kind: "error",
-        message: error.response?.data?.detail ?? "Signup failed.",
+        message: getErrorMessage(error, "Signup failed."),
       });
     } finally {
       setIsSubmitting(false);
@@ -105,10 +238,62 @@ export function SignupPage() {
           label="Password"
           type="password"
           placeholder="Create a strong password"
-          hint="Design note: this can later pair with password strength and confirmation rules."
           value={form.password}
           onChange={handleChange("password")}
         />
+
+        <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50/90 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
+                Password strength
+              </p>
+              <p className={`mt-1 text-sm font-semibold ${passwordState.textClass}`}>
+                {passwordState.label}
+              </p>
+            </div>
+            <span
+              className={`rounded-full border px-3 py-1 text-xs font-semibold ${passwordState.chipClass}`}
+            >
+              {passwordState.passedCount}/{passwordState.totalRules} rules met
+            </span>
+          </div>
+
+          <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-200">
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${passwordState.fillClass}`}
+              style={{ width: `${passwordState.fillPercent}%` }}
+            />
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {passwordState.checks.map((rule) => (
+              <div
+                key={rule.id}
+                className={`flex items-center gap-3 rounded-2xl px-3 py-2 text-sm transition ${
+                  rule.passed
+                    ? "bg-emerald-50 text-emerald-800"
+                    : "bg-white text-slate-500"
+                }`}
+              >
+                <span
+                  className={`grid h-5 w-5 shrink-0 place-items-center rounded-full ${
+                    rule.passed
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-slate-100 text-slate-400"
+                  }`}
+                >
+                  {rule.passed ? (
+                    <Check className="h-3.5 w-3.5" />
+                  ) : (
+                    <Circle className="h-2.5 w-2.5 fill-current" />
+                  )}
+                </span>
+                <span>{rule.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
 
         <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
           <label className="flex items-start gap-3">
