@@ -18,7 +18,7 @@ cd apps/api
 python -m venv .venv
 source .venv/bin/activate
 pip install -e .
-cp .env.example .env
+test -f .env || cp .env.example .env
 ```
 
 Update `.env` with your PostgreSQL connection string:
@@ -26,6 +26,10 @@ Update `.env` with your PostgreSQL connection string:
 ```env
 DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST:5432/DATABASE
 ```
+
+The setup command above only copies `.env.example` if `.env` does not already
+exist, so an existing local database configuration is not overwritten by
+default.
 
 The API always loads `apps/api/.env`, even if you start `uvicorn` from the repository
 root. Values in `.env` override the defaults in `app/core/config.py`.

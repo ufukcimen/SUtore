@@ -30,7 +30,7 @@ cd apps/api
 python -m venv .venv
 source .venv/bin/activate
 pip install -e .
-cp .env.example .env
+test -f .env || cp .env.example .env
 cd ../..
 npm run dev:api
 ```
