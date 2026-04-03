@@ -1,17 +1,16 @@
 export const authHighlights = [
   {
-    title: "Live stock visibility",
-    description: "Show buyers what is ready to ship before they reach checkout.",
+    title: "Ready-to-ship inventory",
+    description: "See current availability before you add key parts to your cart.",
   },
   {
-    title: "Wishlist-ready experience",
-    description: "Design patterns that scale smoothly into discounts and alerts later on.",
+    title: "Saved products",
+    description: "Keep track of shortlisted components and return when you are ready to buy.",
   },
   {
-    title: "Built for trust",
-    description: "Professional visuals for a store handling accounts, orders, and payments.",
+    title: "Secure checkout foundation",
+    description: "Account access, order history, and purchase details stay organized in one place.",
   },
 ];
 
 export const trustedBrands = ["ASUS", "MSI", "Logitech", "Intel", "Corsair"];
-

@@ -51,7 +51,7 @@ export function LoginPage() {
     } catch (error) {
       setSubmitState({
         kind: "error",
-        message: getErrorMessage(error, "Login failed."),
+        message: getErrorMessage(error, "We couldn't sign you in. Please try again."),
       });
     } finally {
       setIsSubmitting(false);
@@ -66,8 +66,8 @@ export function LoginPage() {
   return (
     <AuthShell
       eyebrow="Account access"
-      title="Welcome back to your setup."
-      description="Access orders, saved builds, wishlisted products, and future checkout details from one secure place."
+      title="Welcome back."
+      description="Sign in to track orders, manage saved items, and complete checkout faster from your SUtore account."
       alternateLink={
         <p>
           New to SUtore?{" "}
@@ -92,7 +92,7 @@ export function LoginPage() {
           label="Password"
           type="password"
           placeholder="Enter your password"
-          hint="Backend integration can later plug into this same form structure."
+          hint="Use the password associated with your SUtore account."
           value={form.password}
           onChange={handleChange("password")}
         />
@@ -126,7 +126,7 @@ export function LoginPage() {
         ) : (
           <div className="flex items-start gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
             <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0" />
-            <p>The form now posts to the FastAPI login endpoint at submit time.</p>
+            <p>Secure sign-in gives you access to orders, saved products, and account details.</p>
           </div>
         )}
       </form>

@@ -179,7 +179,7 @@ export function SignupPage() {
     } catch (error) {
       setSubmitState({
         kind: "error",
-        message: getErrorMessage(error, "Signup failed."),
+        message: getErrorMessage(error, "We couldn't create your account. Please try again."),
       });
     } finally {
       setIsSubmitting(false);
@@ -194,8 +194,8 @@ export function SignupPage() {
   return (
     <AuthShell
       eyebrow="Create account"
-      title="Build your shopper profile."
-      description="Start with a sleek onboarding experience that can later expand into addresses, order history, and wishlist management."
+      title="Create your SUtore account."
+      description="Set up your account to place orders, track deliveries, save products, and manage purchase details in one place."
       alternateLink={
         <p>
           Already have an account?{" "}
@@ -324,7 +324,7 @@ export function SignupPage() {
         ) : (
           <div className="flex items-start gap-3 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
-            <p>The form now posts to the FastAPI signup endpoint at submit time.</p>
+            <p>Create your account to start shopping, save products, and track every order from one dashboard.</p>
           </div>
         )}
       </form>

@@ -25,25 +25,24 @@ export function AuthShell({ eyebrow, title, description, children, alternateLink
                     className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-cyan-300/40 hover:bg-white/10 hover:text-white"
                   >
                     <ArrowLeft className="h-4 w-4" />
-                    Back to main page
+                    Back to store
                   </Link>
                 </div>
                 <h1 className="mt-3 max-w-md text-4xl font-semibold leading-tight sm:text-5xl">
-                  Premium tech storefront for parts, performance, and trust.
+                  Trusted tech shopping for parts, performance, and fast delivery.
                 </h1>
               </div>
               <div className="hidden rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-right backdrop-blur sm:block">
                 <p className="text-xs uppercase tracking-[0.3em] text-brand-glow/70">
-                  Launch Track
+                  Customer Access
                 </p>
-                <p className="mt-2 text-lg font-semibold">Auth UI Sprint</p>
+                <p className="mt-2 text-lg font-semibold">Accounts & Orders</p>
               </div>
             </div>
 
             <p className="max-w-xl text-base leading-7 text-slate-300">
-              Sign in and account creation are usually the first trust checkpoint for
-              shoppers. These screens are designed to feel secure, modern, and aligned
-              with a serious electronics retailer.
+              Sign in or create an account to manage orders, saved products, delivery
+              details, and checkout information with confidence.
             </p>
 
             <div className="grid gap-4 md:grid-cols-3">
@@ -105,4 +104,3 @@ export function AuthShell({ eyebrow, title, description, children, alternateLink
     </main>
   );
 }
-
