@@ -252,13 +252,13 @@ export function HomePage() {
                 <User className="h-5 w-5" />
               </Link>
             )}
-            <button
-              type="button"
+            <Link
+              to="/cart"
               className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10"
               aria-label="Cart"
             >
               <ShoppingCart className="h-5 w-5" />
-            </button>
+            </Link>
           </div>
         </div>
       </header>
