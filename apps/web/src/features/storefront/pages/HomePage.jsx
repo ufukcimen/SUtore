@@ -425,13 +425,9 @@ export function HomePage() {
           <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             {categoryCards.map((card) => {
               const Icon = categoryIcons[card.type];
-
-              return (
-                <article
-                  key={card.title}
-                  id={card.type === "desktop" ? "oem-pc-builds" : undefined}
-                  className="group overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/75 p-4 shadow-[0_18px_40px_rgba(7,17,31,0.08)] transition duration-200 hover:-translate-y-1 hover:border-cyan-300/40 hover:shadow-[0_26px_48px_rgba(7,17,31,0.12)]"
-                >
+              const isLaptopCategory = card.type === "laptop";
+              const cardContent = (
+                <>
                   <div className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-slate-950/90">
                     <CategoryArtwork type={card.type} />
                   </div>
@@ -448,13 +444,33 @@ export function HomePage() {
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-brand-accent transition group-hover:text-brand-ink"
-                  >
+                  <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-brand-accent transition group-hover:text-brand-ink">
                     Explore category
                     <ChevronRight className="h-4 w-4" />
-                  </button>
+                  </span>
+                </>
+              );
+
+              if (isLaptopCategory) {
+                return (
+                  <Link
+                    key={card.title}
+                    to="/laptops"
+                    className="group block overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/75 p-4 shadow-[0_18px_40px_rgba(7,17,31,0.08)] transition duration-200 hover:-translate-y-1 hover:border-cyan-300/40 hover:shadow-[0_26px_48px_rgba(7,17,31,0.12)]"
+                    aria-label={`Open ${card.title} category`}
+                  >
+                    {cardContent}
+                  </Link>
+                );
+              }
+
+              return (
+                <article
+                  key={card.title}
+                  id={card.type === "desktop" ? "oem-pc-builds" : undefined}
+                  className="group overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/75 p-4 shadow-[0_18px_40px_rgba(7,17,31,0.08)] transition duration-200 hover:-translate-y-1 hover:border-cyan-300/40 hover:shadow-[0_26px_48px_rgba(7,17,31,0.12)]"
+                >
+                  {cardContent}
                 </article>
               );
             })}

@@ -18,3 +18,4 @@ class Product(Base):
     warranty_status: Mapped[bool | None] = mapped_column(Boolean)
     distributor: Mapped[str | None] = mapped_column(String(200))
     stock_quantity: Mapped[int | None] = mapped_column(Integer)
+    image_url: Mapped[str | None] = mapped_column(Text)

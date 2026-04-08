@@ -12,6 +12,7 @@ class ProductBase(BaseModel):
     warranty_status: bool | None = None
     distributor: str | None = Field(default=None, max_length=200)
     stock_quantity: int | None = None
+    image_url: str | None = None
 
 
 class ProductCreate(ProductBase):
