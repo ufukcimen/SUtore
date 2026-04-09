@@ -57,6 +57,14 @@ class UserRead(BaseModel):
     home_address: str | None
 
 
+class UserUpdate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+
+
 class AuthResponse(BaseModel):
     message: str
     user: UserRead
+
+
+class ActionResponse(BaseModel):
+    message: str

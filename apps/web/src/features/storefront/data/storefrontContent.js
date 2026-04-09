@@ -10,12 +10,30 @@ export const primaryNav = [
 ];
 
 export const extraMenuItems = [
-  "Gaming Accessories",
-  "Storage Devices",
-  "Network",
-  "Peripherals",
-  "Audio",
-  "Streaming Gear",
+  {
+    label: "Gaming Accessories",
+    route: "/gaming-accessories",
+  },
+  {
+    label: "Storage Devices",
+    route: "/storage-devices",
+  },
+  {
+    label: "Network",
+    route: "/network",
+  },
+  {
+    label: "Peripherals",
+    route: "/peripherals",
+  },
+  {
+    label: "Audio",
+    route: "/audio",
+  },
+  {
+    label: "Streaming Gear",
+    route: "/streaming-gear",
+  },
 ];
 
 export const categoryCards = [
