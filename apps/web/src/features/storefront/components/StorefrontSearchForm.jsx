@@ -6,6 +6,8 @@ export function StorefrontSearchForm({
   onSubmit,
   onFocus,
   onKeyDown,
+  inputRef,
+  inputProps,
   placeholder = "Search products...",
   className = "",
   variant = "dark",
@@ -25,6 +27,7 @@ export function StorefrontSearchForm({
       <label className={labelClassName}>
         <Search className="h-5 w-5 text-cyan-200" />
         <input
+          ref={inputRef}
           type="search"
           value={value}
           onChange={onChange}
@@ -33,6 +36,7 @@ export function StorefrontSearchForm({
           placeholder={placeholder}
           className={inputClassName}
           autoComplete="off"
+          {...inputProps}
         />
       </label>
     </form>

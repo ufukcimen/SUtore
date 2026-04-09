@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronRight, LoaderCircle, Search } from "lucide-react";
 import { StorefrontSearchForm } from "./StorefrontSearchForm";
@@ -33,26 +33,38 @@ function formatPrice(price) {
 
 function getDropdownClassName(variant) {
   if (variant === "light") {
-    return "absolute left-0 right-0 top-[calc(100%+0.85rem)] z-40 overflow-hidden rounded-[1.6rem] border border-slate-200/80 bg-white/95 shadow-[0_28px_60px_rgba(7,17,31,0.14)] backdrop-blur-xl";
+    return "absolute left-0 right-0 top-[calc(100%+0.85rem)] z-40 overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white shadow-[0_28px_60px_rgba(7,17,31,0.14)]";
   }
 
-  return "absolute left-0 right-0 top-[calc(100%+0.85rem)] z-40 overflow-hidden rounded-[1.6rem] border border-white/10 bg-slate-950/95 shadow-[0_28px_60px_rgba(2,6,23,0.45)] backdrop-blur-xl";
+  return "absolute left-0 right-0 top-[calc(100%+0.85rem)] z-40 overflow-hidden rounded-[1.6rem] border border-slate-800 bg-slate-950 shadow-[0_28px_60px_rgba(2,6,23,0.45)]";
 }
 
-function getResultButtonClassName(variant) {
+function getResultButtonClassName(variant, isActive) {
   if (variant === "light") {
-    return "flex w-full items-start justify-between gap-4 rounded-[1.2rem] px-4 py-4 text-left transition hover:bg-slate-100";
+    return `flex w-full items-start justify-between gap-4 rounded-[1.2rem] px-4 py-4 text-left transition ${
+      isActive ? "bg-slate-100 ring-1 ring-cyan-300/60" : "hover:bg-slate-100"
+    }`;
   }
 
-  return "flex w-full items-start justify-between gap-4 rounded-[1.2rem] px-4 py-4 text-left transition hover:bg-white/5";
+  return `flex w-full items-start justify-between gap-4 rounded-[1.2rem] px-4 py-4 text-left transition ${
+    isActive ? "bg-slate-800 ring-1 ring-cyan-300/40" : "hover:bg-slate-800"
+  }`;
 }
 
-function getFooterButtonClassName(variant) {
+function getFooterButtonClassName(variant, isActive) {
   if (variant === "light") {
-    return "flex w-full items-center justify-between rounded-[1.2rem] border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-brand-ink transition hover:border-cyan-300/50 hover:text-brand-accent";
+    return `flex w-full items-center justify-between rounded-[1.2rem] border bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-brand-ink transition ${
+      isActive
+        ? "border-cyan-300/70 text-brand-accent ring-1 ring-cyan-300/40"
+        : "border-slate-200 hover:border-cyan-300/50 hover:text-brand-accent"
+    }`;
   }
 
-  return "flex w-full items-center justify-between rounded-[1.2rem] border border-white/10 bg-white/[0.04] px-4 py-3 text-left text-sm font-semibold text-white transition hover:border-cyan-300/40 hover:bg-white/[0.08]";
+  return `flex w-full items-center justify-between rounded-[1.2rem] border bg-slate-900 px-4 py-3 text-left text-sm font-semibold text-white transition ${
+    isActive
+      ? "border-cyan-300/50 text-cyan-100 ring-1 ring-cyan-300/30"
+      : "border-slate-800 hover:border-cyan-300/40 hover:bg-slate-800"
+  }`;
 }
 
 export function StorefrontLiveSearch({
@@ -64,12 +76,22 @@ export function StorefrontLiveSearch({
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const inputId = useId();
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef(null);
+  const inputRef = useRef(null);
   const { normalizedQuery, products, isLoading, errorMessage } = useProductSearch(query, {
     limit: 6,
   });
+  const hasNavigableResults = !isLoading && !errorMessage && products.length > 0;
+  const footerIndex = hasNavigableResults ? products.length : 0;
+  const canNavigate = Boolean(normalizedQuery && !isLoading && !errorMessage);
+
+  useEffect(() => {
+    setActiveIndex(-1);
+  }, [normalizedQuery, isLoading, errorMessage, products.length]);
 
   useEffect(() => {
     if (!syncWithSearchPage || location.pathname !== "/search") {
@@ -115,14 +137,69 @@ export function StorefrontLiveSearch({
 
   function handleSuggestionSelect(nextQuery) {
     setQuery(nextQuery);
+    setIsOpen(false);
     openSearchResults(nextQuery);
   }
 
+  function handleFooterSelect() {
+    setIsOpen(false);
+    openSearchResults(query);
+  }
+
+  function handleKeyDown(event) {
+    if (event.key === "Escape") {
+      setIsOpen(false);
+      setActiveIndex(-1);
+      return;
+    }
+
+    if (!canNavigate) {
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setIsOpen(true);
+      setActiveIndex((current) => {
+        const nextIndex = current + 1;
+        return nextIndex > footerIndex ? 0 : nextIndex;
+      });
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setIsOpen(true);
+      setActiveIndex((current) => {
+        if (current === -1 || current === 0) {
+          return footerIndex;
+        }
+
+        return current - 1;
+      });
+      return;
+    }
+
+    if (event.key === "Enter" && isOpen && activeIndex !== -1) {
+      event.preventDefault();
+
+      if (hasNavigableResults && activeIndex < products.length) {
+        handleSuggestionSelect(products[activeIndex].name ?? "");
+        return;
+      }
+
+      handleFooterSelect();
+    }
+  }
+
   const showDropdown = isOpen && normalizedQuery;
+  const activeDescendant =
+    activeIndex >= 0 ? `${inputId}-option-${activeIndex}` : undefined;
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
       <StorefrontSearchForm
+        inputRef={inputRef}
         value={query}
         onChange={(event) => {
           setQuery(event.target.value);
@@ -130,18 +207,21 @@ export function StorefrontLiveSearch({
         }}
         onSubmit={handleSubmit}
         onFocus={() => setIsOpen(true)}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") {
-            setIsOpen(false);
-          }
-        }}
+        onKeyDown={handleKeyDown}
         placeholder={placeholder}
         variant={variant}
+        inputProps={{
+          role: "combobox",
+          "aria-autocomplete": "list",
+          "aria-expanded": showDropdown,
+          "aria-controls": showDropdown ? `${inputId}-listbox` : undefined,
+          "aria-activedescendant": showDropdown ? activeDescendant : undefined,
+        }}
       />
 
       {showDropdown ? (
         <div className={getDropdownClassName(variant)}>
-          <div className="space-y-2 p-3">
+          <div id={`${inputId}-listbox`} role="listbox" className="space-y-2 p-3">
             <div
               className={`flex items-center justify-between px-2 pt-1 text-xs font-semibold uppercase tracking-[0.24em] ${
                 variant === "light" ? "text-slate-500" : "text-cyan-200/80"
@@ -154,7 +234,7 @@ export function StorefrontLiveSearch({
             {isLoading ? (
               <div
                 className={`flex items-center gap-3 rounded-[1.2rem] px-4 py-4 text-sm ${
-                  variant === "light" ? "bg-slate-50 text-slate-600" : "bg-white/[0.04] text-slate-300"
+                  variant === "light" ? "bg-slate-50 text-slate-600" : "bg-slate-900 text-slate-300"
                 }`}
               >
                 <LoaderCircle className="h-4 w-4 animate-spin text-brand-accent" />
@@ -175,12 +255,16 @@ export function StorefrontLiveSearch({
             ) : null}
 
             {!isLoading && !errorMessage && products.length > 0 ? (
-              products.map((product) => (
+              products.map((product, index) => (
                 <button
+                  id={`${inputId}-option-${index}`}
                   key={product.product_id ?? product.name}
                   type="button"
+                  role="option"
+                  aria-selected={activeIndex === index}
                   onClick={() => handleSuggestionSelect(product.name ?? "")}
-                  className={getResultButtonClassName(variant)}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  className={getResultButtonClassName(variant, activeIndex === index)}
                 >
                   <div className="min-w-0">
                     <p
@@ -213,7 +297,7 @@ export function StorefrontLiveSearch({
                     className={`shrink-0 rounded-2xl px-3 py-2 text-xs font-semibold ${
                       variant === "light"
                         ? "bg-slate-100 text-slate-700"
-                        : "bg-white/[0.06] text-slate-100"
+                        : "bg-slate-800 text-slate-100"
                     }`}
                   >
                     {formatPrice(product.price)}
@@ -225,7 +309,7 @@ export function StorefrontLiveSearch({
             {!isLoading && !errorMessage && products.length === 0 ? (
               <div
                 className={`rounded-[1.2rem] px-4 py-4 text-sm ${
-                  variant === "light" ? "bg-slate-50 text-slate-600" : "bg-white/[0.04] text-slate-300"
+                  variant === "light" ? "bg-slate-50 text-slate-600" : "bg-slate-900 text-slate-300"
                 }`}
               >
                 No instant matches found for "{normalizedQuery}".
@@ -233,9 +317,13 @@ export function StorefrontLiveSearch({
             ) : null}
 
             <button
+              id={`${inputId}-option-${footerIndex}`}
               type="button"
-              onClick={() => openSearchResults(query)}
-              className={getFooterButtonClassName(variant)}
+              role="option"
+              aria-selected={activeIndex === footerIndex}
+              onClick={handleFooterSelect}
+              onMouseEnter={() => setActiveIndex(footerIndex)}
+              className={getFooterButtonClassName(variant, activeIndex === footerIndex)}
             >
               <span className="inline-flex items-center gap-2">
                 <Search className="h-4 w-4 text-brand-accent" />
