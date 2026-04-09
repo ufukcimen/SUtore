@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
@@ -11,27 +11,10 @@ import {
   UserRound,
 } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
+import { clearStoredUser, writeStoredUser } from "../../../lib/authStorage";
 import { StorefrontPageShell } from "../../cart/components/StorefrontPageShell";
 import { http } from "../../../lib/http";
-
-const USER_STORAGE_KEY = "sutoreUser";
-
-function getStoredUser() {
-  try {
-    const storedUser = localStorage.getItem(USER_STORAGE_KEY);
-    return storedUser ? JSON.parse(storedUser) : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeStoredUser(user) {
-  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
-}
-
-function clearStoredUser() {
-  localStorage.removeItem(USER_STORAGE_KEY);
-}
+import { useStoredUser } from "../../../lib/useStoredUser";
 
 function getUserDisplayName(user) {
   return user?.name?.trim() || user?.email?.split("@")[0] || "Account";
@@ -78,13 +61,17 @@ function DetailCard({ icon: Icon, label, value }) {
 
 export function AccountSettingsPage() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(() => getStoredUser());
-  const [draftName, setDraftName] = useState(() => getStoredUser()?.name ?? "");
+  const user = useStoredUser();
+  const [draftName, setDraftName] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [profileState, setProfileState] = useState({ kind: "idle", message: "" });
   const [deleteState, setDeleteState] = useState({ kind: "idle", message: "" });
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    setDraftName(user?.name ?? "");
+  }, [user?.name]);
 
   if (!user) {
     return (
@@ -138,7 +125,6 @@ export function AccountSettingsPage() {
       const response = await http.patch(`/auth/users/${user.user_id}`, { name: nextName });
       const nextUser = response.data.user;
       writeStoredUser(nextUser);
-      setUser(nextUser);
       setDraftName(nextUser.name ?? "");
       setProfileState({
         kind: "success",

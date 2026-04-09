@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, BadgeCheck } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
+import { writeStoredUser } from "../../../lib/authStorage";
 import { http } from "../../../lib/http";
 import { AuthShell } from "../components/AuthShell";
 import { AuthInput } from "../components/AuthInput";
@@ -45,7 +46,7 @@ export function LoginPage() {
 
     try {
       const response = await http.post("/auth/login", form);
-      localStorage.setItem("sutoreUser", JSON.stringify(response.data.user));
+      writeStoredUser(response.data.user);
       sessionStorage.setItem(WELCOME_STORAGE_KEY, JSON.stringify(response.data.user));
       navigate("/");
     } catch (error) {

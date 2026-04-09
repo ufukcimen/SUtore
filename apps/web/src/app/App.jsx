@@ -1,6 +1,12 @@
+import { FloatingStorefrontHeader } from "../features/storefront/components/FloatingStorefrontHeader";
 import { AppRouter } from "../routes/AppRouter";
 
 export default function App() {
-  return <AppRouter />;
+  return (
+    <>
+      <FloatingStorefrontHeader />
+      <AppRouter />
+    </>
+  );
 }
 

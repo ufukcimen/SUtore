@@ -16,6 +16,8 @@ import {
   User,
   X,
 } from "lucide-react";
+import { clearStoredUser } from "../../../lib/authStorage";
+import { useStoredUser } from "../../../lib/useStoredUser";
 import {categoryCards, extraMenuItems,} from "../data/storefrontContent";
 import { CategoryArtwork } from "../components/StorefrontArtwork";
 
@@ -39,19 +41,10 @@ function getUserDisplayName(user) {
   return user?.name?.trim() || user?.email?.split("@")[0] || "";
 }
 
-function getStoredUser() {
-  try {
-    const storedUser = localStorage.getItem("sutoreUser");
-    return storedUser ? JSON.parse(storedUser) : null;
-  } catch {
-    return null;
-  }
-}
-
 export function HomePage() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [user, setUser] = useState(() => getStoredUser());
+  const user = useStoredUser();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [welcomeName, setWelcomeName] = useState("");
@@ -117,8 +110,7 @@ export function HomePage() {
     setIsLoggingOut(true);
 
     logoutTimeoutRef.current = window.setTimeout(() => {
-      localStorage.removeItem("sutoreUser");
-      setUser(null);
+      clearStoredUser();
       setWelcomeName("");
       setIsLoggingOut(false);
       navigate("/", { replace: true });
