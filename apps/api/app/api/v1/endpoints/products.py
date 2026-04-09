@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -12,6 +12,7 @@ router = APIRouter()
 @router.get("", response_model=list[ProductRead])
 def list_products(
     category: str | None = Query(default=None, min_length=1, max_length=100),
+    search: str | None = Query(default=None, min_length=1, max_length=200),
     limit: int | None = Query(default=None, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
@@ -21,6 +22,17 @@ def list_products(
     normalized_category = category.strip().lower() if category else None
     if normalized_category:
         statement = statement.where(func.lower(Product.category) == normalized_category)
+
+    normalized_search = search.strip() if search else None
+    if normalized_search:
+        search_pattern = f"%{normalized_search}%"
+        statement = statement.where(
+            or_(
+                Product.name.ilike(search_pattern),
+                Product.model.ilike(search_pattern),
+                Product.description.ilike(search_pattern),
+            )
+        )
 
     if offset:
         statement = statement.offset(offset)
