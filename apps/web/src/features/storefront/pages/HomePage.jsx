@@ -10,6 +10,7 @@ import {
   Menu,
   Monitor,
   ReceiptText,
+  RefreshCw,
   Settings,
   ShoppingCart,
   Sparkles,
@@ -21,6 +22,8 @@ import { useStoredUser } from "../../../lib/useStoredUser";
 import {categoryCards, extraMenuItems,} from "../data/storefrontContent";
 import { CategoryArtwork } from "../components/StorefrontArtwork";
 import { StorefrontLiveSearch } from "../components/StorefrontLiveSearch";
+import { LaptopCard } from "../components/LaptopCard";
+import { http } from "../../../lib/http";
 const categoryIcons = {
   laptop: Laptop,
   desktop: Cpu,
@@ -51,6 +54,21 @@ export function HomePage() {
   const profileMenuRef = useRef(null);
   const logoutTimeoutRef = useRef(null);
   const displayName = getUserDisplayName(user);
+  const [recommendations, setRecommendations] = useState([]);
+  const [recsLoading, setRecsLoading] = useState(true);
+
+  function fetchRecommendations() {
+    setRecsLoading(true);
+    http
+      .get("/products/random", { params: { count: 6 } })
+      .then((res) => setRecommendations(res.data))
+      .catch(() => setRecommendations([]))
+      .finally(() => setRecsLoading(false));
+  }
+
+  useEffect(() => {
+    fetchRecommendations();
+  }, []);
 
   useEffect(() => {
     try {
@@ -486,6 +504,44 @@ export function HomePage() {
               );
             })}
           </div>
+          </section>
+
+          <section className="mt-10">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
+                  Picked for you
+                </p>
+                <p className="mt-2 text-3xl font-bold uppercase tracking-[0.16em] text-brand-ink sm:text-4xl">
+                  Recommended
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={fetchRecommendations}
+                disabled={recsLoading}
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/70 px-4 py-2.5 text-sm font-semibold text-brand-accent shadow-sm transition hover:border-cyan-300/40 hover:bg-white disabled:opacity-50"
+              >
+                <RefreshCw className={`h-4 w-4 ${recsLoading ? "animate-spin" : ""}`} />
+                Refresh
+              </button>
+            </div>
+
+            {recsLoading ? (
+              <div className="mt-8 flex justify-center">
+                <LoaderCircle className="h-8 w-8 animate-spin text-brand-accent" />
+              </div>
+            ) : recommendations.length > 0 ? (
+              <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {recommendations.map((product) => (
+                  <LaptopCard key={product.product_id} product={product} />
+                ))}
+              </div>
+            ) : (
+              <p className="mt-8 text-center text-sm text-slate-500">
+                No recommendations available right now.
+              </p>
+            )}
           </section>
         </main>
       </div>

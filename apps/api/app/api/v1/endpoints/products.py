@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
+from random import sample
 
 from app.db.session import get_db
 from app.models.product import Product
@@ -42,6 +43,16 @@ def list_products(
 
     products = db.scalars(statement).all()
     return [ProductRead.model_validate(product) for product in products]
+
+
+@router.get("/random", response_model=list[ProductRead])
+def random_products(
+    count: int = Query(default=6, ge=4, le=6),
+    db: Session = Depends(get_db),
+) -> list[ProductRead]:
+    all_products = db.scalars(select(Product)).all()
+    chosen = sample(all_products, min(count, len(all_products)))
+    return [ProductRead.model_validate(p) for p in chosen]
 
 
 @router.get("/{product_id}", response_model=ProductRead)
