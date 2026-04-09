@@ -62,5 +62,6 @@ The `-B` flag disables Python bytecode writes, so local runs do not generate
 - `POST /api/v1/auth/signup`
 - `POST /api/v1/auth/login`
 - `GET /api/v1/products`
+  - optional query params: `category`, `limit`, `offset`
 - `GET /api/v1/products/{product_id}`
 - `POST /api/v1/products`

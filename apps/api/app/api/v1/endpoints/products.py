@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -10,8 +10,25 @@ router = APIRouter()
 
 
 @router.get("", response_model=list[ProductRead])
-def list_products(db: Session = Depends(get_db)) -> list[ProductRead]:
-    products = db.scalars(select(Product).order_by(Product.product_id)).all()
+def list_products(
+    category: str | None = Query(default=None, min_length=1, max_length=100),
+    limit: int | None = Query(default=None, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+) -> list[ProductRead]:
+    statement = select(Product).order_by(Product.product_id)
+
+    normalized_category = category.strip().lower() if category else None
+    if normalized_category:
+        statement = statement.where(func.lower(Product.category) == normalized_category)
+
+    if offset:
+        statement = statement.offset(offset)
+
+    if limit is not None:
+        statement = statement.limit(limit)
+
+    products = db.scalars(statement).all()
     return [ProductRead.model_validate(product) for product in products]
 
 

@@ -19,3 +19,4 @@ class Product(Base):
     distributor: Mapped[str | None] = mapped_column(String(200))
     stock_quantity: Mapped[int | None] = mapped_column(Integer)
     image_url: Mapped[str | None] = mapped_column(Text)
+    category: Mapped[str | None] = mapped_column(String(100))
