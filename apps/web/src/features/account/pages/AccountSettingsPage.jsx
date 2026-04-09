@@ -228,6 +228,7 @@ export function AccountSettingsPage() {
               </span>
             </div>
           </article>
+
         </section>
 
         <section className="space-y-6">

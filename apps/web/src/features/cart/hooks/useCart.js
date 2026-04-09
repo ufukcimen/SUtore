@@ -7,8 +7,13 @@ import {
   writeCartItems,
 } from "../data/cartStorage";
 
-function clampQuantity(quantity) {
-  return Math.min(Math.max(quantity, 1), 10);
+function clampQuantity(quantity, stockQuantity) {
+  const numericStock = Number(stockQuantity);
+  const maxQuantity = Number.isFinite(numericStock)
+    ? Math.min(Math.max(Math.floor(numericStock), 1), 10)
+    : 10;
+
+  return Math.min(Math.max(quantity, 1), maxQuantity);
 }
 
 export function useCart() {
@@ -39,7 +44,12 @@ export function useCart() {
 
   function updateQuantity(itemId, nextQuantity) {
     const updatedItems = items.map((item) =>
-      item.id === itemId ? { ...item, quantity: clampQuantity(nextQuantity) } : item,
+      item.id === itemId
+        ? {
+            ...item,
+            quantity: clampQuantity(nextQuantity, item.stockQuantity),
+          }
+        : item,
     );
     setNextItems(updatedItems);
   }

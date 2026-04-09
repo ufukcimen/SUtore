@@ -17,7 +17,33 @@ function formatPrice(price) {
 
 export function LaptopCard({ product }) {
   const [isAdded, setIsAdded] = useState(false);
-  const isOutOfStock = Number(product.stock_quantity) <= 0;
+  const stockQuantity = Number(product.stock_quantity);
+  const remainingStock = Number.isFinite(stockQuantity) ? Math.max(Math.floor(stockQuantity), 0) : 0;
+  const isOutOfStock = remainingStock <= 0;
+
+  function getStockLabel() {
+    if (isOutOfStock) {
+      return "Out of stock";
+    }
+
+    if (remainingStock === 1) {
+      return "1 unit remaining";
+    }
+
+    return `${remainingStock} units remaining`;
+  }
+
+  function getStockClassName() {
+    if (isOutOfStock) {
+      return "border-rose-200 bg-rose-50 text-rose-700";
+    }
+
+    if (remainingStock <= 5) {
+      return "border-amber-200 bg-amber-50 text-amber-800";
+    }
+
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
 
   function handleAddToCart() {
     if (isOutOfStock) {
@@ -63,6 +89,14 @@ export function LaptopCard({ product }) {
         <p className="line-clamp-4 text-sm leading-6 text-slate-600">
           {product.description || "Description not available."}
         </p>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${getStockClassName()}`}
+          >
+            {getStockLabel()}
+          </span>
+        </div>
 
         <button
           type="button"

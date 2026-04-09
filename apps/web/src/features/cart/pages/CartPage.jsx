@@ -51,6 +51,10 @@ export function CartPage() {
             {items.map((item) => {
               const Icon = itemIcons[item.type] ?? Cpu;
               const iconStyle = itemIconStyles[item.type] ?? "bg-cyan-400/15 text-brand-accent";
+              const hasImage = typeof item.imageUrl === "string" && item.imageUrl.trim().length > 0;
+              const stockQuantity = Number(item.stockQuantity);
+              const canIncreaseQuantity =
+                !Number.isFinite(stockQuantity) || item.quantity < stockQuantity;
 
               return (
                 <article
@@ -59,11 +63,22 @@ export function CartPage() {
                 >
                   <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex min-w-0 gap-4">
-                      <div
-                        className={`grid h-16 w-16 shrink-0 place-items-center rounded-[1.4rem] ${iconStyle}`}
-                      >
-                        <Icon className="h-7 w-7" />
-                      </div>
+                      {hasImage ? (
+                        <div className="h-24 w-24 shrink-0 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-[linear-gradient(135deg,#e0f2fe_0%,#f8fafc_48%,#fff7ed_100%)] shadow-sm">
+                          <img
+                            src={item.imageUrl}
+                            alt={item.name}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                        </div>
+                      ) : (
+                        <div
+                          className={`grid h-24 w-24 shrink-0 place-items-center rounded-[1.5rem] ${iconStyle}`}
+                        >
+                          <Icon className="h-9 w-9" />
+                        </div>
+                      )}
 
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
@@ -121,7 +136,8 @@ export function CartPage() {
                       <button
                         type="button"
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-[1rem] text-slate-600 transition hover:bg-white hover:text-brand-ink"
+                        disabled={!canIncreaseQuantity}
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-[1rem] text-slate-600 transition hover:bg-white hover:text-brand-ink disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
                         aria-label={`Increase quantity for ${item.name}`}
                       >
                         <Plus className="h-4 w-4" />

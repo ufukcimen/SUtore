@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CheckCircle2, CreditCard, LockKeyhole, ShieldCheck } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../../../components/ui/Button";
 import { CheckoutField } from "../components/CheckoutField";
 import { OrderSummaryPanel } from "../components/OrderSummaryPanel";
 import { StorefrontPageShell } from "../components/StorefrontPageShell";
-import { formatCurrency } from "../data/cartStorage";
 import { writeOrderConfirmation } from "../data/orderConfirmationStorage";
 import { useCart } from "../hooks/useCart";
+import { http } from "../../../lib/http";
+import { useStoredUser } from "../../../lib/useStoredUser";
 import {
   detectCardBrand,
   digitsOnly,
@@ -51,20 +52,53 @@ const REQUIRED_FIELDS = [
   "acceptTerms",
 ];
 
+function getErrorMessage(error, fallback) {
+  const detail = error.response?.data?.detail;
+
+  if (typeof detail === "string") {
+    return detail;
+  }
+
+  if (Array.isArray(detail) && detail.length > 0) {
+    return detail.map((item) => item?.msg).filter(Boolean).join(" ");
+  }
+
+  return fallback;
+}
+
 export function CheckoutPage() {
   const navigate = useNavigate();
-  const { items, summary } = useCart();
+  const user = useStoredUser();
+  const { items, summary, clearCart } = useCart();
   const [form, setForm] = useState(INITIAL_FORM);
   const [touched, setTouched] = useState({});
   const [submitState, setSubmitState] = useState({
     kind: "idle",
     message: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const hasItems = items.length > 0;
   const errors = getPaymentErrors(form, hasItems);
   const cardBrand = detectCardBrand(form.cardNumber);
   const visibleErrors = submitState.kind === "error" ? errors : touched;
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    const nameParts = user.name?.trim().split(/\s+/).filter(Boolean) ?? [];
+    const firstName = nameParts[0] ?? "";
+    const lastName = nameParts.slice(1).join(" ");
+
+    setForm((current) => ({
+      ...current,
+      firstName: current.firstName || firstName,
+      lastName: current.lastName || lastName,
+      email: current.email || user.email || "",
+    }));
+  }, [user]);
 
   function getFieldError(field) {
     return visibleErrors[field] ? errors[field] : "";
@@ -99,7 +133,7 @@ export function CheckoutPage() {
     };
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
 
     const nextErrors = getPaymentErrors(form, hasItems);
@@ -116,8 +150,45 @@ export function CheckoutPage() {
       return;
     }
 
-    writeOrderConfirmation({ form, items, summary });
-    navigate("/checkout/success");
+    setIsSubmitting(true);
+    setSubmitState({ kind: "idle", message: "" });
+
+    try {
+      const response = await http.post("/orders", {
+        user_id: user?.user_id ?? null,
+        items: items.map((item) => ({
+          product_id: Number(item.productId),
+          quantity: item.quantity,
+        })),
+        billing_name: `${form.firstName} ${form.lastName}`.trim(),
+        billing_email: form.email.trim(),
+        billing_phone: form.phone.trim(),
+        billing_address: [
+          form.addressLine1,
+          form.addressLine2,
+          `${form.city}, ${form.stateRegion} ${form.postalCode}`.trim(),
+          form.country,
+        ]
+          .filter(Boolean)
+          .join(", "),
+        payment_brand: cardBrand?.label ?? "Card",
+        payment_last4: digitsOnly(form.cardNumber).slice(-4),
+      });
+
+      writeOrderConfirmation(response.data);
+      clearCart();
+      navigate("/checkout/success");
+    } catch (error) {
+      setSubmitState({
+        kind: "error",
+        message: getErrorMessage(
+          error,
+          "We could not confirm the order right now. Please try again.",
+        ),
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -413,16 +484,17 @@ export function CheckoutPage() {
 
           <OrderSummaryPanel
             items={items}
-            note={`You will be charged ${formatCurrency(summary.total)} once live payment processing is connected to this checkout flow.`}
+            note={`Submitting this checkout records the order, assigns an order number, and reserves the requested inventory in the catalog.`}
             summary={summary}
             title="Payment summary"
             action={
               <Button
+                disabled={isSubmitting}
                 className="w-full gap-2 bg-brand-ink text-white hover:bg-slate-900"
                 form="checkout-form"
                 type="submit"
               >
-                Review payment details
+                {isSubmitting ? "Placing order..." : "Place order"}
               </Button>
             }
           />

@@ -2,6 +2,7 @@ import { Route, Routes } from "react-router-dom";
 import { LoginPage } from "../features/auth/pages/LoginPage";
 import { SignupPage } from "../features/auth/pages/SignupPage";
 import { AccountSettingsPage } from "../features/account/pages/AccountSettingsPage";
+import { OrdersPage } from "../features/account/pages/OrdersPage";
 import { CartPage } from "../features/cart/pages/CartPage";
 import { CheckoutPage } from "../features/cart/pages/CheckoutPage";
 import { CheckoutSuccessPage } from "../features/cart/pages/CheckoutSuccessPage";
@@ -23,6 +24,7 @@ export function AppRouter() {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/account/settings" element={<AccountSettingsPage />} />
+      <Route path="/account/orders" element={<OrdersPage />} />
       <Route path="/cart" element={<CartPage />} />
       <Route path="/checkout" element={<CheckoutPage />} />
       <Route path="/checkout/success" element={<CheckoutSuccessPage />} />

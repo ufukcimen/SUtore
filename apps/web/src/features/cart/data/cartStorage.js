@@ -12,8 +12,21 @@ function cloneCartItems(items) {
   return items.map((item) => ({ ...item }));
 }
 
-function clampQuantity(quantity) {
-  return Math.min(Math.max(quantity, 1), MAX_CART_ITEM_QUANTITY);
+function getStockLimit(stockQuantity) {
+  const numericStock = Number(stockQuantity);
+
+  if (!Number.isFinite(numericStock)) {
+    return MAX_CART_ITEM_QUANTITY;
+  }
+
+  return Math.min(Math.max(Math.floor(numericStock), 0), MAX_CART_ITEM_QUANTITY);
+}
+
+function clampQuantity(quantity, stockQuantity) {
+  const stockLimit = getStockLimit(stockQuantity);
+  const maxQuantity = stockLimit > 0 ? stockLimit : MAX_CART_ITEM_QUANTITY;
+
+  return Math.min(Math.max(quantity, 1), maxQuantity);
 }
 
 function normalizeCategory(category) {
@@ -28,6 +41,8 @@ function getCartItemType(category) {
       return "desktop";
     case "monitor":
       return "monitor";
+    case "storage":
+      return "storage";
     default:
       return "component";
   }
@@ -43,6 +58,18 @@ function getCartCategoryLabel(category) {
       return "Monitor";
     case "component":
       return "PC Component";
+    case "accessory":
+      return "Accessory";
+    case "storage":
+      return "Storage";
+    case "network":
+      return "Network";
+    case "peripheral":
+      return "Peripheral";
+    case "audio":
+      return "Audio";
+    case "streaming":
+      return "Streaming Gear";
     default:
       return "Product";
   }
@@ -55,11 +82,15 @@ function getAvailabilityLabel(stockQuantity) {
     return "Out of stock";
   }
 
-  if (quantity <= 5) {
-    return "Low stock";
+  if (quantity === 1) {
+    return "1 left in stock";
   }
 
-  return "In stock";
+  if (quantity <= 5) {
+    return `${quantity} left in stock`;
+  }
+
+  return `${quantity} in stock`;
 }
 
 function getShippingLabel(category, stockQuantity) {
@@ -78,6 +109,24 @@ function getShippingLabel(category, stockQuantity) {
 
 function getProductIdentifier(product) {
   return product?.id ?? product?.product_id ?? product?.serial_number ?? product?.name;
+}
+
+function buildCartItem(product, productIdentifier, quantity) {
+  return {
+    id: `product-${productIdentifier}`,
+    productId: productIdentifier,
+    name: product?.name ?? "Unnamed product",
+    category: getCartCategoryLabel(product?.category),
+    availability: getAvailabilityLabel(product?.stock_quantity),
+    variant: product?.model?.trim() || "Standard configuration",
+    sku: product?.serial_number?.trim() || "N/A",
+    shippingLabel: getShippingLabel(product?.category, product?.stock_quantity),
+    stockQuantity: getStockLimit(product?.stock_quantity),
+    type: getCartItemType(product?.category),
+    quantity,
+    price: Number(product?.price) || 0,
+    imageUrl: product?.image_url ?? "",
+  };
 }
 
 function clearLegacyCartStorage() {
@@ -127,9 +176,14 @@ export function writeCartItems(items) {
 
 export function addProductToCart(product) {
   const productIdentifier = getProductIdentifier(product);
+  const availableStock = getStockLimit(product?.stock_quantity);
 
   if (!productIdentifier) {
     return [];
+  }
+
+  if (availableStock <= 0) {
+    return readCartItems();
   }
 
   const existingItems = readCartItems();
@@ -139,7 +193,11 @@ export function addProductToCart(product) {
   if (existingItem) {
     const nextItems = existingItems.map((item) =>
       item.id === cartItemId
-        ? { ...item, quantity: clampQuantity(item.quantity + 1) }
+        ? buildCartItem(
+            product,
+            productIdentifier,
+            clampQuantity(item.quantity + 1, product?.stock_quantity),
+          )
         : item,
     );
     persistCartItems(nextItems);
@@ -148,20 +206,7 @@ export function addProductToCart(product) {
 
   const nextItems = [
     ...existingItems,
-    {
-      id: cartItemId,
-      productId: productIdentifier,
-      name: product?.name ?? "Unnamed product",
-      category: getCartCategoryLabel(product?.category),
-      availability: getAvailabilityLabel(product?.stock_quantity),
-      variant: product?.model?.trim() || "Standard configuration",
-      sku: product?.serial_number?.trim() || "N/A",
-      shippingLabel: getShippingLabel(product?.category, product?.stock_quantity),
-      type: getCartItemType(product?.category),
-      quantity: 1,
-      price: Number(product?.price) || 0,
-      imageUrl: product?.image_url ?? "",
-    },
+    buildCartItem(product, productIdentifier, 1),
   ];
 
   persistCartItems(nextItems);

@@ -1,5 +1,3 @@
-import { detectCardBrand, digitsOnly } from "../utils/payment";
-
 const ORDER_CONFIRMATION_STORAGE_KEY = "sutoreOrderConfirmation";
 
 function canUseStorage() {
@@ -13,39 +11,42 @@ function formatPlacedAt(date) {
   }).format(date);
 }
 
-function buildOrderNumber() {
-  return `SU-${Date.now().toString().slice(-8)}`;
+function toNumber(value) {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : 0;
 }
 
-export function writeOrderConfirmation({ form, items, summary }) {
+export function writeOrderConfirmation(order) {
   if (!canUseStorage()) {
     return null;
   }
 
-  const placedAt = new Date();
-  const cardBrand = detectCardBrand(form.cardNumber);
+  const placedAt = order?.created_at ? new Date(order.created_at) : new Date();
   const confirmation = {
-    billingName: `${form.firstName} ${form.lastName}`.trim(),
-    billingEmail: form.email.trim(),
-    billingPhone: form.phone.trim(),
-    billingAddress: [form.addressLine1, form.addressLine2, `${form.city}, ${form.stateRegion} ${form.postalCode}`, form.country]
-      .filter(Boolean)
-      .join(", "),
-    items: items.map((item) => ({
-      id: item.id,
-      name: item.name,
-      price: item.price,
+    billingName: order?.billing_name?.trim() || "",
+    billingEmail: order?.billing_email?.trim() || "",
+    billingPhone: order?.billing_phone?.trim() || "",
+    billingAddress: order?.billing_address?.trim() || "",
+    items: (order?.items ?? []).map((item) => ({
+      id: item.order_item_id ?? item.product_id ?? item.product_name,
+      name: item.product_name,
+      price: toNumber(item.unit_price),
       quantity: item.quantity,
-      total: item.price * item.quantity,
+      total: toNumber(item.line_total),
     })),
-    orderNumber: buildOrderNumber(),
+    orderNumber: order?.order_number || "",
     payment: {
-      brand: cardBrand?.label ?? "Card",
-      last4: digitsOnly(form.cardNumber).slice(-4),
+      brand: order?.payment_brand || "Card",
+      last4: order?.payment_last4 || "----",
     },
     placedAt: placedAt.toISOString(),
     placedAtLabel: formatPlacedAt(placedAt),
-    summary,
+    summary: {
+      subtotal: toNumber(order?.subtotal),
+      shipping: toNumber(order?.shipping),
+      tax: toNumber(order?.tax),
+      total: toNumber(order?.total),
+    },
   };
 
   window.sessionStorage.setItem(
