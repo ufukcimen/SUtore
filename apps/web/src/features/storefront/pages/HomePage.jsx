@@ -19,7 +19,7 @@ import { clearStoredUser } from "../../../lib/authStorage";
 import { useStoredUser } from "../../../lib/useStoredUser";
 import {categoryCards, extraMenuItems,} from "../data/storefrontContent";
 import { CategoryArtwork } from "../components/StorefrontArtwork";
-import { StorefrontSearchForm } from "../components/StorefrontSearchForm";
+import { StorefrontLiveSearch } from "../components/StorefrontLiveSearch";
 const categoryIcons = {
   laptop: Laptop,
   desktop: Cpu,
@@ -43,7 +43,6 @@ function getUserDisplayName(user) {
 export function HomePage() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const user = useStoredUser();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -115,16 +114,6 @@ export function HomePage() {
       setIsLoggingOut(false);
       navigate("/", { replace: true });
     }, 700);
-  }
-
-  function handleSearchSubmit(event) {
-    event.preventDefault();
-    const normalizedQuery = searchQuery.trim();
-    if (!normalizedQuery) {
-      return;
-    }
-
-    navigate(`/search?q=${encodeURIComponent(normalizedQuery)}`);
   }
 
   return (
@@ -209,12 +198,7 @@ export function HomePage() {
           </div>
 
           <div className="order-3 w-full md:order-none md:flex-1 md:px-6 lg:mx-auto lg:max-w-3xl lg:min-w-0 lg:px-10">
-            <StorefrontSearchForm
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              onSubmit={handleSearchSubmit}
-              placeholder="Search laptops, monitors, GPUs, storage..."
-            />
+            <StorefrontLiveSearch placeholder="Search laptops, monitors, GPUs, storage..." />
           </div>
 
           <div className="ml-auto flex shrink-0 items-center gap-2 lg:min-w-[8rem] lg:justify-end">

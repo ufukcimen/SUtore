@@ -4,6 +4,8 @@ export function StorefrontSearchForm({
   value,
   onChange,
   onSubmit,
+  onFocus,
+  onKeyDown,
   placeholder = "Search products...",
   className = "",
   variant = "dark",
@@ -26,8 +28,11 @@ export function StorefrontSearchForm({
           type="search"
           value={value}
           onChange={onChange}
+          onFocus={onFocus}
+          onKeyDown={onKeyDown}
           placeholder={placeholder}
           className={inputClassName}
+          autoComplete="off"
         />
       </label>
     </form>

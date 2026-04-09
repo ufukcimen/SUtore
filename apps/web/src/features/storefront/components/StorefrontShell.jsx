@@ -6,7 +6,6 @@ import {
   LoaderCircle,
   LogOut,
   Menu,
-  Search,
   Settings,
   ShoppingCart,
   Sparkles,
@@ -15,6 +14,7 @@ import {
 } from "lucide-react";
 import { clearStoredUser } from "../../../lib/authStorage";
 import { useStoredUser } from "../../../lib/useStoredUser";
+import { StorefrontLiveSearch } from "./StorefrontLiveSearch";
 import { extraMenuItems } from "../data/storefrontContent";
 
 const WELCOME_STORAGE_KEY = "sutoreWelcomeUser";
@@ -181,14 +181,10 @@ export function StorefrontShell({ children, mainClassName = "" }) {
           </div>
 
           <div className="order-3 w-full md:order-none md:flex-1 md:px-6 lg:mx-auto lg:max-w-3xl lg:min-w-0 lg:px-10">
-            <label className="flex h-14 items-center gap-3 rounded-[1.4rem] border border-white/10 bg-white/5 px-4 text-slate-300 shadow-lg shadow-cyan-950/20">
-              <Search className="h-5 w-5 text-cyan-200" />
-              <input
-                type="search"
-                placeholder="Search laptops, monitors, GPUs, storage..."
-                className="h-full w-full bg-transparent text-sm outline-none placeholder:text-slate-500"
-              />
-            </label>
+            <StorefrontLiveSearch
+              placeholder="Search laptops, monitors, GPUs, storage..."
+              syncWithSearchPage
+            />
           </div>
 
           <div className="ml-auto flex shrink-0 items-center gap-2 lg:min-w-[8rem] lg:justify-end">

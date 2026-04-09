@@ -1,82 +1,26 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, RefreshCcw, Search } from "lucide-react";
-import { http } from "../../../lib/http";
 import { LaptopCard } from "../components/LaptopCard";
 import { StorefrontSearchForm } from "../components/StorefrontSearchForm";
-
-function normalizeQuery(value) {
-  return value.trim();
-}
+import { StorefrontShell } from "../components/StorefrontShell";
+import { normalizeSearchQuery, useProductSearch } from "../hooks/useProductSearch";
 
 export function SearchResultsPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const currentQuery = useMemo(
-    () => normalizeQuery(searchParams.get("q") ?? ""),
-    [searchParams],
-  );
+  const currentQuery = normalizeSearchQuery(searchParams.get("q") ?? "");
   const [searchInput, setSearchInput] = useState(currentQuery);
-  const [products, setProducts] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const activeQuery = normalizeSearchQuery(searchInput);
+  const { products, isLoading, errorMessage } = useProductSearch(searchInput);
 
   useEffect(() => {
     setSearchInput(currentQuery);
   }, [currentQuery]);
 
-  useEffect(() => {
-    let isActive = true;
-
-    async function loadProducts() {
-      if (!currentQuery) {
-        setProducts([]);
-        setErrorMessage("");
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-      setErrorMessage("");
-
-      try {
-        const response = await http.get("/products", {
-          params: { search: currentQuery },
-        });
-
-        if (!isActive) {
-          return;
-        }
-
-        setProducts(Array.isArray(response.data) ? response.data : []);
-      } catch (error) {
-        if (!isActive) {
-          return;
-        }
-
-        const nextMessage =
-          error instanceof Error
-            ? error.message
-            : "We could not load search results right now.";
-
-        setErrorMessage(nextMessage);
-      } finally {
-        if (isActive) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadProducts();
-
-    return () => {
-      isActive = false;
-    };
-  }, [currentQuery]);
-
   function handleSubmit(event) {
     event.preventDefault();
-    const nextQuery = normalizeQuery(searchInput);
+    const nextQuery = normalizeSearchQuery(searchInput);
 
     if (!nextQuery) {
       navigate("/search", { replace: false });
@@ -87,8 +31,7 @@ export function SearchResultsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f8fbff_0%,#eff6ff_45%,#ffffff_100%)] text-slate-950">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-10 lg:py-12">
+    <StorefrontShell>
         <header className="rounded-[2rem] border border-slate-200/80 bg-white/85 p-6 shadow-[0_28px_80px_rgba(7,17,31,0.08)] backdrop-blur-xl sm:p-8">
           <Link
             to="/"
@@ -105,9 +48,9 @@ export function SearchResultsPage() {
                 Search results
               </div>
               <h1 className="mt-4 text-4xl font-semibold tracking-tight text-brand-ink">
-                {currentQuery ? `Results for "${currentQuery}"` : "Search the live catalog."}
+                {activeQuery ? `Results for "${activeQuery}"` : "Search the live catalog."}
               </h1>
-              {!isLoading && !errorMessage && currentQuery ? (
+              {!isLoading && !errorMessage && activeQuery ? (
                 <p className="mt-4 text-sm text-slate-600">
                   {products.length} matching products found.
                 </p>
@@ -126,16 +69,16 @@ export function SearchResultsPage() {
         </header>
 
         <section className="mt-8">
-          {!currentQuery ? (
+          {!activeQuery ? (
             <div className="rounded-[2rem] border border-slate-200/80 bg-white/85 px-6 py-10 text-center shadow-[0_18px_45px_rgba(7,17,31,0.08)]">
               <p className="text-lg font-semibold text-brand-ink">Start your search above.</p>
               <p className="mt-2 text-sm text-slate-600">
-                Enter a product name, model, or description and press Enter to see results.
+                Enter a product name, model, or description to search the live catalog.
               </p>
             </div>
           ) : null}
 
-          {currentQuery && isLoading ? (
+          {activeQuery && isLoading ? (
             <div className="rounded-[2rem] border border-slate-200/80 bg-white/85 px-6 py-12 text-center shadow-[0_18px_45px_rgba(7,17,31,0.08)]">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-cyan-50 text-brand-accent">
                 <RefreshCcw className="h-6 w-6 animate-spin" />
@@ -147,14 +90,14 @@ export function SearchResultsPage() {
             </div>
           ) : null}
 
-          {currentQuery && !isLoading && errorMessage ? (
+          {activeQuery && !isLoading && errorMessage ? (
             <div className="rounded-[2rem] border border-rose-200 bg-rose-50 px-6 py-10 text-center text-rose-900 shadow-[0_18px_45px_rgba(7,17,31,0.08)]">
               <p className="text-lg font-semibold">We could not load search results.</p>
               <p className="mt-2 text-sm">{errorMessage}</p>
             </div>
           ) : null}
 
-          {currentQuery && !isLoading && !errorMessage ? (
+          {activeQuery && !isLoading && !errorMessage ? (
             products.length > 0 ? (
               <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                 {products.map((product) => (
@@ -168,14 +111,13 @@ export function SearchResultsPage() {
               <div className="rounded-[2rem] border border-slate-200/80 bg-white/85 px-6 py-10 text-center shadow-[0_18px_45px_rgba(7,17,31,0.08)]">
                 <p className="text-lg font-semibold text-brand-ink">No results found.</p>
                 <p className="mt-2 text-sm text-slate-600">
-                  We could not find any products matching "{currentQuery}" in the name,
+                  We could not find any products matching "{activeQuery}" in the name,
                   model, or description fields.
                 </p>
               </div>
             )
           ) : null}
         </section>
-      </div>
-    </div>
+    </StorefrontShell>
   );
 }
