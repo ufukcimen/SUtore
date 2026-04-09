@@ -10,6 +10,7 @@ import {
   Menu,
   Monitor,
   Search,
+  Settings,
   ShoppingCart,
   Sparkles,
   User,
@@ -239,6 +240,14 @@ export function HomePage() {
 
                 {profileMenuOpen ? (
                   <div className="absolute right-0 top-[calc(100%+0.75rem)] z-40 min-w-[13rem] overflow-hidden rounded-[1.4rem] border border-slate-200/80 bg-white/95 p-2 shadow-[0_24px_50px_rgba(7,17,31,0.18)] backdrop-blur-xl">
+                    <Link
+                      to="/account/settings"
+                      onClick={() => setProfileMenuOpen(false)}
+                      className="flex w-full items-center gap-3 rounded-[1rem] px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-brand-ink"
+                    >
+                      <Settings className="h-4 w-4 text-brand-accent" />
+                      Account settings
+                    </Link>
                     <button
                       type="button"
                       onClick={handleLogout}
