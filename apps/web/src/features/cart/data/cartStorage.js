@@ -2,6 +2,7 @@ const CART_STORAGE_KEY = "sutoreCartItemsV2";
 const LEGACY_CART_STORAGE_KEYS = ["sutoreCartItems"];
 
 export const CART_UPDATED_EVENT = "sutore-cart-updated";
+const MAX_CART_ITEM_QUANTITY = 10;
 
 function canUseStorage() {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
@@ -9,6 +10,74 @@ function canUseStorage() {
 
 function cloneCartItems(items) {
   return items.map((item) => ({ ...item }));
+}
+
+function clampQuantity(quantity) {
+  return Math.min(Math.max(quantity, 1), MAX_CART_ITEM_QUANTITY);
+}
+
+function normalizeCategory(category) {
+  return typeof category === "string" ? category.trim().toLowerCase() : "";
+}
+
+function getCartItemType(category) {
+  switch (normalizeCategory(category)) {
+    case "laptop":
+      return "laptop";
+    case "desktop":
+      return "desktop";
+    case "monitor":
+      return "monitor";
+    default:
+      return "component";
+  }
+}
+
+function getCartCategoryLabel(category) {
+  switch (normalizeCategory(category)) {
+    case "laptop":
+      return "Laptop";
+    case "desktop":
+      return "OEM PC Build";
+    case "monitor":
+      return "Monitor";
+    case "component":
+      return "PC Component";
+    default:
+      return "Product";
+  }
+}
+
+function getAvailabilityLabel(stockQuantity) {
+  const quantity = Number(stockQuantity);
+
+  if (!Number.isFinite(quantity) || quantity <= 0) {
+    return "Out of stock";
+  }
+
+  if (quantity <= 5) {
+    return "Low stock";
+  }
+
+  return "In stock";
+}
+
+function getShippingLabel(category, stockQuantity) {
+  if (Number(stockQuantity) <= 0) {
+    return "Unavailable for shipping";
+  }
+
+  switch (normalizeCategory(category)) {
+    case "desktop":
+    case "laptop":
+      return "Ships in 2-4 business days";
+    default:
+      return "Ships within 24 hours";
+  }
+}
+
+function getProductIdentifier(product) {
+  return product?.id ?? product?.product_id ?? product?.serial_number ?? product?.name;
 }
 
 function clearLegacyCartStorage() {
@@ -54,6 +123,49 @@ export function readCartItems() {
 
 export function writeCartItems(items) {
   persistCartItems(items);
+}
+
+export function addProductToCart(product) {
+  const productIdentifier = getProductIdentifier(product);
+
+  if (!productIdentifier) {
+    return [];
+  }
+
+  const existingItems = readCartItems();
+  const cartItemId = `product-${productIdentifier}`;
+  const existingItem = existingItems.find((item) => item.id === cartItemId);
+
+  if (existingItem) {
+    const nextItems = existingItems.map((item) =>
+      item.id === cartItemId
+        ? { ...item, quantity: clampQuantity(item.quantity + 1) }
+        : item,
+    );
+    persistCartItems(nextItems);
+    return nextItems;
+  }
+
+  const nextItems = [
+    ...existingItems,
+    {
+      id: cartItemId,
+      productId: productIdentifier,
+      name: product?.name ?? "Unnamed product",
+      category: getCartCategoryLabel(product?.category),
+      availability: getAvailabilityLabel(product?.stock_quantity),
+      variant: product?.model?.trim() || "Standard configuration",
+      sku: product?.serial_number?.trim() || "N/A",
+      shippingLabel: getShippingLabel(product?.category, product?.stock_quantity),
+      type: getCartItemType(product?.category),
+      quantity: 1,
+      price: Number(product?.price) || 0,
+      imageUrl: product?.image_url ?? "",
+    },
+  ];
+
+  persistCartItems(nextItems);
+  return nextItems;
 }
 
 export function getCartItemCount(items) {

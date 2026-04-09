@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { addProductToCart } from "../../cart/data/cartStorage";
+
 function formatPrice(price) {
   const numericPrice = Number(price);
 
@@ -13,6 +16,18 @@ function formatPrice(price) {
 }
 
 export function LaptopCard({ product }) {
+  const [isAdded, setIsAdded] = useState(false);
+  const isOutOfStock = Number(product.stock_quantity) <= 0;
+
+  function handleAddToCart() {
+    if (isOutOfStock) {
+      return;
+    }
+
+    addProductToCart(product);
+    setIsAdded(true);
+  }
+
   return (
     <article className="overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white/85 shadow-[0_18px_45px_rgba(7,17,31,0.08)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_24px_55px_rgba(7,17,31,0.12)]">
       <div className="aspect-[4/3] overflow-hidden bg-[linear-gradient(135deg,#e0f2fe_0%,#f8fafc_48%,#fff7ed_100%)]">
@@ -48,6 +63,21 @@ export function LaptopCard({ product }) {
         <p className="line-clamp-4 text-sm leading-6 text-slate-600">
           {product.description || "Description not available."}
         </p>
+
+        <button
+          type="button"
+          onClick={handleAddToCart}
+          disabled={isOutOfStock}
+          className={`inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+            isOutOfStock
+              ? "cursor-not-allowed bg-slate-200 text-slate-500"
+              : isAdded
+                ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                : "bg-brand-accent text-brand-ink hover:bg-brand-glow"
+          }`}
+        >
+          {isOutOfStock ? "Out of stock" : isAdded ? "Added to cart ->" : "Add to cart ->"}
+        </button>
       </div>
     </article>
   );

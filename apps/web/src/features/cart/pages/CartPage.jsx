@@ -1,4 +1,16 @@
-import { ArrowRight, Cpu, HardDrive, Monitor, Minus, ShieldCheck, Plus, Trash2, Truck } from "lucide-react";
+import {
+  ArrowRight,
+  Cpu,
+  HardDrive,
+  Laptop,
+  Monitor,
+  Minus,
+  Plus,
+  ShieldCheck,
+  Sparkles,
+  Trash2,
+  Truck,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { OrderSummaryPanel } from "../components/OrderSummaryPanel";
 import { StorefrontPageShell } from "../components/StorefrontPageShell";
@@ -9,12 +21,18 @@ const itemIcons = {
   graphics: Cpu,
   storage: HardDrive,
   monitor: Monitor,
+  laptop: Laptop,
+  desktop: Cpu,
+  component: Sparkles,
 };
 
 const itemIconStyles = {
   graphics: "bg-cyan-400/15 text-brand-accent",
   storage: "bg-brand-gold/15 text-amber-700",
   monitor: "bg-emerald-400/15 text-emerald-700",
+  laptop: "bg-cyan-400/15 text-brand-accent",
+  desktop: "bg-indigo-400/15 text-indigo-700",
+  component: "bg-brand-gold/15 text-amber-700",
 };
 
 export function CartPage() {
@@ -41,28 +59,30 @@ export function CartPage() {
                 >
                   <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex min-w-0 gap-4">
-                      <div className={`grid h-16 w-16 shrink-0 place-items-center rounded-[1.4rem] ${iconStyle}`}>
+                      <div
+                        className={`grid h-16 w-16 shrink-0 place-items-center rounded-[1.4rem] ${iconStyle}`}
+                      >
                         <Icon className="h-7 w-7" />
                       </div>
 
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                            {item.category}
+                            {item.category || "Product"}
                           </span>
                           <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                            {item.availability}
+                            {item.availability || "Availability pending"}
                           </span>
                         </div>
                         <h2 className="mt-3 text-xl font-semibold text-brand-ink">{item.name}</h2>
                         <p className="mt-2 text-sm text-slate-600">
-                          {item.variant} · SKU {item.sku}
+                          {(item.variant || "Standard configuration") + " | SKU " + (item.sku || "N/A")}
                         </p>
 
                         <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-slate-600">
                           <span className="inline-flex items-center gap-2">
                             <Truck className="h-4 w-4 text-brand-accent" />
-                            {item.shippingLabel}
+                            {item.shippingLabel || "Shipping details pending"}
                           </span>
                           <span className="inline-flex items-center gap-2">
                             <ShieldCheck className="h-4 w-4 text-brand-accent" />
