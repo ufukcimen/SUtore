@@ -16,5 +16,7 @@ CREATE TABLE products (
     price NUMERIC(10, 2),
     warranty_status BOOLEAN,
     distributor VARCHAR(200),
-    stock_quantity INTEGER
+    stock_quantity INTEGER,
+    image_url TEXT,
+    category VARCHAR(100)
 );
