@@ -25,6 +25,13 @@ const categoryIcons = {
   components: Sparkles,
 };
 
+const categoryRoutes = {
+  laptop: "/laptops",
+  desktop: "/oem-pcs",
+  monitor: "/monitors",
+  components: "/pc-components",
+};
+
 const WELCOME_STORAGE_KEY = "sutoreWelcomeUser";
 
 function getUserDisplayName(user) {
@@ -425,7 +432,7 @@ export function HomePage() {
           <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             {categoryCards.map((card) => {
               const Icon = categoryIcons[card.type];
-              const isLaptopCategory = card.type === "laptop";
+              const route = categoryRoutes[card.type];
               const cardContent = (
                 <>
                   <div className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-slate-950/90">
@@ -451,13 +458,14 @@ export function HomePage() {
                 </>
               );
 
-              if (isLaptopCategory) {
+              if (route) {
                 return (
                   <Link
                     key={card.title}
-                    to="/laptops"
+                    to={route}
                     className="group block overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/75 p-4 shadow-[0_18px_40px_rgba(7,17,31,0.08)] transition duration-200 hover:-translate-y-1 hover:border-cyan-300/40 hover:shadow-[0_26px_48px_rgba(7,17,31,0.12)]"
                     aria-label={`Open ${card.title} category`}
+                    id={card.type === "desktop" ? "oem-pc-builds" : undefined}
                   >
                     {cardContent}
                   </Link>

@@ -6,6 +6,9 @@ import { CheckoutPage } from "../features/cart/pages/CheckoutPage";
 import { CheckoutSuccessPage } from "../features/cart/pages/CheckoutSuccessPage";
 import { HomePage } from "../features/storefront/pages/HomePage";
 import { LaptopsPage } from "../features/storefront/pages/LaptopsPage";
+import { MonitorsPage } from "../features/storefront/pages/MonitorsPage";
+import { OemPcsPage } from "../features/storefront/pages/OemPcsPage";
+import { PcComponentsPage } from "../features/storefront/pages/PcComponentsPage";
 
 export function AppRouter() {
   return (
@@ -15,6 +18,9 @@ export function AppRouter() {
       <Route path="/checkout" element={<CheckoutPage />} />
       <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
       <Route path="/laptops" element={<LaptopsPage />} />
+      <Route path="/oem-pcs" element={<OemPcsPage />} />
+      <Route path="/monitors" element={<MonitorsPage />} />
+      <Route path="/pc-components" element={<PcComponentsPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
     </Routes>
