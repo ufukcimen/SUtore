@@ -1,8 +1,18 @@
 const USER_STORAGE_KEY = "sutoreUser";
 const AUTH_STORAGE_EVENT = "sutore-auth-change";
+let cachedStoredUser = null;
+let cachedParsedUser = null;
+let hasCachedSnapshot = false;
 
 function canUseLocalStorage() {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+}
+
+function updateCachedSnapshot(storedUser) {
+  cachedStoredUser = storedUser;
+  cachedParsedUser = storedUser ? JSON.parse(storedUser) : null;
+  hasCachedSnapshot = true;
+  return cachedParsedUser;
 }
 
 function notifyAuthChange() {
@@ -20,8 +30,15 @@ export function readStoredUser() {
 
   try {
     const storedUser = window.localStorage.getItem(USER_STORAGE_KEY);
-    return storedUser ? JSON.parse(storedUser) : null;
+    if (hasCachedSnapshot && storedUser === cachedStoredUser) {
+      return cachedParsedUser;
+    }
+
+    return updateCachedSnapshot(storedUser);
   } catch {
+    cachedStoredUser = null;
+    cachedParsedUser = null;
+    hasCachedSnapshot = true;
     return null;
   }
 }
@@ -31,7 +48,9 @@ export function writeStoredUser(user) {
     return;
   }
 
-  window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+  const serializedUser = JSON.stringify(user);
+  window.localStorage.setItem(USER_STORAGE_KEY, serializedUser);
+  updateCachedSnapshot(serializedUser);
   notifyAuthChange();
 }
 
@@ -41,6 +60,9 @@ export function clearStoredUser() {
   }
 
   window.localStorage.removeItem(USER_STORAGE_KEY);
+  cachedStoredUser = null;
+  cachedParsedUser = null;
+  hasCachedSnapshot = true;
   notifyAuthChange();
 }
 
