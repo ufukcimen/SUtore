@@ -1,9 +1,45 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, RefreshCcw } from "lucide-react";
+import { ArrowLeft, ChevronDown, RefreshCcw } from "lucide-react";
 import { http } from "../../../lib/http";
 import { LaptopCard } from "./LaptopCard";
 import { StorefrontShell } from "./StorefrontShell";
+
+const SORT_OPTIONS = [
+  { value: "default", label: "Default" },
+  { value: "price_asc", label: "Price: Low to High" },
+  { value: "price_desc", label: "Price: High to Low" },
+  { value: "popularity", label: "Popularity" },
+];
+
+function sortProducts(products, sortValue) {
+  if (sortValue === "default") {
+    return products;
+  }
+
+  const sorted = [...products];
+
+  if (sortValue === "price_asc") {
+    sorted.sort((a, b) => Number(a.price) - Number(b.price));
+    return sorted;
+  }
+
+  if (sortValue === "price_desc") {
+    sorted.sort((a, b) => Number(b.price) - Number(a.price));
+    return sorted;
+  }
+
+  if (sortValue === "popularity") {
+    // Placeholder: shuffle until real popularity data is available.
+    for (let i = sorted.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [sorted[i], sorted[j]] = [sorted[j], sorted[i]];
+    }
+    return sorted;
+  }
+
+  return products;
+}
 
 export function CategoryProductsPage({
   category,
@@ -17,6 +53,12 @@ export function CategoryProductsPage({
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [sortValue, setSortValue] = useState("default");
+
+  const sortedProducts = useMemo(
+    () => sortProducts(products, sortValue),
+    [products, sortValue],
+  );
 
   useEffect(() => {
     let isActive = true;
@@ -83,8 +125,24 @@ export function CategoryProductsPage({
           </div>
 
           {!isLoading && !errorMessage ? (
-            <div className="rounded-[1.5rem] border border-cyan-100 bg-cyan-50 px-5 py-4 text-sm text-slate-700">
-              <p className="font-semibold text-brand-ink">{products.length} products found</p>
+            <div className="flex items-center gap-3">
+              <div className="rounded-[1.5rem] border border-cyan-100 bg-cyan-50 px-5 py-4 text-sm text-slate-700">
+                <p className="font-semibold text-brand-ink">{products.length} products found</p>
+              </div>
+              <div className="relative">
+                <select
+                  value={sortValue}
+                  onChange={(event) => setSortValue(event.target.value)}
+                  className="appearance-none rounded-[1.5rem] border border-slate-200 bg-white px-5 py-4 pr-10 text-sm font-semibold text-brand-ink shadow-sm transition hover:border-cyan-300/50 focus:border-cyan-300 focus:outline-none"
+                >
+                  {SORT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              </div>
             </div>
           ) : null}
         </div>
@@ -111,9 +169,9 @@ export function CategoryProductsPage({
         ) : null}
 
         {!isLoading && !errorMessage ? (
-          products.length > 0 ? (
+          sortedProducts.length > 0 ? (
             <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-              {products.map((product) => (
+              {sortedProducts.map((product) => (
                 <LaptopCard
                   key={product.id ?? product.product_id ?? product.name}
                   product={product}
