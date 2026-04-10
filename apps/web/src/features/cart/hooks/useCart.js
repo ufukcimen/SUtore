@@ -65,6 +65,7 @@ export function useCart() {
 
   return {
     items,
+    distinctItemCount: items.length,
     itemCount: getCartItemCount(items),
     summary: getCartSummary(items),
     updateQuantity,

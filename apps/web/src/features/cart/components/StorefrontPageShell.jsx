@@ -1,5 +1,7 @@
 import { ArrowLeft, CreditCard, ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useCart } from "../hooks/useCart";
+import { CartItemCountBadge } from "./CartItemCountBadge";
 
 function getNavClassName(isActive) {
   return `inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-semibold transition ${
@@ -16,6 +18,8 @@ export function StorefrontPageShell({
   eyebrow,
   title,
 }) {
+  const { distinctItemCount } = useCart();
+
   return (
     <div className="storefront-page-shell min-h-screen overflow-hidden bg-[linear-gradient(135deg,#f7fbff_0%,#ecfeff_45%,#fff8eb_100%)] text-slate-950">
       <div className="absolute inset-0 bg-grid bg-[size:28px_28px] opacity-25" />
@@ -57,6 +61,7 @@ export function StorefrontPageShell({
             <Link to="/cart" className={getNavClassName(currentStep === "cart")}>
               <ShoppingCart className="h-4 w-4" />
               Cart
+              <CartItemCountBadge count={distinctItemCount} />
             </Link>
             <Link to="/checkout" className={getNavClassName(currentStep === "checkout")}>
               <CreditCard className="h-4 w-4" />

@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { clearStoredUser } from "../../../lib/authStorage";
 import { useStoredUser } from "../../../lib/useStoredUser";
+import { CartItemCountBadge } from "../../cart/components/CartItemCountBadge";
+import { useCart } from "../../cart/hooks/useCart";
 import {categoryCards, extraMenuItems,} from "../data/storefrontContent";
 import { CategoryArtwork } from "../components/StorefrontArtwork";
 import { StorefrontLiveSearch } from "../components/StorefrontLiveSearch";
@@ -54,6 +56,7 @@ export function HomePage() {
   const [welcomeName, setWelcomeName] = useState("");
   const profileMenuRef = useRef(null);
   const logoutTimeoutRef = useRef(null);
+  const { distinctItemCount } = useCart();
   const displayName = getUserDisplayName(user);
   const [recommendations, setRecommendations] = useState([]);
   const [recsLoading, setRecsLoading] = useState(true);
@@ -282,9 +285,10 @@ export function HomePage() {
             )}
             <Link
               to="/cart"
-              className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10"
+              className="relative inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10"
               aria-label="Cart"
             >
+              <CartItemCountBadge count={distinctItemCount} className="absolute -right-1.5 -top-1.5" />
               <ShoppingCart className="h-5 w-5" />
             </Link>
           </div>

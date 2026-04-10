@@ -14,6 +14,8 @@ import {
 import { clearStoredUser } from "../../../lib/authStorage";
 import { useScrollUpHeader } from "../../../lib/useScrollUpHeader";
 import { useStoredUser } from "../../../lib/useStoredUser";
+import { CartItemCountBadge } from "../../cart/components/CartItemCountBadge";
+import { useCart } from "../../cart/hooks/useCart";
 import { StorefrontLiveSearch } from "./StorefrontLiveSearch";
 import { extraMenuItems } from "../data/storefrontContent";
 
@@ -30,6 +32,7 @@ export function FloatingStorefrontHeader() {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const profileMenuRef = useRef(null);
+  const { distinctItemCount } = useCart();
   const displayName = getUserDisplayName(user);
 
   useEffect(() => {
@@ -200,9 +203,10 @@ export function FloatingStorefrontHeader() {
             )}
             <Link
               to="/cart"
-              className="pointer-events-auto inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10"
+              className="pointer-events-auto relative inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10"
               aria-label="Cart"
             >
+              <CartItemCountBadge count={distinctItemCount} className="absolute -right-1.5 -top-1.5" />
               <ShoppingCart className="h-5 w-5" />
             </Link>
           </div>
