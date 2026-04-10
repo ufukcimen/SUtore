@@ -35,5 +35,6 @@ CREATE TABLE products (
     warranty_status VARCHAR(100),
     distributor_info TEXT,
     image_url TEXT,
-    is_active BOOLEAN DEFAULT TRUE
+    is_active BOOLEAN DEFAULT TRUE,
+    item_type VARCHAR(50)
 );
