@@ -23,6 +23,7 @@ import {categoryCards, extraMenuItems,} from "../data/storefrontContent";
 import { CategoryArtwork } from "../components/StorefrontArtwork";
 import { StorefrontLiveSearch } from "../components/StorefrontLiveSearch";
 import { LaptopCard } from "../components/LaptopCard";
+import { RecommendationCarousel } from "../components/RecommendationCarousel";
 import { http } from "../../../lib/http";
 const categoryIcons = {
   laptop: Laptop,
@@ -532,11 +533,13 @@ export function HomePage() {
                 <LoaderCircle className="h-8 w-8 animate-spin text-brand-accent" />
               </div>
             ) : recommendations.length > 0 ? (
-              <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <RecommendationCarousel>
                 {recommendations.map((product) => (
-                  <LaptopCard key={product.product_id} product={product} />
+                  <div key={product.product_id} className="w-[22rem] shrink-0">
+                    <LaptopCard product={product} compact />
+                  </div>
                 ))}
-              </div>
+              </RecommendationCarousel>
             ) : (
               <p className="mt-8 text-center text-sm text-slate-500">
                 No recommendations available right now.

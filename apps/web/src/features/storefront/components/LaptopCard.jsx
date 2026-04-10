@@ -15,7 +15,7 @@ function formatPrice(price) {
   }).format(numericPrice);
 }
 
-export function LaptopCard({ product }) {
+export function LaptopCard({ product, compact = false }) {
   const [isAdded, setIsAdded] = useState(false);
   const stockQuantity = Number(product.stock_quantity);
   const remainingStock = Number.isFinite(stockQuantity) ? Math.max(Math.floor(stockQuantity), 0) : 0;
@@ -79,16 +79,18 @@ export function LaptopCard({ product }) {
                 {product.category}
               </p>
             ) : null}
-            <h2 className="mt-2 text-xl font-semibold text-brand-ink">{product.name}</h2>
+            <h2 className={`mt-2 text-xl font-semibold text-brand-ink${compact ? " line-clamp-1" : ""}`}>{product.name}</h2>
           </div>
           <p className="shrink-0 rounded-2xl bg-cyan-50 px-3 py-2 text-sm font-semibold text-brand-accent">
             {formatPrice(product.price)}
           </p>
         </div>
 
-        <p className="line-clamp-4 text-sm leading-6 text-slate-600">
-          {product.description || "Description not available."}
-        </p>
+        {!compact ? (
+          <p className="line-clamp-4 text-sm leading-6 text-slate-600">
+            {product.description || "Description not available."}
+          </p>
+        ) : null}
 
         <div className="flex flex-wrap items-center gap-2">
           <span
