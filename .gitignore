@@ -9,6 +9,7 @@ __pycache__/
 *.pyo
 *.pyd
 *.egg-info/
+apps/api/tools/import_runs/
 .pytest_cache/
 .env
 .env.*
