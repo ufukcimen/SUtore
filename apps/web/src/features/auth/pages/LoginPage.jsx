@@ -47,8 +47,11 @@ export function LoginPage() {
     try {
       const response = await http.post("/auth/login", form);
       writeStoredUser(response.data.user);
-      sessionStorage.setItem(WELCOME_STORAGE_KEY, JSON.stringify(response.data.user));
-      navigate("/");
+      const redirectTo = location.state?.from || "/";
+      if (redirectTo === "/") {
+        sessionStorage.setItem(WELCOME_STORAGE_KEY, JSON.stringify(response.data.user));
+      }
+      navigate(redirectTo, { replace: true });
     } catch (error) {
       setSubmitState({
         kind: "error",
@@ -72,7 +75,7 @@ export function LoginPage() {
       alternateLink={
         <p>
           New to SUtore?{" "}
-          <Link className="font-semibold text-brand-accent" to="/signup">
+          <Link className="font-semibold text-brand-accent" to="/signup" state={{ from: location.state?.from }}>
             Create an account
           </Link>
         </p>

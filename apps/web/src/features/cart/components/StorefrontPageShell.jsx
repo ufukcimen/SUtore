@@ -1,4 +1,4 @@
-import { ArrowLeft, CreditCard, ShoppingCart } from "lucide-react";
+import { ArrowLeft, ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCart } from "../hooks/useCart";
 import { CartItemCountBadge } from "./CartItemCountBadge";
@@ -62,10 +62,6 @@ export function StorefrontPageShell({
               <ShoppingCart className="h-4 w-4" />
               Cart
               <CartItemCountBadge count={distinctItemCount} />
-            </Link>
-            <Link to="/checkout" className={getNavClassName(currentStep === "checkout")}>
-              <CreditCard className="h-4 w-4" />
-              Payment
             </Link>
           </nav>
         </div>

@@ -85,6 +85,7 @@ export function CheckoutPage() {
 
   useEffect(() => {
     if (!user) {
+      navigate("/login", { state: { from: "/checkout" }, replace: true });
       return;
     }
 
@@ -98,7 +99,7 @@ export function CheckoutPage() {
       lastName: current.lastName || lastName,
       email: current.email || user.email || "",
     }));
-  }, [user]);
+  }, [user, navigate]);
 
   function getFieldError(field) {
     return visibleErrors[field] ? errors[field] : "";

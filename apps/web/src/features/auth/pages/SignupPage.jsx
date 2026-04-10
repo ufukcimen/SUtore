@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, Check, Circle, Sparkles } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
 import { http } from "../../../lib/http";
@@ -131,6 +131,7 @@ function getErrorMessage(error, fallback) {
 }
 
 export function SignupPage() {
+  const location = useLocation();
   const navigate = useNavigate();
   const [form, setForm] = useState({
     firstName: "",
@@ -174,6 +175,7 @@ export function SignupPage() {
             response.data.message ??
             "Your account is ready. Sign in with the email and password you just created.",
           signupEmail: form.email,
+          from: location.state?.from,
         },
       });
     } catch (error) {
@@ -199,7 +201,7 @@ export function SignupPage() {
       alternateLink={
         <p>
           Already have an account?{" "}
-          <Link className="font-semibold text-brand-accent" to="/login">
+          <Link className="font-semibold text-brand-accent" to="/login" state={{ from: location.state?.from }}>
             Log in here
           </Link>
         </p>
