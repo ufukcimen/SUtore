@@ -3,6 +3,7 @@ import { Children, cloneElement, useEffect, useRef } from "react";
 const AUTO_SCROLL_SPEED = 0.5;
 const DRAG_THRESHOLD = 4;
 const HOVER_READY_DELAY = 150;
+const WHEEL_IDLE_DELAY = 200;
 
 export function RecommendationCarousel({ children }) {
   const viewportRef = useRef(null);
@@ -11,20 +12,21 @@ export function RecommendationCarousel({ children }) {
   const cycleWidthRef = useRef(0);
   const hoveredRef = useRef(false);
   const readyRef = useRef(false);
+  const wheelActiveRef = useRef(false);
   const dragRef = useRef({ active: false, startX: 0, offsetStart: 0, moved: false });
   const rafRef = useRef(null);
+  const cleanupDragRef = useRef(null);
 
   const items = Children.toArray(children);
   const itemCount = items.length;
 
   useEffect(() => {
+    const viewport = viewportRef.current;
     const track = trackRef.current;
-    if (!track || itemCount === 0) {
+    if (!viewport || !track || itemCount === 0) {
       return undefined;
     }
 
-    // Measure the width of one cycle from the DOM: the distance between
-    // the first item of copy 1 and the first item of copy 2.
     const allItems = track.children;
     const cycleWidth =
       allItems.length > itemCount
@@ -32,25 +34,61 @@ export function RecommendationCarousel({ children }) {
         : track.scrollWidth / 3;
     cycleWidthRef.current = cycleWidth;
 
-    // Start the viewport on the middle copy so there is one full
-    // copy of buffer content on each side.
     offsetRef.current = -cycleWidth;
     track.style.transform = `translateX(${-cycleWidth}px)`;
 
     hoveredRef.current = false;
     readyRef.current = false;
+    wheelActiveRef.current = false;
 
     const readyTimer = setTimeout(() => {
       readyRef.current = true;
     }, HOVER_READY_DELAY);
 
+    // --- Trackpad / wheel support ---
+
+    let wheelTimer = null;
+
+    function handleWheel(event) {
+      // Only intercept primarily-horizontal gestures so vertical page
+      // scrolling is not blocked.
+      if (Math.abs(event.deltaX) <= Math.abs(event.deltaY)) {
+        return;
+      }
+
+      event.preventDefault();
+
+      // Keep auto-scroll paused while inertial events are still arriving.
+      wheelActiveRef.current = true;
+      clearTimeout(wheelTimer);
+      wheelTimer = setTimeout(() => {
+        wheelActiveRef.current = false;
+      }, WHEEL_IDLE_DELAY);
+
+      // Apply the horizontal delta to the offset with cycle normalization.
+      let newOffset = offsetRef.current - event.deltaX;
+      const c = cycleWidth;
+
+      if (c > 0) {
+        if (newOffset > -c) {
+          newOffset -= c;
+        } else if (newOffset <= -2 * c) {
+          newOffset += c;
+        }
+      }
+
+      offsetRef.current = newOffset;
+      track.style.transform = `translateX(${newOffset}px)`;
+    }
+
+    viewport.addEventListener("wheel", handleWheel, { passive: false });
+
+    // --- Auto-scroll ---
+
     function tick() {
-      if (!hoveredRef.current && !dragRef.current.active) {
+      if (!hoveredRef.current && !dragRef.current.active && !wheelActiveRef.current) {
         offsetRef.current -= AUTO_SCROLL_SPEED;
 
-        // When we scroll past the end of the middle copy, silently
-        // jump back by one cycle. The content is identical so the
-        // reset is invisible.
         if (offsetRef.current <= -2 * cycleWidth) {
           offsetRef.current += cycleWidth;
         }
@@ -65,9 +103,15 @@ export function RecommendationCarousel({ children }) {
 
     return () => {
       clearTimeout(readyTimer);
+      clearTimeout(wheelTimer);
+      viewport.removeEventListener("wheel", handleWheel);
 
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current);
+      }
+
+      if (cleanupDragRef.current) {
+        cleanupDragRef.current();
       }
     };
   }, [children, itemCount]);
@@ -80,15 +124,15 @@ export function RecommendationCarousel({ children }) {
 
   function handleMouseLeave() {
     hoveredRef.current = false;
-
-    if (dragRef.current.active) {
-      dragRef.current.active = false;
-    }
   }
 
   function handleMouseDown(event) {
     if (event.button !== 0) {
       return;
+    }
+
+    if (cleanupDragRef.current) {
+      cleanupDragRef.current();
     }
 
     dragRef.current = {
@@ -98,47 +142,55 @@ export function RecommendationCarousel({ children }) {
       moved: false,
     };
     viewportRef.current.style.cursor = "grabbing";
-  }
 
-  function handleMouseMove(event) {
-    if (!dragRef.current.active) {
-      return;
-    }
-
-    event.preventDefault();
-    const delta = event.pageX - dragRef.current.startX;
-
-    if (Math.abs(delta) > DRAG_THRESHOLD) {
-      dragRef.current.moved = true;
-    }
-
-    let newOffset = dragRef.current.offsetStart + delta;
-    const c = cycleWidthRef.current;
-
-    // Normalize the offset so the viewport never reaches the edge of
-    // the tripled track. Adjust the drag baseline by the same amount
-    // so subsequent mouse-move deltas stay consistent.
-    if (c > 0) {
-      if (newOffset > -c) {
-        newOffset -= c;
-        dragRef.current.offsetStart -= c;
-      } else if (newOffset <= -2 * c) {
-        newOffset += c;
-        dragRef.current.offsetStart += c;
+    function onMove(e) {
+      if (!dragRef.current.active) {
+        return;
       }
+
+      e.preventDefault();
+      const delta = e.pageX - dragRef.current.startX;
+
+      if (Math.abs(delta) > DRAG_THRESHOLD) {
+        dragRef.current.moved = true;
+      }
+
+      let newOffset = dragRef.current.offsetStart + delta;
+      const c = cycleWidthRef.current;
+
+      if (c > 0) {
+        if (newOffset > -c) {
+          newOffset -= c;
+          dragRef.current.offsetStart -= c;
+        } else if (newOffset <= -2 * c) {
+          newOffset += c;
+          dragRef.current.offsetStart += c;
+        }
+      }
+
+      offsetRef.current = newOffset;
+      trackRef.current.style.transform = `translateX(${newOffset}px)`;
     }
 
-    offsetRef.current = newOffset;
-    trackRef.current.style.transform = `translateX(${newOffset}px)`;
-  }
+    function onUp() {
+      dragRef.current.active = false;
 
-  function handleMouseUp() {
-    if (!dragRef.current.active) {
-      return;
+      if (viewportRef.current) {
+        viewportRef.current.style.cursor = "grab";
+      }
+
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      cleanupDragRef.current = null;
     }
 
-    dragRef.current.active = false;
-    viewportRef.current.style.cursor = "";
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+
+    cleanupDragRef.current = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
   }
 
   function handleClickCapture(event) {
@@ -155,8 +207,6 @@ export function RecommendationCarousel({ children }) {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
       onClickCapture={handleClickCapture}
       className="mt-6 overflow-hidden pb-4"
       style={{ cursor: "grab" }}
