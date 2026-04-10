@@ -18,7 +18,8 @@ CREATE TABLE products (
     distributor VARCHAR(200),
     stock_quantity INTEGER,
     image_url TEXT,
-    category VARCHAR(100)
+    category VARCHAR(100),
+    item_type VARCHAR(50)
 );
 
 CREATE TABLE orders (

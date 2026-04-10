@@ -14,6 +14,7 @@ class ProductBase(BaseModel):
     stock_quantity: int | None = None
     image_url: str | None = None
     category: str | None = Field(default=None, max_length=100)
+    item_type: str | None = Field(default=None, max_length=100)
 
 
 class ProductCreate(ProductBase):

@@ -17,6 +17,7 @@ import { NetworkPage } from "../features/storefront/pages/NetworkPage";
 import { PeripheralsPage } from "../features/storefront/pages/PeripheralsPage";
 import { AudioPage } from "../features/storefront/pages/AudioPage";
 import { StreamingGearPage } from "../features/storefront/pages/StreamingGearPage";
+import { ProductDetailPage } from "../features/storefront/pages/ProductDetailPage";
 import { SearchResultsPage } from "../features/storefront/pages/SearchResultsPage";
 
 export function AppRouter() {
@@ -38,6 +39,7 @@ export function AppRouter() {
       <Route path="/peripherals" element={<PeripheralsPage />} />
       <Route path="/audio" element={<AudioPage />} />
       <Route path="/streaming-gear" element={<StreamingGearPage />} />
+      <Route path="/products/:productId" element={<ProductDetailPage />} />
       <Route path="/search" element={<SearchResultsPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />

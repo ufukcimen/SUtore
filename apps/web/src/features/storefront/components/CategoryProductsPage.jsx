@@ -1,9 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ChevronDown, RefreshCcw } from "lucide-react";
+import { ArrowLeft, ChevronDown, Filter, RefreshCcw, X } from "lucide-react";
 import { http } from "../../../lib/http";
 import { LaptopCard } from "./LaptopCard";
 import { StorefrontShell } from "./StorefrontShell";
+import {
+  CATEGORY_ITEM_TYPES,
+  ITEM_TYPE_LABELS,
+  PRICE_RANGES,
+  parsePriceRange,
+} from "../data/itemTypes";
 
 const SORT_OPTIONS = [
   { value: "default", label: "Default" },
@@ -30,7 +36,6 @@ function sortProducts(products, sortValue) {
   }
 
   if (sortValue === "popularity") {
-    // Placeholder: shuffle until real popularity data is available.
     for (let i = sorted.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [sorted[i], sorted[j]] = [sorted[j], sorted[i]];
@@ -54,6 +59,12 @@ export function CategoryProductsPage({
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [sortValue, setSortValue] = useState("default");
+  const [selectedItemType, setSelectedItemType] = useState("");
+  const [selectedPriceRange, setSelectedPriceRange] = useState("");
+
+  const itemTypeOptions = CATEGORY_ITEM_TYPES[category] ?? [];
+  const hasFilters = itemTypeOptions.length > 0;
+  const hasActiveFilters = selectedItemType !== "" || selectedPriceRange !== "";
 
   const sortedProducts = useMemo(
     () => sortProducts(products, sortValue),
@@ -68,9 +79,21 @@ export function CategoryProductsPage({
       setErrorMessage("");
 
       try {
-        const response = await http.get("/products", {
-          params: { category },
-        });
+        const params = { category };
+
+        if (selectedItemType) {
+          params.item_type = selectedItemType;
+        }
+
+        const { min, max } = parsePriceRange(selectedPriceRange);
+        if (min !== null) {
+          params.price_min = min;
+        }
+        if (max !== null) {
+          params.price_max = max;
+        }
+
+        const response = await http.get("/products", { params });
 
         if (!isActive) {
           return;
@@ -100,7 +123,12 @@ export function CategoryProductsPage({
     return () => {
       isActive = false;
     };
-  }, [category]);
+  }, [category, selectedItemType, selectedPriceRange]);
+
+  function clearFilters() {
+    setSelectedItemType("");
+    setSelectedPriceRange("");
+  }
 
   return (
     <StorefrontShell>
@@ -148,6 +176,75 @@ export function CategoryProductsPage({
         </div>
       </header>
 
+      {hasFilters || true ? (
+        <div className="mt-5 rounded-[2rem] border border-slate-200/80 bg-white/85 p-5 shadow-[0_18px_45px_rgba(7,17,31,0.06)] backdrop-blur-xl sm:p-6">
+          <div className="flex items-center gap-3">
+            <Filter className="h-4 w-4 text-brand-accent" />
+            <p className="text-sm font-semibold text-brand-ink">Filters</p>
+            {hasActiveFilters ? (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+              >
+                <X className="h-3 w-3" />
+                Clear all
+              </button>
+            ) : null}
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-start gap-4">
+            {hasFilters ? (
+              <div className="min-w-0">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                  Type
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {itemTypeOptions.map((type) => {
+                    const isActive = selectedItemType === type;
+
+                    return (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setSelectedItemType(isActive ? "" : type)}
+                        className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                          isActive
+                            ? "border-cyan-300 bg-cyan-50 text-brand-accent"
+                            : "border-slate-200 bg-white text-slate-600 hover:border-cyan-200 hover:text-brand-ink"
+                        }`}
+                      >
+                        {ITEM_TYPE_LABELS[type] ?? type}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            <div className={hasFilters ? "ml-auto" : ""}>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                Price
+              </p>
+              <div className="relative">
+                <select
+                  value={selectedPriceRange}
+                  onChange={(event) => setSelectedPriceRange(event.target.value)}
+                  className="appearance-none rounded-full border border-slate-200 bg-white px-4 py-1.5 pr-8 text-xs font-semibold text-brand-ink shadow-sm transition hover:border-cyan-300/50 focus:border-cyan-300 focus:outline-none"
+                >
+                  {PRICE_RANGES.map((range) => (
+                    <option key={range.value} value={range.value}>
+                      {range.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <section className="mt-8">
         {isLoading ? (
           <div className="rounded-[2rem] border border-slate-200/80 bg-white/85 px-6 py-12 text-center shadow-[0_18px_45px_rgba(7,17,31,0.08)]">
@@ -180,11 +277,23 @@ export function CategoryProductsPage({
             </div>
           ) : (
             <div className="rounded-[2rem] border border-slate-200/80 bg-white/85 px-6 py-10 text-center shadow-[0_18px_45px_rgba(7,17,31,0.08)]">
-              <p className="text-lg font-semibold text-brand-ink">{emptyLabel}</p>
-              <p className="mt-2 text-sm text-slate-600">
-                The backend request completed successfully but returned no matching
-                products right now.
+              <p className="text-lg font-semibold text-brand-ink">
+                {hasActiveFilters ? "No products match your filters." : emptyLabel}
               </p>
+              <p className="mt-2 text-sm text-slate-600">
+                {hasActiveFilters
+                  ? "Try adjusting your filters or clearing them to see all products."
+                  : "The backend request completed successfully but returned no matching products right now."}
+              </p>
+              {hasActiveFilters ? (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-brand-ink transition hover:border-cyan-300/50"
+                >
+                  Clear filters
+                </button>
+              ) : null}
             </div>
           )
         ) : null}

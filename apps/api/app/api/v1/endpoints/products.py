@@ -13,6 +13,9 @@ router = APIRouter()
 @router.get("", response_model=list[ProductRead])
 def list_products(
     category: str | None = Query(default=None, min_length=1, max_length=100),
+    item_type: str | None = Query(default=None, min_length=1, max_length=100),
+    price_min: float | None = Query(default=None, ge=0),
+    price_max: float | None = Query(default=None, ge=0),
     search: str | None = Query(default=None, min_length=1, max_length=200),
     limit: int | None = Query(default=None, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
@@ -23,6 +26,16 @@ def list_products(
     normalized_category = category.strip().lower() if category else None
     if normalized_category:
         statement = statement.where(func.lower(Product.category) == normalized_category)
+
+    normalized_item_type = item_type.strip().lower() if item_type else None
+    if normalized_item_type:
+        statement = statement.where(func.lower(Product.item_type) == normalized_item_type)
+
+    if price_min is not None:
+        statement = statement.where(Product.price >= price_min)
+
+    if price_max is not None:
+        statement = statement.where(Product.price <= price_max)
 
     normalized_search = search.strip() if search else None
     if normalized_search:
