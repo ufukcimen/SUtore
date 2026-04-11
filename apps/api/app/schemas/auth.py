@@ -55,6 +55,7 @@ class UserRead(BaseModel):
     email: EmailStr | None
     tax_id: str | None
     home_address: str | None
+    role: str = "customer"
 
 
 class UserUpdate(BaseModel):

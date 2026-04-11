@@ -4,7 +4,8 @@ CREATE TABLE users (
     tax_id VARCHAR(50),
     email VARCHAR(150),
     home_address TEXT,
-    password_hash TEXT
+    password_hash TEXT,
+    role VARCHAR(30) NOT NULL DEFAULT 'customer'
 );
 
 CREATE TABLE products (
@@ -20,6 +21,18 @@ CREATE TABLE products (
     image_url TEXT,
     category VARCHAR(100),
     item_type VARCHAR(50)
+);
+
+CREATE TABLE reviews (
+    review_id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    product_id INTEGER NOT NULL REFERENCES products(product_id) ON DELETE CASCADE,
+    rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    comment TEXT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, product_id)
 );
 
 CREATE TABLE wishlist_items (

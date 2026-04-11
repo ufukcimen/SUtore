@@ -4,9 +4,12 @@ import {
   ArrowLeft,
   Box,
   Heart,
+  MessageSquare,
   RefreshCcw,
+  Send,
   ShieldCheck,
   ShoppingCart,
+  Star,
   Tag,
   Truck,
   XCircle,
@@ -31,6 +34,40 @@ function formatPrice(price) {
   }).format(numericPrice);
 }
 
+function StarRating({ rating, onSelect, interactive = false, size = "h-5 w-5" }) {
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((value) => (
+        <button
+          key={value}
+          type="button"
+          disabled={!interactive}
+          onClick={() => interactive && onSelect?.(value)}
+          className={interactive ? "cursor-pointer transition hover:scale-110" : "cursor-default"}
+        >
+          <Star
+            className={`${size} ${
+              value <= rating
+                ? "fill-amber-400 text-amber-400"
+                : "fill-slate-200 text-slate-200"
+            }`}
+          />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function formatReviewDate(value) {
+  const date = value ? new Date(value) : null;
+
+  if (!date || Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
+}
+
 export function ProductDetailPage() {
   const { productId } = useParams();
   const navigate = useNavigate();
@@ -41,6 +78,13 @@ export function ProductDetailPage() {
   const [isAdded, setIsAdded] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
+
+  const [reviews, setReviews] = useState([]);
+  const [reviewSummary, setReviewSummary] = useState({ average_rating: null, review_count: 0 });
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewSubmitState, setReviewSubmitState] = useState({ kind: "idle", message: "" });
 
   useEffect(() => {
     let isActive = true;
@@ -111,6 +155,35 @@ export function ProductDetailPage() {
     };
   }, [user, productId]);
 
+  useEffect(() => {
+    if (!productId) {
+      return;
+    }
+
+    let isActive = true;
+
+    Promise.all([
+      http.get(`/reviews/product/${productId}`),
+      http.get(`/reviews/product/${productId}/summary`),
+    ])
+      .then(([reviewsRes, summaryRes]) => {
+        if (isActive) {
+          setReviews(Array.isArray(reviewsRes.data) ? reviewsRes.data : []);
+          setReviewSummary(summaryRes.data ?? { average_rating: null, review_count: 0 });
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setReviews([]);
+          setReviewSummary({ average_rating: null, review_count: 0 });
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [productId]);
+
   const stockQuantity = product ? Number(product.stock_quantity) : 0;
   const remainingStock = Number.isFinite(stockQuantity)
     ? Math.max(Math.floor(stockQuantity), 0)
@@ -176,15 +249,65 @@ export function ProductDetailPage() {
         setIsWishlisted(true);
       }
     } catch {
-      // Silently handle — the button state stays unchanged on error.
+      // Silently handle
     } finally {
       setWishlistLoading(false);
+    }
+  }
+
+  async function handleSubmitReview(event) {
+    event.preventDefault();
+
+    if (!user) {
+      navigate("/login", { state: { from: `/products/${productId}` }, replace: true });
+      return;
+    }
+
+    if (reviewRating < 1 || reviewRating > 5) {
+      setReviewSubmitState({ kind: "error", message: "Please select a rating from 1 to 5 stars." });
+      return;
+    }
+
+    if (!reviewComment.trim()) {
+      setReviewSubmitState({ kind: "error", message: "Please write a comment." });
+      return;
+    }
+
+    setReviewSubmitting(true);
+    setReviewSubmitState({ kind: "idle", message: "" });
+
+    try {
+      await http.post("/reviews", {
+        user_id: user.user_id,
+        product_id: Number(productId),
+        rating: reviewRating,
+        comment: reviewComment.trim(),
+      });
+
+      setReviewRating(0);
+      setReviewComment("");
+      setReviewSubmitState({
+        kind: "success",
+        message: "Your review has been submitted and is pending approval. It will appear publicly once a product manager approves it.",
+      });
+    } catch (error) {
+      const detail = error.response?.data?.detail;
+      setReviewSubmitState({
+        kind: "error",
+        message: typeof detail === "string" ? detail : "Could not submit your review. Please try again.",
+      });
+    } finally {
+      setReviewSubmitting(false);
     }
   }
 
   const itemTypeLabel = product?.item_type
     ? ITEM_TYPE_LABELS[product.item_type] ?? product.item_type
     : null;
+
+  const userAlreadyReviewed = user
+    ? reviews.some((r) => r.user_id === user.user_id)
+    : false;
 
   return (
     <StorefrontShell>
@@ -224,162 +347,272 @@ export function ProductDetailPage() {
       ) : null}
 
       {!isLoading && !errorMessage && product ? (
-        <div className="grid gap-8 lg:grid-cols-2">
-          <div className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/85 shadow-[0_28px_80px_rgba(7,17,31,0.08)]">
-            <div className="aspect-[4/3] overflow-hidden bg-[linear-gradient(135deg,#e0f2fe_0%,#f8fafc_48%,#fff7ed_100%)]">
-              {product.image_url ? (
-                <img
-                  src={product.image_url}
-                  alt={product.name}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center px-6 text-center text-sm font-medium text-slate-500">
-                  Image unavailable
+        <>
+          <div className="grid gap-8 lg:grid-cols-2">
+            <div className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/85 shadow-[0_28px_80px_rgba(7,17,31,0.08)]">
+              <div className="aspect-[4/3] overflow-hidden bg-[linear-gradient(135deg,#e0f2fe_0%,#f8fafc_48%,#fff7ed_100%)]">
+                {product.image_url ? (
+                  <img
+                    src={product.image_url}
+                    alt={product.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center px-6 text-center text-sm font-medium text-slate-500">
+                    Image unavailable
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="rounded-[2rem] border border-slate-200/80 bg-white/85 p-6 shadow-[0_28px_80px_rgba(7,17,31,0.08)] sm:p-8">
+                <div className="flex flex-wrap items-center gap-2">
+                  {product.category ? (
+                    <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-brand-accent">
+                      {product.category}
+                    </span>
+                  ) : null}
+                  {itemTypeLabel ? (
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+                      {itemTypeLabel}
+                    </span>
+                  ) : null}
                 </div>
-              )}
+
+                <h1 className="mt-4 text-3xl font-semibold tracking-tight text-brand-ink sm:text-4xl">
+                  {product.name}
+                </h1>
+
+                {product.model ? (
+                  <p className="mt-2 text-sm text-slate-500">Model: {product.model}</p>
+                ) : null}
+
+                {reviewSummary.review_count > 0 ? (
+                  <div className="mt-3 flex items-center gap-2">
+                    <StarRating rating={Math.round(reviewSummary.average_rating ?? 0)} />
+                    <span className="text-sm font-semibold text-slate-700">
+                      {reviewSummary.average_rating}
+                    </span>
+                    <span className="text-sm text-slate-500">
+                      ({reviewSummary.review_count} {reviewSummary.review_count === 1 ? "review" : "reviews"})
+                    </span>
+                  </div>
+                ) : null}
+
+                <p className="mt-6 text-4xl font-semibold text-brand-ink">
+                  {formatPrice(product.price)}
+                </p>
+
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <span
+                    className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] ${getStockClassName()}`}
+                  >
+                    {getStockLabel()}
+                  </span>
+                </div>
+
+                <div className="mt-6 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleAddToCart}
+                    disabled={isOutOfStock}
+                    className={`inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-4 text-sm font-semibold transition ${
+                      isOutOfStock
+                        ? "cursor-not-allowed bg-slate-200 text-slate-500"
+                        : isAdded
+                          ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                          : "bg-brand-accent text-brand-ink hover:bg-brand-glow"
+                    }`}
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                    {isOutOfStock
+                      ? "Out of stock"
+                      : isAdded
+                        ? "Added to cart"
+                        : "Add to cart"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleToggleWishlist}
+                    disabled={wishlistLoading}
+                    className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-5 py-4 text-sm font-semibold transition ${
+                      isWishlisted
+                        ? "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-cyan-300/50 hover:text-brand-ink"
+                    }`}
+                  >
+                    <Heart
+                      className={`h-4 w-4 ${isWishlisted ? "fill-rose-500 text-rose-500" : ""}`}
+                    />
+                    {isWishlisted ? "Saved" : "Save for later"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-[2rem] border border-slate-200/80 bg-white/85 p-6 shadow-[0_18px_45px_rgba(7,17,31,0.06)] sm:p-8">
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
+                  Product details
+                </p>
+
+                <p className="mt-4 text-sm leading-7 text-slate-600">
+                  {product.description || "No description available."}
+                </p>
+
+                <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                  {product.distributor ? (
+                    <div className="flex items-start gap-3 rounded-[1.25rem] border border-slate-200 bg-slate-50/80 p-4">
+                      <Box className="mt-0.5 h-4 w-4 shrink-0 text-brand-accent" />
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Brand / Distributor</p>
+                        <p className="mt-1 text-sm font-semibold text-brand-ink">{product.distributor}</p>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {product.serial_number ? (
+                    <div className="flex items-start gap-3 rounded-[1.25rem] border border-slate-200 bg-slate-50/80 p-4">
+                      <Tag className="mt-0.5 h-4 w-4 shrink-0 text-brand-accent" />
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Serial number</p>
+                        <p className="mt-1 text-sm font-semibold text-brand-ink">{product.serial_number}</p>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="flex items-start gap-3 rounded-[1.25rem] border border-slate-200 bg-slate-50/80 p-4">
+                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-accent" />
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Warranty</p>
+                      <p className="mt-1 text-sm font-semibold text-brand-ink">{product.warranty_status ? "Covered" : "Not covered"}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 rounded-[1.25rem] border border-slate-200 bg-slate-50/80 p-4">
+                    <Truck className="mt-0.5 h-4 w-4 shrink-0 text-brand-accent" />
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Shipping</p>
+                      <p className="mt-1 text-sm font-semibold text-brand-ink">Free over $1,200</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="space-y-6">
-            <div className="rounded-[2rem] border border-slate-200/80 bg-white/85 p-6 shadow-[0_28px_80px_rgba(7,17,31,0.08)] sm:p-8">
-              <div className="flex flex-wrap items-center gap-2">
-                {product.category ? (
-                  <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-brand-accent">
-                    {product.category}
-                  </span>
-                ) : null}
-                {itemTypeLabel ? (
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
-                    {itemTypeLabel}
-                  </span>
-                ) : null}
-              </div>
-
-              <h1 className="mt-4 text-3xl font-semibold tracking-tight text-brand-ink sm:text-4xl">
-                {product.name}
-              </h1>
-
-              {product.model ? (
-                <p className="mt-2 text-sm text-slate-500">Model: {product.model}</p>
-              ) : null}
-
-              <p className="mt-6 text-4xl font-semibold text-brand-ink">
-                {formatPrice(product.price)}
+          {/* ── Reviews section ── */}
+          <div className="mt-10 rounded-[2rem] border border-slate-200/80 bg-white/85 p-6 shadow-[0_28px_80px_rgba(7,17,31,0.08)] sm:p-8">
+            <div className="flex items-center gap-3">
+              <MessageSquare className="h-5 w-5 text-brand-accent" />
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
+                Customer reviews
               </p>
+            </div>
 
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <span
-                  className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] ${getStockClassName()}`}
-                >
-                  {getStockLabel()}
+            {reviewSummary.review_count > 0 ? (
+              <div className="mt-4 flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <StarRating rating={Math.round(reviewSummary.average_rating ?? 0)} size="h-6 w-6" />
+                  <span className="text-2xl font-semibold text-brand-ink">
+                    {reviewSummary.average_rating}
+                  </span>
+                </div>
+                <span className="text-sm text-slate-500">
+                  Based on {reviewSummary.review_count} {reviewSummary.review_count === 1 ? "review" : "reviews"}
                 </span>
               </div>
+            ) : (
+              <p className="mt-4 text-sm text-slate-500">No reviews yet. Be the first to share your experience.</p>
+            )}
 
-              <div className="mt-6 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleAddToCart}
-                  disabled={isOutOfStock}
-                  className={`inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-4 text-sm font-semibold transition ${
-                    isOutOfStock
-                      ? "cursor-not-allowed bg-slate-200 text-slate-500"
-                      : isAdded
-                        ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
-                        : "bg-brand-accent text-brand-ink hover:bg-brand-glow"
-                  }`}
-                >
-                  <ShoppingCart className="h-4 w-4" />
-                  {isOutOfStock
-                    ? "Out of stock"
-                    : isAdded
-                      ? "Added to cart"
-                      : "Add to cart"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleToggleWishlist}
-                  disabled={wishlistLoading}
-                  className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-5 py-4 text-sm font-semibold transition ${
-                    isWishlisted
-                      ? "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-cyan-300/50 hover:text-brand-ink"
-                  }`}
-                >
-                  <Heart
-                    className={`h-4 w-4 ${isWishlisted ? "fill-rose-500 text-rose-500" : ""}`}
-                  />
-                  {isWishlisted ? "Saved" : "Save for later"}
-                </button>
+            {/* Approved reviews list */}
+            {reviews.length > 0 ? (
+              <div className="mt-6 space-y-4">
+                {reviews.map((review) => (
+                  <div
+                    key={review.review_id}
+                    className="rounded-[1.5rem] border border-slate-200 bg-slate-50/60 p-5"
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <StarRating rating={review.rating} size="h-4 w-4" />
+                        <span className="text-sm font-semibold text-brand-ink">
+                          {review.user_name || "Anonymous"}
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-400">
+                        {formatReviewDate(review.created_at)}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-sm leading-7 text-slate-600">{review.comment}</p>
+                  </div>
+                ))}
               </div>
-            </div>
+            ) : null}
 
-            <div className="rounded-[2rem] border border-slate-200/80 bg-white/85 p-6 shadow-[0_18px_45px_rgba(7,17,31,0.06)] sm:p-8">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
-                Product details
+            {/* Submit review form */}
+            <div className="mt-8 border-t border-slate-200 pt-6">
+              <p className="text-sm font-semibold text-brand-ink">
+                {userAlreadyReviewed
+                  ? "You have already reviewed this product."
+                  : "Write a review"}
               </p>
 
-              <p className="mt-4 text-sm leading-7 text-slate-600">
-                {product.description || "No description available."}
-              </p>
-
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                {product.distributor ? (
-                  <div className="flex items-start gap-3 rounded-[1.25rem] border border-slate-200 bg-slate-50/80 p-4">
-                    <Box className="mt-0.5 h-4 w-4 shrink-0 text-brand-accent" />
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                        Brand / Distributor
-                      </p>
-                      <p className="mt-1 text-sm font-semibold text-brand-ink">
-                        {product.distributor}
-                      </p>
-                    </div>
-                  </div>
-                ) : null}
-
-                {product.serial_number ? (
-                  <div className="flex items-start gap-3 rounded-[1.25rem] border border-slate-200 bg-slate-50/80 p-4">
-                    <Tag className="mt-0.5 h-4 w-4 shrink-0 text-brand-accent" />
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                        Serial number
-                      </p>
-                      <p className="mt-1 text-sm font-semibold text-brand-ink">
-                        {product.serial_number}
-                      </p>
-                    </div>
-                  </div>
-                ) : null}
-
-                <div className="flex items-start gap-3 rounded-[1.25rem] border border-slate-200 bg-slate-50/80 p-4">
-                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-accent" />
+              {!userAlreadyReviewed && reviewSubmitState.kind !== "success" ? (
+                <form onSubmit={handleSubmitReview} className="mt-4 space-y-4">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                      Warranty
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                      Your rating
                     </p>
-                    <p className="mt-1 text-sm font-semibold text-brand-ink">
-                      {product.warranty_status ? "Covered" : "Not covered"}
-                    </p>
+                    <StarRating
+                      rating={reviewRating}
+                      onSelect={setReviewRating}
+                      interactive
+                      size="h-7 w-7"
+                    />
                   </div>
-                </div>
 
-                <div className="flex items-start gap-3 rounded-[1.25rem] border border-slate-200 bg-slate-50/80 p-4">
-                  <Truck className="mt-0.5 h-4 w-4 shrink-0 text-brand-accent" />
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                      Shipping
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-brand-ink">
-                      Free over $1,200
-                    </p>
+                    <label htmlFor="review-comment" className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                      Your comment
+                    </label>
+                    <textarea
+                      id="review-comment"
+                      value={reviewComment}
+                      onChange={(e) => setReviewComment(e.target.value)}
+                      placeholder="Share your experience with this product..."
+                      rows={4}
+                      maxLength={2000}
+                      className="w-full rounded-[1.25rem] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-cyan-300"
+                    />
                   </div>
+
+                  {reviewSubmitState.kind === "error" ? (
+                    <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                      {reviewSubmitState.message}
+                    </p>
+                  ) : null}
+
+                  <button
+                    type="submit"
+                    disabled={reviewSubmitting}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-brand-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-900 disabled:opacity-50"
+                  >
+                    <Send className="h-4 w-4" />
+                    {reviewSubmitting ? "Submitting..." : "Submit review"}
+                  </button>
+                </form>
+              ) : null}
+
+              {reviewSubmitState.kind === "success" ? (
+                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  {reviewSubmitState.message}
                 </div>
-              </div>
+              ) : null}
             </div>
           </div>
-        </div>
+        </>
       ) : null}
     </StorefrontShell>
   );
