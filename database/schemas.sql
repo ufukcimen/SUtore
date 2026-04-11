@@ -22,6 +22,14 @@ CREATE TABLE products (
     item_type VARCHAR(50)
 );
 
+CREATE TABLE wishlist_items (
+    wishlist_item_id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    product_id INTEGER NOT NULL REFERENCES products(product_id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, product_id)
+);
+
 CREATE TABLE orders (
     order_id SERIAL PRIMARY KEY,
     order_number VARCHAR(32) UNIQUE NOT NULL,

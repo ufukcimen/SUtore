@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   ChevronDown,
   ChevronRight,
+  Heart,
   LogOut,
   Menu,
   ReceiptText,
@@ -172,6 +173,14 @@ export function FloatingStorefrontHeader() {
                     >
                       <ReceiptText className="h-4 w-4 text-brand-accent" />
                       Orders
+                    </Link>
+                    <Link
+                      to="/account/wishlist"
+                      onClick={() => setProfileMenuOpen(false)}
+                      className="flex w-full items-center gap-3 rounded-[1rem] px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-brand-ink"
+                    >
+                      <Heart className="h-4 w-4 text-brand-accent" />
+                      Wishlist
                     </Link>
                     <Link
                       to="/account/settings"

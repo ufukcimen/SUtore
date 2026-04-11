@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   Box,
-  CheckCircle2,
+  Heart,
   RefreshCcw,
   ShieldCheck,
   ShoppingCart,
@@ -12,6 +12,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { http } from "../../../lib/http";
+import { useStoredUser } from "../../../lib/useStoredUser";
 import { addProductToCart } from "../../cart/data/cartStorage";
 import { StorefrontShell } from "../components/StorefrontShell";
 import { ITEM_TYPE_LABELS } from "../data/itemTypes";
@@ -32,10 +33,14 @@ function formatPrice(price) {
 
 export function ProductDetailPage() {
   const { productId } = useParams();
+  const navigate = useNavigate();
+  const user = useStoredUser();
   const [product, setProduct] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [isAdded, setIsAdded] = useState(false);
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -80,6 +85,32 @@ export function ProductDetailPage() {
     };
   }, [productId]);
 
+  useEffect(() => {
+    if (!user || !productId) {
+      setIsWishlisted(false);
+      return;
+    }
+
+    let isActive = true;
+
+    http
+      .get("/wishlist/check", { params: { user_id: user.user_id, product_id: productId } })
+      .then((response) => {
+        if (isActive) {
+          setIsWishlisted(response.data.wishlisted);
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setIsWishlisted(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [user, productId]);
+
   const stockQuantity = product ? Number(product.stock_quantity) : 0;
   const remainingStock = Number.isFinite(stockQuantity)
     ? Math.max(Math.floor(stockQuantity), 0)
@@ -117,6 +148,38 @@ export function ProductDetailPage() {
 
     addProductToCart(product);
     setIsAdded(true);
+  }
+
+  async function handleToggleWishlist() {
+    if (!user) {
+      navigate("/login", { state: { from: `/products/${productId}` }, replace: true });
+      return;
+    }
+
+    if (wishlistLoading) {
+      return;
+    }
+
+    setWishlistLoading(true);
+
+    try {
+      if (isWishlisted) {
+        await http.delete("/wishlist", {
+          params: { user_id: user.user_id, product_id: productId },
+        });
+        setIsWishlisted(false);
+      } else {
+        await http.post("/wishlist", {
+          user_id: user.user_id,
+          product_id: Number(productId),
+        });
+        setIsWishlisted(true);
+      }
+    } catch {
+      // Silently handle — the button state stays unchanged on error.
+    } finally {
+      setWishlistLoading(false);
+    }
   }
 
   const itemTypeLabel = product?.item_type
@@ -213,12 +276,12 @@ export function ProductDetailPage() {
                 </span>
               </div>
 
-              <div className="mt-6">
+              <div className="mt-6 flex flex-wrap items-center gap-3">
                 <button
                   type="button"
                   onClick={handleAddToCart}
                   disabled={isOutOfStock}
-                  className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-4 text-sm font-semibold transition sm:w-auto ${
+                  className={`inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-4 text-sm font-semibold transition ${
                     isOutOfStock
                       ? "cursor-not-allowed bg-slate-200 text-slate-500"
                       : isAdded
@@ -232,6 +295,22 @@ export function ProductDetailPage() {
                     : isAdded
                       ? "Added to cart"
                       : "Add to cart"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleToggleWishlist}
+                  disabled={wishlistLoading}
+                  className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-5 py-4 text-sm font-semibold transition ${
+                    isWishlisted
+                      ? "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-cyan-300/50 hover:text-brand-ink"
+                  }`}
+                >
+                  <Heart
+                    className={`h-4 w-4 ${isWishlisted ? "fill-rose-500 text-rose-500" : ""}`}
+                  />
+                  {isWishlisted ? "Saved" : "Save for later"}
                 </button>
               </div>
             </div>
