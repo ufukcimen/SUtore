@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.db.session import get_db
+from app.models.delivery import Delivery
 from app.models.order import Order, OrderItem
 from app.models.product import Product
 from app.models.user import User
@@ -133,6 +134,15 @@ def create_order(payload: OrderCreate, db: Session = Depends(get_db)) -> OrderRe
         items=order_items,
     )
     db.add(order)
+    db.flush()
+
+    delivery = Delivery(
+        order_id=order.order_id,
+        customer_id=payload.user_id,
+        delivery_address=payload.billing_address,
+        total_price=total,
+    )
+    db.add(delivery)
     db.commit()
 
     return serialize_order(db, order.order_id)

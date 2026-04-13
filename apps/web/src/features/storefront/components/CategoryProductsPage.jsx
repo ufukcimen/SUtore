@@ -2,11 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ChevronDown, Filter, RefreshCcw, X } from "lucide-react";
 import { http } from "../../../lib/http";
-import { LaptopCard } from "./LaptopCard";
+import { ProductCard } from "./ProductCard";
 import { StorefrontShell } from "./StorefrontShell";
 import {
-  CATEGORY_ITEM_TYPES,
-  ITEM_TYPE_LABELS,
   PRICE_RANGES,
   parsePriceRange,
 } from "../data/itemTypes";
@@ -48,12 +46,14 @@ function sortProducts(products, sortValue) {
 
 export function CategoryProductsPage({
   category,
+  categoryId,
   badgeLabel,
   heading,
   loadingLabel,
   errorLabel,
   emptyLabel,
   Icon,
+  itemTypes = [],
 }) {
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -62,7 +62,7 @@ export function CategoryProductsPage({
   const [selectedItemType, setSelectedItemType] = useState("");
   const [selectedPriceRange, setSelectedPriceRange] = useState("");
 
-  const itemTypeOptions = CATEGORY_ITEM_TYPES[category] ?? [];
+  const itemTypeOptions = itemTypes;
   const hasFilters = itemTypeOptions.length > 0;
   const hasActiveFilters = selectedItemType !== "" || selectedPriceRange !== "";
 
@@ -79,7 +79,7 @@ export function CategoryProductsPage({
       setErrorMessage("");
 
       try {
-        const params = { category };
+        const params = categoryId ? { category_id: categoryId } : { category };
 
         if (selectedItemType) {
           params.item_type = selectedItemType;
@@ -123,7 +123,7 @@ export function CategoryProductsPage({
     return () => {
       isActive = false;
     };
-  }, [category, selectedItemType, selectedPriceRange]);
+  }, [category, categoryId, selectedItemType, selectedPriceRange]);
 
   function clearFilters() {
     setSelectedItemType("");
@@ -200,21 +200,23 @@ export function CategoryProductsPage({
                   Type
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {itemTypeOptions.map((type) => {
-                    const isActive = selectedItemType === type;
+                  {itemTypeOptions.map((typeObj) => {
+                    const typeValue = typeof typeObj === "string" ? typeObj : typeObj.value;
+                    const typeLabel = typeof typeObj === "string" ? typeObj : typeObj.label;
+                    const isActive = selectedItemType === typeValue;
 
                     return (
                       <button
-                        key={type}
+                        key={typeValue}
                         type="button"
-                        onClick={() => setSelectedItemType(isActive ? "" : type)}
+                        onClick={() => setSelectedItemType(isActive ? "" : typeValue)}
                         className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                           isActive
                             ? "border-cyan-300 bg-cyan-50 text-brand-accent"
                             : "border-slate-200 bg-white text-slate-600 hover:border-cyan-200 hover:text-brand-ink"
                         }`}
                       >
-                        {ITEM_TYPE_LABELS[type] ?? type}
+                        {typeLabel}
                       </button>
                     );
                   })}
@@ -269,7 +271,7 @@ export function CategoryProductsPage({
           sortedProducts.length > 0 ? (
             <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
               {sortedProducts.map((product) => (
-                <LaptopCard
+                <ProductCard
                   key={product.id ?? product.product_id ?? product.name}
                   product={product}
                 />

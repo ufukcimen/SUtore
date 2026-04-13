@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, RefreshCcw, Search } from "lucide-react";
-import { LaptopCard } from "../components/LaptopCard";
+import { ProductCard } from "../components/ProductCard";
 import { StorefrontSearchForm } from "../components/StorefrontSearchForm";
 import { StorefrontShell } from "../components/StorefrontShell";
 import { normalizeSearchQuery, useProductSearch } from "../hooks/useProductSearch";
@@ -101,7 +101,7 @@ export function SearchResultsPage() {
             products.length > 0 ? (
               <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                 {products.map((product) => (
-                  <LaptopCard
+                  <ProductCard
                     key={product.id ?? product.product_id ?? product.name}
                     product={product}
                   />

@@ -13,6 +13,7 @@ router = APIRouter()
 @router.get("", response_model=list[ProductRead])
 def list_products(
     category: str | None = Query(default=None, min_length=1, max_length=100),
+    category_id: int | None = Query(default=None, ge=1),
     item_type: str | None = Query(default=None, min_length=1, max_length=100),
     price_min: float | None = Query(default=None, ge=0),
     price_max: float | None = Query(default=None, ge=0),
@@ -21,11 +22,14 @@ def list_products(
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ) -> list[ProductRead]:
-    statement = select(Product).order_by(Product.product_id)
+    statement = select(Product).where(Product.is_active == True).order_by(Product.product_id)
 
-    normalized_category = category.strip().lower() if category else None
-    if normalized_category:
-        statement = statement.where(func.lower(Product.category) == normalized_category)
+    if category_id is not None:
+        statement = statement.where(Product.category_id == category_id)
+    else:
+        normalized_category = category.strip().lower() if category else None
+        if normalized_category:
+            statement = statement.where(func.lower(Product.category) == normalized_category)
 
     normalized_item_type = item_type.strip().lower() if item_type else None
     if normalized_item_type:
@@ -63,7 +67,7 @@ def random_products(
     count: int = Query(default=6, ge=4, le=6),
     db: Session = Depends(get_db),
 ) -> list[ProductRead]:
-    all_products = db.scalars(select(Product)).all()
+    all_products = db.scalars(select(Product).where(Product.is_active == True)).all()
     chosen = sample(all_products, min(count, len(all_products)))
     return [ProductRead.model_validate(p) for p in chosen]
 

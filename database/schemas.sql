@@ -8,6 +8,29 @@ CREATE TABLE users (
     role VARCHAR(30) NOT NULL DEFAULT 'customer'
 );
 
+CREATE TABLE categories (
+    category_id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    label VARCHAR(200) NOT NULL,
+    slug VARCHAR(120) NOT NULL UNIQUE,
+    description TEXT DEFAULT '',
+    icon VARCHAR(60) DEFAULT '',
+    image_url TEXT DEFAULT '',
+    is_visible_in_sidebar BOOLEAN NOT NULL DEFAULT TRUE,
+    is_visible_on_homepage BOOLEAN NOT NULL DEFAULT FALSE,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE item_types (
+    item_type_id SERIAL PRIMARY KEY,
+    category_id INTEGER NOT NULL REFERENCES categories(category_id) ON DELETE CASCADE,
+    value VARCHAR(100) NOT NULL,
+    label VARCHAR(200) NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    UNIQUE (category_id, value)
+);
+
 CREATE TABLE products (
     product_id SERIAL PRIMARY KEY,
     name VARCHAR(200),
@@ -20,7 +43,9 @@ CREATE TABLE products (
     stock_quantity INTEGER,
     image_url TEXT,
     category VARCHAR(100),
-    item_type VARCHAR(50)
+    item_type VARCHAR(50),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    category_id INTEGER REFERENCES categories(category_id) ON DELETE SET NULL
 );
 
 CREATE TABLE reviews (
@@ -71,4 +96,15 @@ CREATE TABLE order_items (
     unit_price NUMERIC(10, 2) NOT NULL,
     quantity INTEGER NOT NULL,
     line_total NUMERIC(10, 2) NOT NULL
+);
+
+CREATE TABLE deliveries (
+    delivery_id SERIAL PRIMARY KEY,
+    order_id INTEGER NOT NULL REFERENCES orders(order_id) ON DELETE CASCADE,
+    customer_id INTEGER REFERENCES users(user_id) ON DELETE SET NULL,
+    delivery_address TEXT NOT NULL,
+    total_price NUMERIC(10, 2) NOT NULL,
+    is_completed BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMPTZ
 );

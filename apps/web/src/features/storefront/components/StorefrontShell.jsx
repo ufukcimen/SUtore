@@ -20,7 +20,7 @@ import { useStoredUser } from "../../../lib/useStoredUser";
 import { CartItemCountBadge } from "../../cart/components/CartItemCountBadge";
 import { useCart } from "../../cart/hooks/useCart";
 import { StorefrontLiveSearch } from "./StorefrontLiveSearch";
-import { extraMenuItems } from "../data/storefrontContent";
+import { useCategories } from "../context/CategoriesContext";
 
 const WELCOME_STORAGE_KEY = "sutoreWelcomeUser";
 
@@ -32,6 +32,8 @@ export function StorefrontShell({ children, mainClassName = "" }) {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const user = useStoredUser();
+  const { categories } = useCategories();
+  const sidebarItems = categories.filter((c) => c.is_visible_in_sidebar);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [welcomeName, setWelcomeName] = useState("");
@@ -242,12 +244,12 @@ export function StorefrontShell({ children, mainClassName = "" }) {
                     </Link>
                     {user.role === "product_manager" ? (
                       <Link
-                        to="/manager/reviews"
+                        to="/manager/dashboard"
                         onClick={() => setProfileMenuOpen(false)}
                         className="flex w-full items-center gap-3 rounded-[1rem] px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-brand-ink"
                       >
                         <ShieldCheck className="h-4 w-4 text-brand-accent" />
-                        Review moderation
+                        Manager dashboard
                       </Link>
                     ) : null}
                     <button
@@ -315,14 +317,14 @@ export function StorefrontShell({ children, mainClassName = "" }) {
             </div>
 
             <div className="mt-8 space-y-3">
-              {extraMenuItems.map((item) => (
+              {sidebarItems.map((cat) => (
                 <Link
-                  key={item.label}
-                  to={item.route}
+                  key={cat.category_id}
+                  to={`/category/${cat.slug}`}
                   onClick={() => setMenuOpen(false)}
                   className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-4 text-left text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10"
                 >
-                  <span>{item.label}</span>
+                  <span>{cat.label}</span>
                   <ChevronRight className="h-4 w-4 text-cyan-200" />
                 </Link>
               ))}

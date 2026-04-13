@@ -208,10 +208,10 @@ export function RecommendationCarousel({ children }) {
       onMouseLeave={handleMouseLeave}
       onMouseDown={handleMouseDown}
       onClickCapture={handleClickCapture}
-      className="mt-6 overflow-hidden pb-4"
+      className="mt-6 overflow-hidden py-2"
       style={{ cursor: "grab" }}
     >
-      <div ref={trackRef} className="flex gap-5" style={{ willChange: "transform" }}>
+      <div ref={trackRef} className="flex gap-7" style={{ willChange: "transform" }}>
         {items.map((child, i) => cloneElement(child, { key: `c0-${i}` }))}
         {items.map((child, i) => cloneElement(child, { key: `c1-${i}` }))}
         {items.map((child, i) => cloneElement(child, { key: `c2-${i}` }))}

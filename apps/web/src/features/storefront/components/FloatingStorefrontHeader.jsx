@@ -19,7 +19,7 @@ import { useStoredUser } from "../../../lib/useStoredUser";
 import { CartItemCountBadge } from "../../cart/components/CartItemCountBadge";
 import { useCart } from "../../cart/hooks/useCart";
 import { StorefrontLiveSearch } from "./StorefrontLiveSearch";
-import { extraMenuItems } from "../data/storefrontContent";
+import { useCategories } from "../context/CategoriesContext";
 
 function getUserDisplayName(user) {
   return user?.name?.trim() || user?.email?.split("@")[0] || "";
@@ -29,6 +29,8 @@ export function FloatingStorefrontHeader() {
   const location = useLocation();
   const navigate = useNavigate();
   const user = useStoredUser();
+  const { categories } = useCategories();
+  const sidebarItems = categories.filter((c) => c.is_visible_in_sidebar);
   const isVisible = useScrollUpHeader();
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -107,14 +109,14 @@ export function FloatingStorefrontHeader() {
 
               {menuOpen ? (
                 <div className="absolute left-0 top-[calc(100%+0.75rem)] z-50 min-w-[18rem] overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white/95 p-2 shadow-[0_24px_50px_rgba(7,17,31,0.18)] backdrop-blur-xl">
-                  {extraMenuItems.map((item) => (
+                  {sidebarItems.map((cat) => (
                     <Link
-                      key={item.label}
-                      to={item.route}
+                      key={cat.category_id}
+                      to={`/category/${cat.slug}`}
                       onClick={() => setMenuOpen(false)}
                       className="flex w-full items-center justify-between rounded-[1rem] px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-brand-ink"
                     >
-                      <span>{item.label}</span>
+                      <span>{cat.label}</span>
                       <ChevronRight className="h-4 w-4 text-brand-accent" />
                     </Link>
                   ))}
@@ -193,12 +195,12 @@ export function FloatingStorefrontHeader() {
                     </Link>
                     {user.role === "product_manager" ? (
                       <Link
-                        to="/manager/reviews"
+                        to="/manager/dashboard"
                         onClick={() => setProfileMenuOpen(false)}
                         className="flex w-full items-center gap-3 rounded-[1rem] px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-brand-ink"
                       >
                         <ShieldCheck className="h-4 w-4 text-brand-accent" />
-                        Review moderation
+                        Manager dashboard
                       </Link>
                     ) : null}
                     <button

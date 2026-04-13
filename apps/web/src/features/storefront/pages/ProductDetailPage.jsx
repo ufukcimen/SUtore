@@ -18,7 +18,7 @@ import { http } from "../../../lib/http";
 import { useStoredUser } from "../../../lib/useStoredUser";
 import { addProductToCart } from "../../cart/data/cartStorage";
 import { StorefrontShell } from "../components/StorefrontShell";
-import { ITEM_TYPE_LABELS } from "../data/itemTypes";
+import { useCategories } from "../context/CategoriesContext";
 
 function formatPrice(price) {
   const numericPrice = Number(price);
@@ -72,6 +72,7 @@ export function ProductDetailPage() {
   const { productId } = useParams();
   const navigate = useNavigate();
   const user = useStoredUser();
+  const { categories } = useCategories();
   const [product, setProduct] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -301,9 +302,16 @@ export function ProductDetailPage() {
     }
   }
 
-  const itemTypeLabel = product?.item_type
-    ? ITEM_TYPE_LABELS[product.item_type] ?? product.item_type
-    : null;
+  const itemTypeLabel = (() => {
+    if (!product?.item_type) return null;
+    for (const cat of categories) {
+      const match = cat.item_types?.find((t) =>
+        (typeof t === "string" ? t : t.value) === product.item_type
+      );
+      if (match) return typeof match === "string" ? match : match.label;
+    }
+    return product.item_type;
+  })();
 
   const userAlreadyReviewed = user
     ? reviews.some((r) => r.user_id === user.user_id)

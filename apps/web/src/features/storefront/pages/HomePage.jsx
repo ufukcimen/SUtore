@@ -23,25 +23,13 @@ import { clearStoredUser } from "../../../lib/authStorage";
 import { useStoredUser } from "../../../lib/useStoredUser";
 import { CartItemCountBadge } from "../../cart/components/CartItemCountBadge";
 import { useCart } from "../../cart/hooks/useCart";
-import {categoryCards, extraMenuItems,} from "../data/storefrontContent";
 import { CategoryArtwork } from "../components/StorefrontArtwork";
 import { StorefrontLiveSearch } from "../components/StorefrontLiveSearch";
-import { LaptopCard } from "../components/LaptopCard";
+import { ProductCard } from "../components/ProductCard";
 import { RecommendationCarousel } from "../components/RecommendationCarousel";
+import { useCategories } from "../context/CategoriesContext";
+import { resolveIcon } from "../data/iconMap";
 import { http } from "../../../lib/http";
-const categoryIcons = {
-  laptop: Laptop,
-  desktop: Cpu,
-  monitor: Monitor,
-  components: Sparkles,
-};
-
-const categoryRoutes = {
-  laptop: "/laptops",
-  desktop: "/oem-pcs",
-  monitor: "/monitors",
-  components: "/pc-components",
-};
 
 const WELCOME_STORAGE_KEY = "sutoreWelcomeUser";
 
@@ -53,6 +41,9 @@ export function HomePage() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const user = useStoredUser();
+  const { categories } = useCategories();
+  const sidebarItems = categories.filter((c) => c.is_visible_in_sidebar);
+  const homepageCards = categories.filter((c) => c.is_visible_on_homepage);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [welcomeName, setWelcomeName] = useState("");
@@ -275,12 +266,12 @@ export function HomePage() {
                     </Link>
                     {user.role === "product_manager" ? (
                       <Link
-                        to="/manager/reviews"
+                        to="/manager/dashboard"
                         onClick={() => setProfileMenuOpen(false)}
                         className="flex w-full items-center gap-3 rounded-[1rem] px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-brand-ink"
                       >
                         <ShieldCheck className="h-4 w-4 text-brand-accent" />
-                        Review moderation
+                        Manager dashboard
                       </Link>
                     ) : null}
                     <button
@@ -348,14 +339,14 @@ export function HomePage() {
             </div>
 
             <div className="mt-8 space-y-3">
-              {extraMenuItems.map((item) => (
+              {sidebarItems.map((cat) => (
                 <Link
-                  key={item.label}
-                  to={item.route}
+                  key={cat.category_id}
+                  to={`/category/${cat.slug}`}
                   onClick={() => setMenuOpen(false)}
                   className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-4 text-left text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10"
                 >
-                  <span>{item.label}</span>
+                  <span>{cat.label}</span>
                   <ChevronRight className="h-4 w-4 text-cyan-200" />
                 </Link>
               ))}
@@ -476,20 +467,25 @@ export function HomePage() {
           </div>
 
           <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-            {categoryCards.map((card) => {
-              const Icon = categoryIcons[card.type];
-              const route = categoryRoutes[card.type];
-              const cardContent = (
-                <>
+            {homepageCards.map((cat) => {
+              const Icon = resolveIcon(cat.icon);
+
+              return (
+                <Link
+                  key={cat.category_id}
+                  to={`/category/${cat.slug}`}
+                  className="group block overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/75 p-4 shadow-[0_18px_40px_rgba(7,17,31,0.08)] transition duration-200 hover:-translate-y-1 hover:border-cyan-300/40 hover:shadow-[0_26px_48px_rgba(7,17,31,0.12)]"
+                  aria-label={`Open ${cat.label} category`}
+                >
                   <div className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-slate-950/90">
-                    <CategoryArtwork type={card.type} />
+                    <CategoryArtwork type={cat.name} />
                   </div>
 
                   <div className="mt-4 flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-xl font-semibold text-brand-ink">{card.title}</h3>
+                      <h3 className="text-xl font-semibold text-brand-ink">{cat.label}</h3>
                       <p className="mt-2 text-sm leading-6 text-slate-600">
-                        {card.description}
+                        {cat.description || `Browse ${cat.label.toLowerCase()}.`}
                       </p>
                     </div>
                     <div className="rounded-2xl border border-cyan-100 bg-cyan-50 p-3 text-brand-accent">
@@ -501,43 +497,19 @@ export function HomePage() {
                     Explore category
                     <ChevronRight className="h-4 w-4" />
                   </span>
-                </>
-              );
-
-              if (route) {
-                return (
-                  <Link
-                    key={card.title}
-                    to={route}
-                    className="group block overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/75 p-4 shadow-[0_18px_40px_rgba(7,17,31,0.08)] transition duration-200 hover:-translate-y-1 hover:border-cyan-300/40 hover:shadow-[0_26px_48px_rgba(7,17,31,0.12)]"
-                    aria-label={`Open ${card.title} category`}
-                    id={card.type === "desktop" ? "oem-pc-builds" : undefined}
-                  >
-                    {cardContent}
-                  </Link>
-                );
-              }
-
-              return (
-                <article
-                  key={card.title}
-                  id={card.type === "desktop" ? "oem-pc-builds" : undefined}
-                  className="group overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/75 p-4 shadow-[0_18px_40px_rgba(7,17,31,0.08)] transition duration-200 hover:-translate-y-1 hover:border-cyan-300/40 hover:shadow-[0_26px_48px_rgba(7,17,31,0.12)]"
-                >
-                  {cardContent}
-                </article>
+                </Link>
               );
             })}
           </div>
           </section>
 
-          <section className="mt-10">
-            <div className="flex items-end justify-between gap-4">
+          <section className="mt-14">
+            <div className="flex items-end justify-between gap-4 px-1">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
+                <p className="text-xs font-semibold uppercase tracking-[0.32em] text-brand-accent/80">
                   Picked for you
                 </p>
-                <p className="mt-2 text-3xl font-bold uppercase tracking-[0.16em] text-brand-ink sm:text-4xl">
+                <p className="mt-2 text-3xl font-semibold tracking-tight text-brand-ink sm:text-4xl">
                   Recommended
                 </p>
               </div>
@@ -545,7 +517,7 @@ export function HomePage() {
                 type="button"
                 onClick={fetchRecommendations}
                 disabled={recsLoading}
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/70 px-4 py-2.5 text-sm font-semibold text-brand-accent shadow-sm transition hover:border-cyan-300/40 hover:bg-white disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200/60 bg-white/80 px-4 py-2 text-sm font-semibold text-brand-accent shadow-sm backdrop-blur-sm transition hover:border-cyan-300/40 hover:bg-white hover:shadow-md disabled:opacity-50"
               >
                 <RefreshCw className={`h-4 w-4 ${recsLoading ? "animate-spin" : ""}`} />
                 Refresh
@@ -559,8 +531,8 @@ export function HomePage() {
             ) : recommendations.length > 0 ? (
               <RecommendationCarousel>
                 {recommendations.map((product) => (
-                  <div key={product.product_id} className="w-[22rem] shrink-0">
-                    <LaptopCard product={product} compact />
+                  <div key={product.product_id} className="w-[21rem] shrink-0 py-3">
+                    <ProductCard product={product} compact floating />
                   </div>
                 ))}
               </RecommendationCarousel>
