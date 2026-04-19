@@ -125,6 +125,22 @@ def deactivate_product(
     return {"message": f"Product {product_id} has been deactivated."}
 
 
+@router.delete("/products/{product_id}/permanent")
+def delete_product_permanently(
+    product_id: int,
+    manager_user_id: int = Query(ge=1),
+    db: Session = Depends(get_db),
+) -> dict:
+    _require_manager(db, manager_user_id)
+    product = db.get(Product, product_id)
+    if not product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found.")
+
+    db.delete(product)
+    db.commit()
+    return {"message": f"Product {product_id} has been permanently deleted."}
+
+
 # ── Stock management ─────────────────────────────────────────────────
 
 @router.patch("/products/{product_id}/stock", response_model=ProductRead)

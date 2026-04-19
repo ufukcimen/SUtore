@@ -131,6 +131,14 @@ function ProductsTab({ user }) {
     } catch { /* silent */ }
   }
 
+  async function handleDelete(id) {
+    if (!window.confirm("Are you sure you want to permanently delete this product? This action cannot be undone.")) return;
+    try {
+      await http.delete(`/manager/products/${id}/permanent`, { params: { manager_user_id: user.user_id } });
+      setProducts((prev) => prev.filter((p) => p.product_id !== id));
+    } catch { /* silent */ }
+  }
+
   function handleEdit(product) {
     setEditingProduct(product);
     setShowForm(true);
@@ -170,10 +178,13 @@ function ProductsTab({ user }) {
                 <Edit className="h-3 w-3" /> Edit
               </button>
               {p.is_active ? (
-                <button type="button" onClick={() => handleDeactivate(p.product_id)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-rose-200 hover:text-rose-700">
-                  <Trash2 className="h-3 w-3" /> Deactivate
+                <button type="button" onClick={() => handleDeactivate(p.product_id)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-amber-200 hover:text-amber-700">
+                  <XCircle className="h-3 w-3" /> Deactivate
                 </button>
               ) : null}
+              <button type="button" onClick={() => handleDelete(p.product_id)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-rose-200 hover:text-rose-700">
+                <Trash2 className="h-3 w-3" /> Delete
+              </button>
             </div>
           </div>
         ))}
