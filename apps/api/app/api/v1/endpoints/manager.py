@@ -125,6 +125,22 @@ def deactivate_product(
     return {"message": f"Product {product_id} has been deactivated."}
 
 
+@router.patch("/products/{product_id}/activate")
+def activate_product(
+    product_id: int,
+    manager_user_id: int = Query(ge=1),
+    db: Session = Depends(get_db),
+) -> dict:
+    _require_manager(db, manager_user_id)
+    product = db.get(Product, product_id)
+    if not product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found.")
+
+    product.is_active = True
+    db.commit()
+    return {"message": f"Product {product_id} has been activated."}
+
+
 @router.delete("/products/{product_id}/permanent")
 def delete_product_permanently(
     product_id: int,
