@@ -3,6 +3,7 @@ import { LoginPage } from "../features/auth/pages/LoginPage";
 import { SignupPage } from "../features/auth/pages/SignupPage";
 import { AccountSettingsPage } from "../features/account/pages/AccountSettingsPage";
 import { OrdersPage } from "../features/account/pages/OrdersPage";
+import { AdminDashboardPage } from "../features/account/pages/AdminDashboardPage";
 import { ManagerDashboardPage } from "../features/account/pages/ManagerDashboardPage";
 import { ReviewModerationPage } from "../features/account/pages/ReviewModerationPage";
 import { WishlistPage } from "../features/account/pages/WishlistPage";
@@ -21,6 +22,7 @@ export function AppRouter() {
       <Route path="/account/settings" element={<AccountSettingsPage />} />
       <Route path="/account/orders" element={<OrdersPage />} />
       <Route path="/account/wishlist" element={<WishlistPage />} />
+      <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
       <Route path="/manager/dashboard" element={<ManagerDashboardPage />} />
       <Route path="/manager/reviews" element={<ReviewModerationPage />} />
       <Route path="/cart" element={<CartPage />} />

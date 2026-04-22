@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Clock3, Download, LoaderCircle, ReceiptText } from "lucide-react";
+import { Clock3, Download, LoaderCircle, ReceiptText, RotateCcw } from "lucide-react";
 import { StorefrontPageShell } from "../../cart/components/StorefrontPageShell";
 import { formatCurrency } from "../../cart/data/cartStorage";
 import { http } from "../../../lib/http";
@@ -39,7 +39,7 @@ function normalizeOrderStatus(status) {
 }
 
 function isPastOrderStatus(status) {
-  return ["completed", "delivered", "cancelled", "refunded"].includes(
+  return ["completed", "delivered", "cancelled", "refunded", "refund_rejected"].includes(
     normalizeOrderStatus(status),
   );
 }
@@ -67,6 +67,21 @@ function formatStatusLabel(status) {
   return normalizedStatus
     .replace(/_/g, " ")
     .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function isRefundEligible(order) {
+  const normalizedStatus = normalizeOrderStatus(order.status);
+  if (["cancelled", "refunded", "refund_requested", "refund_rejected"].includes(normalizedStatus)) {
+    return false;
+  }
+
+  const createdAt = order.created_at ? new Date(order.created_at) : null;
+  if (!createdAt || Number.isNaN(createdAt.getTime())) {
+    return false;
+  }
+
+  const ageMs = Date.now() - createdAt.getTime();
+  return ageMs >= 0 && ageMs <= 30 * 24 * 60 * 60 * 1000;
 }
 
 function handleDownloadInvoice(order) {
@@ -235,7 +250,7 @@ function handleDownloadInvoice(order) {
   invoiceWindow.document.close();
 }
 
-function OrderCard({ order }) {
+function OrderCard({ isRefunding, onRequestRefund, order }) {
   const itemCount = order.items.reduce((count, item) => count + item.quantity, 0);
   const previewItems = order.items.slice(0, 3);
 
@@ -299,7 +314,18 @@ function OrderCard({ order }) {
         ) : null}
       </div>
 
-      <div className="mt-4 flex justify-end">
+      <div className="mt-4 flex flex-wrap justify-end gap-2">
+        {isRefundEligible(order) ? (
+          <button
+            type="button"
+            disabled={isRefunding}
+            onClick={() => onRequestRefund(order.order_id)}
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:border-cyan-300/60 hover:text-brand-ink disabled:opacity-50"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Request refund
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={() => handleDownloadInvoice(order)}
@@ -313,7 +339,7 @@ function OrderCard({ order }) {
   );
 }
 
-function OrdersSection({ emptyMessage, orders, title }) {
+function OrdersSection({ emptyMessage, onRequestRefund, orders, refundActionId, title }) {
   return (
     <section className="rounded-[1.7rem] border border-slate-200 bg-slate-50/90 p-5">
       <div className="flex items-center justify-between gap-3">
@@ -334,7 +360,14 @@ function OrdersSection({ emptyMessage, orders, title }) {
 
       <div className="mt-5 space-y-4">
         {orders.length > 0 ? (
-          orders.map((order) => <OrderCard key={order.order_id} order={order} />)
+          orders.map((order) => (
+            <OrderCard
+              key={order.order_id}
+              isRefunding={refundActionId === order.order_id}
+              onRequestRefund={onRequestRefund}
+              order={order}
+            />
+          ))
         ) : (
           <div className="rounded-[1.4rem] border border-dashed border-slate-300 bg-white/90 px-4 py-5 text-sm leading-7 text-slate-600">
             {emptyMessage}
@@ -350,6 +383,7 @@ export function OrdersPage() {
   const [orders, setOrders] = useState([]);
   const [ordersError, setOrdersError] = useState("");
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
+  const [refundActionId, setRefundActionId] = useState(null);
 
   useEffect(() => {
     if (!user?.user_id) {
@@ -395,6 +429,26 @@ export function OrdersPage() {
       isActive = false;
     };
   }, [user?.user_id]);
+
+  async function handleRequestRefund(orderId) {
+    if (!window.confirm("Send this order to the sales manager for refund review?")) return;
+
+    setRefundActionId(orderId);
+    setOrdersError("");
+
+    try {
+      const response = await http.patch(`/orders/${orderId}/refund-request`, null, {
+        params: { user_id: user.user_id },
+      });
+      setOrders((prev) => prev.map((order) => (
+        order.order_id === orderId ? response.data : order
+      )));
+    } catch (error) {
+      setOrdersError(getErrorMessage(error, "Unable to request a refund for this order."));
+    } finally {
+      setRefundActionId(null);
+    }
+  }
 
   if (!user) {
     return (
@@ -473,11 +527,15 @@ export function OrdersPage() {
               orders={currentOrders}
               title="Current orders"
               emptyMessage="Newly confirmed orders will appear here after checkout."
+              onRequestRefund={handleRequestRefund}
+              refundActionId={refundActionId}
             />
             <OrdersSection
               orders={pastOrders}
               title="Past orders"
               emptyMessage="Completed or cancelled orders will move into this history section."
+              onRequestRefund={handleRequestRefund}
+              refundActionId={refundActionId}
             />
           </div>
         )}

@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import logging
 from uuid import uuid4
@@ -20,6 +21,7 @@ logger = logging.getLogger(__name__)
 FREE_SHIPPING_THRESHOLD = Decimal("1200.00")
 STANDARD_SHIPPING = Decimal("24.90")
 TAX_RATE = Decimal("0.08")
+RETURN_WINDOW_DAYS = 30
 
 
 def build_order_number() -> str:
@@ -65,6 +67,41 @@ def list_orders(
     )
     orders = db.scalars(statement).all()
     return [OrderRead.model_validate(order) for order in orders]
+
+
+@router.patch("/{order_id}/refund-request", response_model=OrderRead)
+def request_refund(
+    order_id: int,
+    user_id: int = Query(ge=1),
+    db: Session = Depends(get_db),
+) -> OrderRead:
+    order = db.scalar(
+        select(Order)
+        .options(selectinload(Order.items))
+        .where(Order.order_id == order_id)
+    )
+    if not order or order.user_id != user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found.")
+
+    normalized_status = (order.status or "").lower()
+    if normalized_status in {"cancelled", "refunded", "refund_requested", "refund_rejected"}:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This order is not eligible for a refund request.",
+        )
+
+    created_at = order.created_at
+    if created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=timezone.utc)
+    if datetime.now(timezone.utc) - created_at > timedelta(days=RETURN_WINDOW_DAYS):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Refund requests are only available within 30 days of purchase.",
+        )
+
+    order.status = "refund_requested"
+    db.commit()
+    return serialize_order(db, order.order_id)
 
 
 @router.post("", response_model=OrderRead, status_code=status.HTTP_201_CREATED)

@@ -274,6 +274,16 @@ export function HomePage() {
                         Manager dashboard
                       </Link>
                     ) : null}
+                    {user.role === "sales_manager" || user.role === "admin" ? (
+                      <Link
+                        to="/admin/dashboard"
+                        onClick={() => setProfileMenuOpen(false)}
+                        className="flex w-full items-center gap-3 rounded-[1rem] px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-brand-ink"
+                      >
+                        <ShieldCheck className="h-4 w-4 text-brand-accent" />
+                        Admin dashboard
+                      </Link>
+                    ) : null}
                     <button
                       type="button"
                       onClick={handleLogout}
