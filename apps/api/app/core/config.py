@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parents[2]
@@ -23,6 +23,15 @@ class Settings(BaseSettings):
         alias="CORS_ORIGINS",
     )
     auto_create_tables: bool = False
+    smtp_host: str | None = Field(default=None, alias="SMTP_HOST")
+    smtp_port: int = Field(default=587, alias="SMTP_PORT")
+    smtp_username: str | None = Field(default=None, alias="SMTP_USERNAME")
+    smtp_password: str | None = Field(default=None, alias="SMTP_PASSWORD")
+    smtp_use_tls: bool = Field(default=True, alias="SMTP_USE_TLS")
+    smtp_use_ssl: bool = Field(default=False, alias="SMTP_USE_SSL")
+    smtp_timeout_seconds: int = Field(default=20, alias="SMTP_TIMEOUT_SECONDS")
+    mail_from_email: str | None = Field(default=None, alias="MAIL_FROM_EMAIL")
+    mail_from_name: str = Field(default="SUtore Billing", alias="MAIL_FROM_NAME")
 
     @property
     def cors_origins(self) -> list[str]:
@@ -31,6 +40,18 @@ class Settings(BaseSettings):
             for origin in self.cors_origins_env.split(",")
             if origin.strip()
         ]
+
+    @property
+    def invoice_email_enabled(self) -> bool:
+        return bool(
+            (self.smtp_host or "").strip() and (self.mail_from_email or "").strip()
+        )
+
+    @model_validator(mode="after")
+    def validate_smtp_transport(self) -> "Settings":
+        if self.smtp_use_tls and self.smtp_use_ssl:
+            raise ValueError("SMTP_USE_TLS and SMTP_USE_SSL cannot both be true.")
+        return self
 
 
 @lru_cache

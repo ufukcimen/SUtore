@@ -5,3 +5,4 @@ psycopg[binary]<4.0,>=3.2
 pydantic-settings<3.0,>=2.10
 passlib[bcrypt]<2.0,>=1.7
 email-validator<3.0,>=2.2
+reportlab<5.0,>=4.2

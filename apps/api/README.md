@@ -34,6 +34,23 @@ default.
 The API always loads `apps/api/.env`, even if you start `uvicorn` from the repository
 root. Values in `.env` override the defaults in `app/core/config.py`.
 
+To email invoice PDFs automatically after checkout, also configure SMTP in
+`apps/api/.env`:
+
+```env
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USERNAME=your-smtp-user
+SMTP_PASSWORD=your-smtp-password
+SMTP_USE_TLS=true
+SMTP_USE_SSL=false
+MAIL_FROM_EMAIL=billing@example.com
+MAIL_FROM_NAME=SUtore Billing
+```
+
+If SMTP is not configured, the order is still created successfully and the API
+skips invoice email delivery.
+
 If you are using Neon or another hosted Postgres instance, make sure the database name
 at the end of `DATABASE_URL` matches the actual database that contains your `users`
 table and login data.

@@ -52,6 +52,23 @@ const REQUIRED_FIELDS = [
   "acceptTerms",
 ];
 
+const FIELD_IDS = {
+  firstName: "checkout-first-name",
+  lastName: "checkout-last-name",
+  email: "checkout-email",
+  phone: "checkout-phone",
+  addressLine1: "checkout-address-1",
+  city: "checkout-city",
+  stateRegion: "checkout-state",
+  postalCode: "checkout-postal",
+  country: "checkout-country",
+  cardName: "checkout-card-name",
+  cardNumber: "checkout-card-number",
+  expiry: "checkout-expiry",
+  cvv: "checkout-cvv",
+  acceptTerms: "checkout-terms",
+};
+
 function getErrorMessage(error, fallback) {
   const detail = error.response?.data?.detail;
 
@@ -64,6 +81,31 @@ function getErrorMessage(error, fallback) {
   }
 
   return fallback;
+}
+
+function focusInvalidField(field) {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  const elementId = FIELD_IDS[field];
+  if (!elementId) {
+    return;
+  }
+
+  const element = document.getElementById(elementId);
+  if (!element) {
+    return;
+  }
+
+  element.scrollIntoView({
+    behavior: "smooth",
+    block: "center",
+  });
+
+  if (typeof element.focus === "function") {
+    element.focus({ preventScroll: true });
+  }
 }
 
 export function CheckoutPage() {
@@ -139,15 +181,19 @@ export function CheckoutPage() {
 
     const nextErrors = getPaymentErrors(form, hasItems);
     if (Object.keys(nextErrors).length > 0) {
+      const firstInvalidField = REQUIRED_FIELDS.find((field) => nextErrors[field]);
       setTouched(
         REQUIRED_FIELDS.reduce((accumulator, field) => ({ ...accumulator, [field]: true }), {}),
       );
       setSubmitState({
         kind: "error",
         message: hasItems
-          ? "Please correct the highlighted billing or payment details."
+          ? (firstInvalidField ? nextErrors[firstInvalidField] : "Please correct the highlighted billing or payment details.")
           : "Add products to your cart before continuing to payment.",
       });
+      if (firstInvalidField) {
+        focusInvalidField(firstInvalidField);
+      }
       return;
     }
 
@@ -452,6 +498,7 @@ export function CheckoutPage() {
                 <input
                   checked={form.acceptTerms}
                   className="mt-1 h-4 w-4 rounded border-slate-300 text-brand-accent"
+                  id="checkout-terms"
                   onBlur={handleBlur("acceptTerms")}
                   onChange={handleChange("acceptTerms")}
                   type="checkbox"

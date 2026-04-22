@@ -10,3 +10,4 @@ Requires-Dist: psycopg[binary]<4.0,>=3.2
 Requires-Dist: pydantic-settings<3.0,>=2.10
 Requires-Dist: passlib[bcrypt]<2.0,>=1.7
 Requires-Dist: email-validator<3.0,>=2.2
+Requires-Dist: reportlab<5.0,>=4.2

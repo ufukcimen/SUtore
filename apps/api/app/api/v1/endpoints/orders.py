@@ -1,7 +1,8 @@
 from decimal import Decimal
+import logging
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
@@ -11,8 +12,10 @@ from app.models.order import Order, OrderItem
 from app.models.product import Product
 from app.models.user import User
 from app.schemas.order import OrderCreate, OrderRead
+from app.services import send_order_invoice_email
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 FREE_SHIPPING_THRESHOLD = Decimal("1200.00")
 STANDARD_SHIPPING = Decimal("24.90")
@@ -21,6 +24,16 @@ TAX_RATE = Decimal("0.08")
 
 def build_order_number() -> str:
     return f"SU-{uuid4().hex[:8].upper()}"
+
+
+def queue_invoice_email(order: OrderRead) -> None:
+    try:
+        send_order_invoice_email(order)
+    except Exception:
+        logger.exception(
+            "Order %s was created, but invoice email delivery failed.",
+            order.order_number,
+        )
 
 
 def serialize_order(db: Session, order_id: int) -> OrderRead:
@@ -55,7 +68,11 @@ def list_orders(
 
 
 @router.post("", response_model=OrderRead, status_code=status.HTTP_201_CREATED)
-def create_order(payload: OrderCreate, db: Session = Depends(get_db)) -> OrderRead:
+def create_order(
+    payload: OrderCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+) -> OrderRead:
     if payload.user_id is not None:
         user = db.get(User, payload.user_id)
         if not user:
@@ -145,4 +162,6 @@ def create_order(payload: OrderCreate, db: Session = Depends(get_db)) -> OrderRe
     db.add(delivery)
     db.commit()
 
-    return serialize_order(db, order.order_id)
+    created_order = serialize_order(db, order.order_id)
+    background_tasks.add_task(queue_invoice_email, created_order)
+    return created_order
