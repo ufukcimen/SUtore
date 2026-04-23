@@ -114,9 +114,20 @@ export function CartPage() {
                       <p className="mt-2 text-2xl font-semibold text-brand-ink">
                         {formatCurrency(item.price * item.quantity)}
                       </p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {formatCurrency(item.price)} each
-                      </p>
+                      {item.originalPrice ? (
+                        <>
+                          <p className="mt-1 text-xs text-slate-400 line-through">
+                            {formatCurrency(item.originalPrice)} each
+                          </p>
+                          <p className="text-sm text-rose-600 font-semibold">
+                            {formatCurrency(item.price)} each ({item.discountPercent}% off)
+                          </p>
+                        </>
+                      ) : (
+                        <p className="mt-1 text-sm text-slate-500">
+                          {formatCurrency(item.price)} each
+                        </p>
+                      )}
                     </div>
                   </div>
 

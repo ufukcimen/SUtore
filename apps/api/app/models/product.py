@@ -23,3 +23,4 @@ class Product(Base):
     item_type: Mapped[str | None] = mapped_column(String(100))
     is_active: Mapped[bool] = mapped_column(Boolean, server_default="true", nullable=False)
     category_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("categories.category_id", ondelete="SET NULL"), nullable=True)
+    discount_percent: Mapped[int] = mapped_column(Integer, server_default="0", nullable=False)

@@ -21,6 +21,10 @@ export function ProductCard({ product, compact = false, floating = false }) {
   const stockQuantity = Number(product.stock_quantity);
   const remainingStock = Number.isFinite(stockQuantity) ? Math.max(Math.floor(stockQuantity), 0) : 0;
   const isOutOfStock = remainingStock <= 0;
+  const discount = Number(product.discount_percent) || 0;
+  const hasDiscount = discount > 0;
+  const originalPrice = Number(product.price) || 0;
+  const discountedPrice = hasDiscount ? originalPrice * (1 - discount / 100) : originalPrice;
 
   function getStockLabel() {
     if (isOutOfStock) {
@@ -63,7 +67,7 @@ export function ProductCard({ product, compact = false, floating = false }) {
 
   return (
     <article className={articleClassName}>
-      <Link to={productUrl} className="block">
+      <Link to={productUrl} className="relative block">
         <div className="aspect-[4/3] overflow-hidden bg-[linear-gradient(135deg,#e0f2fe_0%,#f8fafc_48%,#fff7ed_100%)]">
           {product.image_url ? (
             <img
@@ -78,6 +82,11 @@ export function ProductCard({ product, compact = false, floating = false }) {
             </div>
           )}
         </div>
+        {hasDiscount ? (
+          <span className="absolute left-3 top-3 rounded-full bg-rose-600 px-2.5 py-1 text-xs font-bold text-white shadow-sm">
+            -{discount}%
+          </span>
+        ) : null}
       </Link>
 
       <div className="space-y-4 p-5">
@@ -92,9 +101,16 @@ export function ProductCard({ product, compact = false, floating = false }) {
               <h2 className={`mt-2 text-xl font-semibold text-brand-ink hover:text-brand-accent transition${compact ? " line-clamp-1" : ""}`}>{product.name}</h2>
             </Link>
           </div>
-          <p className="shrink-0 rounded-2xl bg-cyan-50 px-3 py-2 text-sm font-semibold text-brand-accent">
-            {formatPrice(product.price)}
-          </p>
+          <div className="shrink-0 rounded-2xl bg-cyan-50 px-3 py-2 text-right">
+            {hasDiscount ? (
+              <>
+                <p className="text-xs text-slate-400 line-through">{formatPrice(originalPrice)}</p>
+                <p className="text-sm font-semibold text-brand-accent">{formatPrice(discountedPrice)}</p>
+              </>
+            ) : (
+              <p className="text-sm font-semibold text-brand-accent">{formatPrice(originalPrice)}</p>
+            )}
+          </div>
         </div>
 
         {!compact ? (
@@ -109,6 +125,11 @@ export function ProductCard({ product, compact = false, floating = false }) {
           >
             {getStockLabel()}
           </span>
+          {hasDiscount ? (
+            <span className="inline-flex items-center rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
+              {discount}% OFF
+            </span>
+          ) : null}
         </div>
 
         <button

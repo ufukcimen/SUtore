@@ -111,7 +111,19 @@ function getProductIdentifier(product) {
   return product?.id ?? product?.product_id ?? product?.serial_number ?? product?.name;
 }
 
+function getDiscountedPrice(product) {
+  const price = Number(product?.price) || 0;
+  const discount = Number(product?.discount_percent) || 0;
+  if (discount > 0 && discount <= 100) {
+    return Math.round(price * (1 - discount / 100) * 100) / 100;
+  }
+  return price;
+}
+
 function buildCartItem(product, productIdentifier, quantity) {
+  const effectivePrice = getDiscountedPrice(product);
+  const originalPrice = Number(product?.price) || 0;
+  const discount = Number(product?.discount_percent) || 0;
   return {
     id: `product-${productIdentifier}`,
     productId: productIdentifier,
@@ -124,7 +136,9 @@ function buildCartItem(product, productIdentifier, quantity) {
     stockQuantity: getStockLimit(product?.stock_quantity),
     type: getCartItemType(product?.category),
     quantity,
-    price: Number(product?.price) || 0,
+    price: effectivePrice,
+    originalPrice: discount > 0 ? originalPrice : null,
+    discountPercent: discount > 0 ? discount : 0,
     imageUrl: product?.image_url ?? "",
   };
 }

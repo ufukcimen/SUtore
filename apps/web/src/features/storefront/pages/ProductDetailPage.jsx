@@ -190,6 +190,10 @@ export function ProductDetailPage() {
     ? Math.max(Math.floor(stockQuantity), 0)
     : 0;
   const isOutOfStock = !product || remainingStock <= 0;
+  const discount = product ? (Number(product.discount_percent) || 0) : 0;
+  const hasDiscount = discount > 0;
+  const originalPrice = product ? (Number(product.price) || 0) : 0;
+  const discountedPrice = hasDiscount ? originalPrice * (1 - discount / 100) : originalPrice;
 
   function getStockLabel() {
     if (isOutOfStock) {
@@ -408,9 +412,25 @@ export function ProductDetailPage() {
                   </div>
                 ) : null}
 
-                <p className="mt-6 text-4xl font-semibold text-brand-ink">
-                  {formatPrice(product.price)}
-                </p>
+                <div className="mt-6">
+                  {hasDiscount ? (
+                    <div className="flex items-center gap-3">
+                      <p className="text-4xl font-semibold text-brand-ink">
+                        {formatPrice(discountedPrice)}
+                      </p>
+                      <div>
+                        <p className="text-lg text-slate-400 line-through">{formatPrice(originalPrice)}</p>
+                        <span className="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700">
+                          {discount}% OFF
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-4xl font-semibold text-brand-ink">
+                      {formatPrice(originalPrice)}
+                    </p>
+                  )}
+                </div>
 
                 <div className="mt-4 flex flex-wrap items-center gap-3">
                   <span

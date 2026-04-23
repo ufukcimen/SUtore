@@ -178,7 +178,7 @@ function ProductsTab({ user }) {
                 <span className="text-sm font-semibold text-brand-ink">{p.name}</span>
                 {!p.is_active ? <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">Inactive</span> : null}
               </div>
-              <p className="mt-1 text-xs text-slate-500">ID: {p.product_id} &middot; {p.category} &middot; {formatCurrency(p.price)} &middot; Stock: {p.stock_quantity ?? 0}</p>
+              <p className="mt-1 text-xs text-slate-500">ID: {p.product_id} &middot; {p.category} &middot; {formatCurrency(p.price)}{p.discount_percent > 0 ? ` (−${p.discount_percent}%)` : ""} &middot; Stock: {p.stock_quantity ?? 0}</p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <button type="button" onClick={() => handleEdit(p)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-cyan-200 hover:text-brand-ink">
@@ -220,6 +220,7 @@ function ProductForm({ user, product, onDone, onCancel }) {
     category: product?.category ?? "",
     category_id: product?.category_id ?? "",
     item_type: product?.item_type ?? "",
+    discount_percent: product?.discount_percent ?? 0,
   });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -256,6 +257,7 @@ function ProductForm({ user, product, onDone, onCancel }) {
       price: Number(form.price) || 0,
       stock_quantity: Number(form.stock_quantity) || 0,
       category_id: form.category_id ? Number(form.category_id) : null,
+      discount_percent: Math.min(100, Math.max(0, parseInt(form.discount_percent, 10) || 0)),
     };
     try {
       if (isEdit) {
@@ -280,6 +282,7 @@ function ProductForm({ user, product, onDone, onCancel }) {
         <div><label className={labelCls}>Model</label><input value={form.model} onChange={handleChange("model")} className={inputCls} /></div>
         <div><label className={labelCls}>Serial Number</label><input value={form.serial_number} onChange={handleChange("serial_number")} className={inputCls} /></div>
         <div><label className={labelCls}>Price</label><input type="number" step="0.01" value={form.price} onChange={handleChange("price")} className={inputCls} required /></div>
+        <div><label className={labelCls}>Discount %</label><input type="number" min="0" max="100" value={form.discount_percent} onChange={handleChange("discount_percent")} className={inputCls} /></div>
         <div><label className={labelCls}>Stock</label><input type="number" value={form.stock_quantity} onChange={handleChange("stock_quantity")} className={inputCls} /></div>
         <div>
           <label className={labelCls}>Category</label>

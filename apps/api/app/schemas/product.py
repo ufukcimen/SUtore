@@ -16,6 +16,7 @@ class ProductBase(BaseModel):
     category: str | None = Field(default=None, max_length=100)
     item_type: str | None = Field(default=None, max_length=100)
     category_id: int | None = None
+    discount_percent: int | None = Field(default=None, ge=0, le=100)
 
 
 class ProductCreate(ProductBase):
@@ -31,3 +32,4 @@ class ProductRead(ProductBase):
 
     product_id: int
     is_active: bool = True
+    discount_percent: int = 0
