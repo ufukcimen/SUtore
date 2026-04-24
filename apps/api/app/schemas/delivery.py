@@ -16,4 +16,5 @@ class DeliveryRead(BaseModel):
     created_at: datetime
     completed_at: datetime | None
     order_number: str | None = None
+    order_status: str | None = None
     customer_name: str | None = None

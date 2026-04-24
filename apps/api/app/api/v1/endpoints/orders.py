@@ -174,7 +174,7 @@ def create_order(
     order = Order(
         order_number=build_order_number(),
         user_id=payload.user_id,
-        status="confirmed",
+        status="processing",
         billing_name=payload.billing_name,
         billing_email=payload.billing_email,
         billing_phone=payload.billing_phone,

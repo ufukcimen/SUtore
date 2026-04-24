@@ -36,6 +36,52 @@ function formatDate(value) {
   return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(d);
 }
 
+function normalizeDeliveryStatus(delivery) {
+  const normalizedStatus = typeof delivery?.order_status === "string"
+    ? delivery.order_status.trim().toLowerCase()
+    : "";
+
+  if (delivery?.is_completed || normalizedStatus === "completed" || normalizedStatus === "delivered") {
+    return "delivered";
+  }
+
+  if (normalizedStatus === "confirmed") {
+    return "processing";
+  }
+
+  return normalizedStatus || "processing";
+}
+
+function getDeliveryStatusLabel(status) {
+  const labels = {
+    processing: "Processing",
+    "in-transit": "In-transit",
+    delivered: "Delivered",
+  };
+
+  if (labels[status]) {
+    return labels[status];
+  }
+
+  return status.replace(/[_-]/g, " ").replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function getDeliveryStatusClass(status) {
+  if (status === "delivered") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  if (status === "in-transit") {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+
+  if (status === "cancelled" || status === "refunded") {
+    return "border-rose-200 bg-rose-50 text-rose-700";
+  }
+
+  return "border-cyan-200 bg-cyan-50 text-brand-accent";
+}
+
 const TABS = [
   { id: "products", label: "Products", Icon: Package },
   { id: "categories", label: "Categories", Icon: FolderOpen },
@@ -711,10 +757,21 @@ function DeliveriesTab({ user }) {
     finally { setIsLoading(false); }
   }
 
+  async function handleMarkInTransit(id) {
+    try {
+      const res = await http.patch(`/manager/deliveries/${id}/in-transit`, null, { params: { manager_user_id: user.user_id } });
+      setDeliveries((prev) => prev.map((d) => d.delivery_id === id ? res.data : d));
+    } catch { /* silent */ }
+  }
+
   async function handleComplete(id) {
     try {
-      await http.patch(`/manager/deliveries/${id}/complete`, null, { params: { manager_user_id: user.user_id } });
-      setDeliveries((prev) => prev.filter((d) => d.delivery_id !== id));
+      const res = await http.patch(`/manager/deliveries/${id}/complete`, null, { params: { manager_user_id: user.user_id } });
+      setDeliveries((prev) => (
+        showCompleted
+          ? prev.map((d) => d.delivery_id === id ? res.data : d)
+          : prev.filter((d) => d.delivery_id !== id)
+      ));
     } catch { /* silent */ }
   }
 
@@ -729,25 +786,37 @@ function DeliveriesTab({ user }) {
         </label>
       </div>
       <div className="space-y-3">
-        {deliveries.map((d) => (
-          <div key={d.delivery_id} className="flex flex-col gap-3 rounded-[1.5rem] border border-slate-200 bg-white/90 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-brand-ink">Delivery #{d.delivery_id}</span>
-                <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${d.is_completed ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}>
-                  {d.is_completed ? "Completed" : "Pending"}
-                </span>
+        {deliveries.map((d) => {
+          const deliveryStatus = normalizeDeliveryStatus(d);
+          const canMarkInTransit = !d.is_completed && deliveryStatus !== "in-transit";
+
+          return (
+            <div key={d.delivery_id} className="flex flex-col gap-3 rounded-[1.5rem] border border-slate-200 bg-white/90 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-semibold text-brand-ink">Delivery #{d.delivery_id}</span>
+                  <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${getDeliveryStatusClass(deliveryStatus)}`}>
+                    {getDeliveryStatusLabel(deliveryStatus)}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">Order: {d.order_number || "N/A"} &middot; Customer: {d.customer_name || "Guest"} &middot; {formatCurrency(d.total_price)}</p>
+                <p className="mt-1 text-xs text-slate-400">{d.delivery_address}</p>
               </div>
-              <p className="mt-1 text-xs text-slate-500">Order: {d.order_number || "N/A"} &middot; Customer: {d.customer_name || "Guest"} &middot; {formatCurrency(d.total_price)}</p>
-              <p className="mt-1 text-xs text-slate-400">{d.delivery_address}</p>
+              {!d.is_completed ? (
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  {canMarkInTransit ? (
+                    <button type="button" onClick={() => handleMarkInTransit(d.delivery_id)} className="inline-flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700 transition hover:bg-amber-100">
+                      <Truck className="h-4 w-4" /> Mark in-transit
+                    </button>
+                  ) : null}
+                  <button type="button" onClick={() => handleComplete(d.delivery_id)} className="inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100">
+                    <CheckCircle2 className="h-4 w-4" /> Mark delivered
+                  </button>
+                </div>
+              ) : null}
             </div>
-            {!d.is_completed ? (
-              <button type="button" onClick={() => handleComplete(d.delivery_id)} className="inline-flex shrink-0 items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100">
-                <CheckCircle2 className="h-4 w-4" /> Mark completed
-              </button>
-            ) : null}
-          </div>
-        ))}
+          );
+        })}
         {deliveries.length === 0 ? <p className="text-center text-sm text-slate-500">{showCompleted ? "No deliveries found." : "No pending deliveries."}</p> : null}
       </div>
     </div>

@@ -84,3 +84,6 @@ The `-B` flag disables Python bytecode writes, so local runs do not generate
 - `POST /api/v1/products`
 - `GET /api/v1/orders?user_id=...`
 - `POST /api/v1/orders`
+- `GET /api/v1/manager/deliveries?manager_user_id=...`
+- `PATCH /api/v1/manager/deliveries/{delivery_id}/in-transit`
+- `PATCH /api/v1/manager/deliveries/{delivery_id}/complete`

@@ -55,6 +55,10 @@ function getOrderStatusBadge(status) {
     return "border-emerald-200 bg-emerald-50 text-emerald-700";
   }
 
+  if (normalizedStatus === "in-transit") {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+
   return "border-cyan-200 bg-cyan-50 text-brand-accent";
 }
 
@@ -64,8 +68,18 @@ function formatStatusLabel(status) {
     return "Pending";
   }
 
+  const statusLabels = {
+    confirmed: "Processing",
+    processing: "Processing",
+    "in-transit": "In-transit",
+    delivered: "Delivered",
+  };
+  if (statusLabels[normalizedStatus]) {
+    return statusLabels[normalizedStatus];
+  }
+
   return normalizedStatus
-    .replace(/_/g, " ")
+    .replace(/[_-]/g, " ")
     .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 

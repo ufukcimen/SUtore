@@ -19,6 +19,9 @@ from app.schemas.product import ProductCreate, ProductRead, ProductUpdate
 
 router = APIRouter()
 
+ORDER_STATUS_IN_TRANSIT = "in-transit"
+ORDER_STATUS_DELIVERED = "delivered"
+
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
@@ -27,6 +30,16 @@ def _require_manager(db: Session, manager_user_id: int) -> User:
     if not user or user.role != "product_manager":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
     return user
+
+
+def _serialize_delivery(db: Session, delivery: Delivery) -> DeliveryRead:
+    entry = DeliveryRead.model_validate(delivery)
+    order = db.get(Order, delivery.order_id)
+    entry.order_number = order.order_number if order else None
+    entry.order_status = order.status if order else None
+    customer = db.get(User, delivery.customer_id) if delivery.customer_id else None
+    entry.customer_name = customer.name if customer else None
+    return entry
 
 
 # ── Product CRUD ─────────────────────────────────────────────────────
@@ -427,15 +440,31 @@ def list_deliveries(
         statement = statement.where(Delivery.is_completed == False)
 
     deliveries = db.scalars(statement).all()
-    result = []
-    for d in deliveries:
-        entry = DeliveryRead.model_validate(d)
-        order = db.get(Order, d.order_id)
-        entry.order_number = order.order_number if order else None
-        customer = db.get(User, d.customer_id) if d.customer_id else None
-        entry.customer_name = customer.name if customer else None
-        result.append(entry)
-    return result
+    return [_serialize_delivery(db, delivery) for delivery in deliveries]
+
+
+@router.patch("/deliveries/{delivery_id}/in-transit", response_model=DeliveryRead)
+def mark_delivery_in_transit(
+    delivery_id: int,
+    manager_user_id: int = Query(ge=1),
+    db: Session = Depends(get_db),
+) -> DeliveryRead:
+    _require_manager(db, manager_user_id)
+    delivery = db.get(Delivery, delivery_id)
+    if not delivery:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Delivery not found.")
+
+    if delivery.is_completed:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Delivery already completed.")
+
+    order = db.get(Order, delivery.order_id)
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found.")
+
+    order.status = ORDER_STATUS_IN_TRANSIT
+    db.commit()
+    db.refresh(delivery)
+    return _serialize_delivery(db, delivery)
 
 
 @router.patch("/deliveries/{delivery_id}/complete", response_model=DeliveryRead)
@@ -454,12 +483,9 @@ def complete_delivery(
 
     delivery.is_completed = True
     delivery.completed_at = datetime.now(timezone.utc)
+    order = db.get(Order, delivery.order_id)
+    if order:
+        order.status = ORDER_STATUS_DELIVERED
     db.commit()
     db.refresh(delivery)
-
-    entry = DeliveryRead.model_validate(delivery)
-    order = db.get(Order, delivery.order_id)
-    entry.order_number = order.order_number if order else None
-    customer = db.get(User, delivery.customer_id) if delivery.customer_id else None
-    entry.customer_name = customer.name if customer else None
-    return entry
+    return _serialize_delivery(db, delivery)

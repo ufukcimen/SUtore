@@ -73,7 +73,7 @@ CREATE TABLE orders (
     order_id SERIAL PRIMARY KEY,
     order_number VARCHAR(32) UNIQUE NOT NULL,
     user_id INTEGER REFERENCES users(user_id) ON DELETE SET NULL,
-    status VARCHAR(30) NOT NULL DEFAULT 'confirmed',
+    status VARCHAR(30) NOT NULL DEFAULT 'processing',
     billing_name VARCHAR(200) NOT NULL,
     billing_email VARCHAR(150) NOT NULL,
     billing_phone VARCHAR(50) NOT NULL,
