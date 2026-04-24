@@ -32,6 +32,7 @@ def get_reportlab() -> SimpleNamespace:
         from reportlab.lib.units import mm
         from reportlab.platypus import (
             KeepTogether,
+            PageBreak,
             Paragraph,
             SimpleDocTemplate,
             Spacer,
@@ -49,6 +50,7 @@ def get_reportlab() -> SimpleNamespace:
     return SimpleNamespace(
         A4=A4,
         KeepTogether=KeepTogether,
+        PageBreak=PageBreak,
         Paragraph=Paragraph,
         ParagraphStyle=ParagraphStyle,
         SimpleDocTemplate=SimpleDocTemplate,
@@ -93,17 +95,7 @@ def build_invoice_pdf(order: OrderRead) -> bytes:
         author="SUtore",
     )
     styles = build_styles()
-    story = [
-        build_header(order, document.width, styles),
-        reportlab.Spacer(1, 14),
-        build_details_panel(order, document.width, styles),
-        reportlab.Spacer(1, 16),
-        build_items_table(order, document.width, styles),
-        reportlab.Spacer(1, 16),
-        build_totals_panel(order, document.width, styles),
-        reportlab.Spacer(1, 14),
-        build_footer_note(order, document.width, styles),
-    ]
+    story = build_invoice_story(order, document.width, styles)
 
     document.build(
         story,
@@ -112,6 +104,55 @@ def build_invoice_pdf(order: OrderRead) -> bytes:
     )
 
     return buffer.getvalue()
+
+
+def build_invoice_range_pdf(orders: list[OrderRead], title: str = "Invoice range") -> bytes:
+    reportlab = get_reportlab()
+    page_margin = PAGE_MARGIN_MM * reportlab.mm
+    buffer = BytesIO()
+    document = reportlab.SimpleDocTemplate(
+        buffer,
+        pagesize=reportlab.A4,
+        leftMargin=page_margin,
+        rightMargin=page_margin,
+        topMargin=page_margin,
+        bottomMargin=page_margin,
+        title=title,
+        author="SUtore",
+    )
+    styles = build_styles()
+    story = []
+    for index, order in enumerate(orders):
+        story.extend(build_invoice_story(order, document.width, styles))
+        if index < len(orders) - 1:
+            story.append(reportlab.PageBreak())
+
+    document.build(
+        story,
+        onFirstPage=lambda canvas, doc: draw_page_footer(canvas, doc, title),
+        onLaterPages=lambda canvas, doc: draw_page_footer(canvas, doc, title),
+    )
+
+    return buffer.getvalue()
+
+
+def build_invoice_story(
+    order: OrderRead,
+    content_width: float,
+    styles: dict[str, object],
+) -> list[object]:
+    reportlab = get_reportlab()
+    return [
+        build_header(order, content_width, styles),
+        reportlab.Spacer(1, 14),
+        build_details_panel(order, content_width, styles),
+        reportlab.Spacer(1, 16),
+        build_items_table(order, content_width, styles),
+        reportlab.Spacer(1, 16),
+        build_totals_panel(order, content_width, styles),
+        reportlab.Spacer(1, 14),
+        build_footer_note(order, content_width, styles),
+    ]
 
 
 def send_order_invoice_email(order: OrderRead) -> bool:

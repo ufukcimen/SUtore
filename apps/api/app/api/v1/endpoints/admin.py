@@ -2,7 +2,7 @@ from collections import Counter
 from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal, ROUND_HALF_UP
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
@@ -21,6 +21,7 @@ from app.schemas.admin import (
 )
 from app.schemas.order import OrderRead
 from app.schemas.product import ProductRead
+from app.services import build_invoice_pdf, build_invoice_range_pdf
 
 router = APIRouter()
 
@@ -77,6 +78,21 @@ def _orders_in_range(
         statement = statement.where(Order.created_at < end_dt)
 
     return list(db.scalars(statement).all())
+
+
+def _invoice_pdf_response(pdf_bytes: bytes, filename: str) -> Response:
+    safe_filename = filename.replace('"', "")
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{safe_filename}"'},
+    )
+
+
+def _invoice_range_filename(start_date: date | None, end_date: date | None) -> str:
+    start_label = start_date.isoformat() if start_date else "all"
+    end_label = end_date.isoformat() if end_date else "all"
+    return f"invoices-{start_label}-to-{end_label}.pdf"
 
 
 @router.get("/products", response_model=list[ProductRead])
@@ -178,6 +194,44 @@ def list_invoices(
     _require_admin(db, admin_user_id)
     orders = _orders_in_range(db, start_date, end_date)
     return [OrderRead.model_validate(order) for order in orders]
+
+
+@router.get("/invoices/pdf")
+def download_invoice_range_pdf(
+    admin_user_id: int = Query(ge=1),
+    start_date: date | None = Query(default=None),
+    end_date: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+) -> Response:
+    _require_admin(db, admin_user_id)
+    orders = _orders_in_range(db, start_date, end_date)
+    if not orders:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No invoices in this date range.")
+
+    order_reads = [OrderRead.model_validate(order) for order in orders]
+    filename = _invoice_range_filename(start_date, end_date)
+    pdf_bytes = build_invoice_range_pdf(order_reads, title="Invoice range")
+    return _invoice_pdf_response(pdf_bytes, filename)
+
+
+@router.get("/invoices/{order_id}/pdf")
+def download_invoice_pdf(
+    order_id: int,
+    admin_user_id: int = Query(ge=1),
+    db: Session = Depends(get_db),
+) -> Response:
+    _require_admin(db, admin_user_id)
+    order = db.scalar(
+        select(Order)
+        .options(selectinload(Order.items))
+        .where(Order.order_id == order_id)
+    )
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found.")
+
+    order_read = OrderRead.model_validate(order)
+    pdf_bytes = build_invoice_pdf(order_read)
+    return _invoice_pdf_response(pdf_bytes, f"invoice-{order.order_number}.pdf")
 
 
 @router.get("/analytics", response_model=FinancialSummary)

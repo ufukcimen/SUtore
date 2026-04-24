@@ -56,118 +56,48 @@ function isAdminUser(user) {
   return user?.role === "sales_manager" || user?.role === "admin";
 }
 
-function escapeHtml(value) {
-  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-  }[char]));
+function getDownloadFilename(response, fallback) {
+  const disposition = response.headers?.["content-disposition"];
+  const match = typeof disposition === "string"
+    ? disposition.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i)
+    : null;
+
+  if (match?.[1]) {
+    return decodeURIComponent(match[1].replace(/"/g, ""));
+  }
+
+  return fallback;
 }
 
-function openPrintDocument(title, bodyHtml) {
-  const invoiceWindow = window.open("", "_blank");
-  if (!invoiceWindow) return;
-
-  invoiceWindow.document.write(`<!DOCTYPE html>
-<html>
-<head>
-  <title>${escapeHtml(title)}</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    body { margin:0; padding:32px; font-family: Arial, sans-serif; color:#07111f; background:#f7fbff; }
-    .page { max-width: 980px; margin:0 auto; display:flex; flex-direction:column; gap:18px; }
-    .panel { border:1px solid #dbeafe; border-radius:20px; background:#fff; padding:24px; }
-    .row { display:flex; justify-content:space-between; gap:18px; }
-    .muted { color:#64748b; font-size:12px; text-transform:uppercase; letter-spacing:0.16em; }
-    h1, h2, h3, p { margin:0; }
-    h1 { font-size:28px; }
-    h2 { font-size:18px; margin-top:8px; }
-    table { width:100%; border-collapse:collapse; margin-top:14px; }
-    th, td { padding:10px 0; border-bottom:1px solid #e2e8f0; text-align:left; font-size:13px; }
-    th:last-child, td:last-child { text-align:right; }
-    .total { font-size:18px; font-weight:700; }
-    .actions { margin-bottom:18px; }
-    button { border:0; border-radius:12px; background:#07111f; color:#fff; padding:10px 14px; font-weight:700; cursor:pointer; }
-    @media print {
-      body { padding:0; background:#fff; }
-      .actions { display:none; }
-      .panel { break-inside:avoid; box-shadow:none; }
-    }
-  </style>
-</head>
-<body>
-  <div class="actions"><button onclick="window.print()">Print / Save PDF</button></div>
-  <main class="page">${bodyHtml}</main>
-</body>
-</html>`);
-  invoiceWindow.document.close();
+function downloadBlob(blob, filename) {
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
 }
 
-function invoiceHtml(order) {
-  const items = order.items
-    .map((item) => `
-      <tr>
-        <td>${escapeHtml(item.product_name)}<br /><span style="color:#64748b">Qty ${item.quantity}</span></td>
-        <td>${formatCurrency(item.unit_price)}</td>
-        <td>${formatCurrency(item.line_total)}</td>
-      </tr>
-    `)
-    .join("");
-
-  return `
-    <section class="panel">
-      <p class="muted">Invoice</p>
-      <div class="row" style="align-items:flex-start;margin-top:8px">
-        <div>
-          <h1>${escapeHtml(order.order_number)}</h1>
-          <p style="margin-top:8px;color:#64748b">${formatDate(order.created_at)}</p>
-        </div>
-        <p class="total">${formatCurrency(order.total)}</p>
-      </div>
-    </section>
-    <section class="panel">
-      <div class="row">
-        <div>
-          <p class="muted">Customer</p>
-          <h2>${escapeHtml(order.billing_name)}</h2>
-          <p style="margin-top:8px;color:#475569">${escapeHtml(order.billing_email)}</p>
-          <p style="margin-top:4px;color:#475569">${escapeHtml(order.billing_phone)}</p>
-          <p style="margin-top:4px;color:#475569">${escapeHtml(order.billing_address)}</p>
-        </div>
-        <div>
-          <p class="muted">Payment</p>
-          <h2>${escapeHtml(order.payment_brand)} ****${escapeHtml(order.payment_last4)}</h2>
-        </div>
-      </div>
-      <table>
-        <thead><tr><th>Product</th><th>Unit</th><th>Total</th></tr></thead>
-        <tbody>${items}</tbody>
-      </table>
-      <div style="margin-top:18px;display:grid;gap:8px;max-width:280px;margin-left:auto">
-        <div class="row"><span>Subtotal</span><strong>${formatCurrency(order.subtotal)}</strong></div>
-        <div class="row"><span>Shipping</span><strong>${formatCurrency(order.shipping)}</strong></div>
-        <div class="row"><span>Tax</span><strong>${formatCurrency(order.tax)}</strong></div>
-        <div class="row total"><span>Total</span><span>${formatCurrency(order.total)}</span></div>
-      </div>
-    </section>
-  `;
+async function downloadInvoicePdf(user, invoice) {
+  const response = await http.get(`/admin/invoices/${invoice.order_id}/pdf`, {
+    params: { admin_user_id: user.user_id },
+    responseType: "blob",
+  });
+  downloadBlob(response.data, getDownloadFilename(response, `invoice-${invoice.order_number}.pdf`));
 }
 
-function printInvoice(order) {
-  openPrintDocument(`Invoice ${order.order_number}`, invoiceHtml(order));
-}
-
-function printInvoiceRange(invoices, startDate, endDate) {
-  const heading = `
-    <section class="panel">
-      <p class="muted">Invoice range</p>
-      <h1>Invoices ${escapeHtml(startDate || "all")} to ${escapeHtml(endDate || "all")}</h1>
-      <p style="margin-top:8px;color:#64748b">${invoices.length} invoice${invoices.length === 1 ? "" : "s"}</p>
-    </section>
-  `;
-  openPrintDocument("Invoice range", heading + invoices.map(invoiceHtml).join(""));
+async function downloadInvoiceRangePdf(user, startDate, endDate) {
+  const response = await http.get("/admin/invoices/pdf", {
+    params: {
+      admin_user_id: user.user_id,
+      start_date: startDate || undefined,
+      end_date: endDate || undefined,
+    },
+    responseType: "blob",
+  });
+  downloadBlob(response.data, getDownloadFilename(response, "invoices.pdf"));
 }
 
 const TABS = [
@@ -477,6 +407,9 @@ function InvoicesTab({ user }) {
   const [startDate, setStartDate] = useState(dateInputValue(-30));
   const [endDate, setEndDate] = useState(dateInputValue());
   const [error, setError] = useState("");
+  const [isDownloadingRange, setIsDownloadingRange] = useState(false);
+  const [isDownloadingSeparate, setIsDownloadingSeparate] = useState(false);
+  const [downloadingInvoiceId, setDownloadingInvoiceId] = useState(null);
 
   useEffect(() => { loadInvoices(); }, []);
 
@@ -487,12 +420,51 @@ function InvoicesTab({ user }) {
       const res = await http.get("/admin/invoices", {
         params: { admin_user_id: user.user_id, start_date: startDate || undefined, end_date: endDate || undefined },
       });
-      setInvoices(res.data);
+      const nextInvoices = Array.isArray(res.data) ? res.data : [];
+      setInvoices(nextInvoices);
     } catch (err) {
       setInvoices([]);
       setError(getErrorMessage(err, "Could not load invoices."));
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function handleDownloadRange() {
+    setIsDownloadingRange(true);
+    setError("");
+    try {
+      await downloadInvoiceRangePdf(user, startDate, endDate);
+    } catch (err) {
+      setError(getErrorMessage(err, "Could not download the invoice range PDF."));
+    } finally {
+      setIsDownloadingRange(false);
+    }
+  }
+
+  async function handleDownloadSeparate() {
+    setIsDownloadingSeparate(true);
+    setError("");
+    try {
+      for (const invoice of invoices) {
+        await downloadInvoicePdf(user, invoice);
+      }
+    } catch (err) {
+      setError(getErrorMessage(err, "Could not download all invoice PDFs."));
+    } finally {
+      setIsDownloadingSeparate(false);
+    }
+  }
+
+  async function handleDownloadInvoice(invoice) {
+    setDownloadingInvoiceId(invoice.order_id);
+    setError("");
+    try {
+      await downloadInvoicePdf(user, invoice);
+    } catch (err) {
+      setError(getErrorMessage(err, "Could not download this invoice PDF."));
+    } finally {
+      setDownloadingInvoiceId(null);
     }
   }
 
@@ -504,9 +476,14 @@ function InvoicesTab({ user }) {
 
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm font-semibold text-slate-600">{invoices.length} invoices in range</p>
-        <button type="button" disabled={invoices.length === 0} onClick={() => printInvoiceRange(invoices, startDate, endDate)} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-cyan-200 hover:text-brand-ink disabled:opacity-50">
-          <Download className="h-4 w-4" /> Print range
-        </button>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <button type="button" disabled={invoices.length === 0 || isDownloadingRange} onClick={handleDownloadRange} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-cyan-200 hover:text-brand-ink disabled:opacity-50">
+            <Download className="h-4 w-4" /> {isDownloadingRange ? "Preparing..." : "Download range PDF"}
+          </button>
+          <button type="button" disabled={invoices.length === 0 || isDownloadingSeparate} onClick={handleDownloadSeparate} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-cyan-200 hover:text-brand-ink disabled:opacity-50">
+            <Download className="h-4 w-4" /> {isDownloadingSeparate ? "Downloading..." : "Download separate PDFs"}
+          </button>
+        </div>
       </div>
 
       {error ? <p className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</p> : null}
@@ -522,8 +499,8 @@ function InvoicesTab({ user }) {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-sm font-semibold text-brand-accent">{formatCurrency(invoice.total)}</span>
                 <button type="button" onClick={() => setExpandedId(expandedId === invoice.order_id ? null : invoice.order_id)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:border-cyan-200 hover:text-brand-ink">Details</button>
-                <button type="button" onClick={() => printInvoice(invoice)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:border-cyan-200 hover:text-brand-ink">
-                  <Download className="h-3 w-3" /> PDF
+                <button type="button" disabled={downloadingInvoiceId === invoice.order_id} onClick={() => handleDownloadInvoice(invoice)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:border-cyan-200 hover:text-brand-ink disabled:opacity-50">
+                  <Download className="h-3 w-3" /> {downloadingInvoiceId === invoice.order_id ? "Downloading..." : "PDF"}
                 </button>
               </div>
             </div>

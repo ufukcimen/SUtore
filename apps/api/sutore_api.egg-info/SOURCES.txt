@@ -6,6 +6,7 @@ app/api/__init__.py
 app/api/v1/__init__.py
 app/api/v1/api.py
 app/api/v1/endpoints/__init__.py
+app/api/v1/endpoints/admin.py
 app/api/v1/endpoints/auth.py
 app/api/v1/endpoints/categories.py
 app/api/v1/endpoints/health.py
@@ -30,6 +31,7 @@ app/models/review.py
 app/models/user.py
 app/models/wishlist.py
 app/schemas/__init__.py
+app/schemas/admin.py
 app/schemas/auth.py
 app/schemas/category.py
 app/schemas/delivery.py
