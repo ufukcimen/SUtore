@@ -5,12 +5,15 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
+from app.models.order import Order, OrderItem
 from app.models.product import Product
 from app.models.review import Review
 from app.models.user import User
 from app.schemas.review import ReviewCreate, ReviewRead, ReviewStatusUpdate, ReviewSummary
 
 router = APIRouter()
+
+DISQUALIFYING_PURCHASE_STATUSES = ("cancelled", "refunded")
 
 
 def _enrich_review(review: Review, db: Session) -> ReviewRead:
@@ -19,6 +22,21 @@ def _enrich_review(review: Review, db: Session) -> ReviewRead:
     user = db.get(User, review.user_id)
     entry.user_name = user.name if user else None
     return entry
+
+
+def _has_purchased_product(db: Session, user_id: int, product_id: int) -> bool:
+    purchased_order_id = db.scalar(
+        select(Order.order_id)
+        .join(OrderItem, OrderItem.order_id == Order.order_id)
+        .where(
+            Order.user_id == user_id,
+            OrderItem.product_id == product_id,
+            OrderItem.quantity > 0,
+            func.lower(Order.status).notin_(DISQUALIFYING_PURCHASE_STATUSES),
+        )
+        .limit(1)
+    )
+    return purchased_order_id is not None
 
 
 # ── Public: approved reviews for a product ──────────────────────────
@@ -70,6 +88,12 @@ def submit_review(
     product = db.get(Product, payload.product_id)
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found.")
+
+    if not _has_purchased_product(db, payload.user_id, payload.product_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only customers who have purchased this product can leave a review.",
+        )
 
     existing = db.scalars(
         select(Review).where(

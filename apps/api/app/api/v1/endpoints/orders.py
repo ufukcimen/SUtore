@@ -3,17 +3,18 @@ from decimal import Decimal
 import logging
 from uuid import uuid4
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from app.api.v1.endpoints.invoice_utils import invoice_pdf_response
 from app.db.session import get_db
 from app.models.delivery import Delivery
 from app.models.order import Order, OrderItem
 from app.models.product import Product
 from app.models.user import User
 from app.schemas.order import OrderCreate, OrderRead
-from app.services import send_order_invoice_email
+from app.services import build_invoice_pdf, send_order_invoice_email
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -67,6 +68,25 @@ def list_orders(
     )
     orders = db.scalars(statement).all()
     return [OrderRead.model_validate(order) for order in orders]
+
+
+@router.get("/{order_id}/invoice/pdf")
+def download_order_invoice_pdf(
+    order_id: int,
+    user_id: int = Query(ge=1),
+    db: Session = Depends(get_db),
+) -> Response:
+    order = db.scalar(
+        select(Order)
+        .options(selectinload(Order.items))
+        .where(Order.order_id == order_id, Order.user_id == user_id)
+    )
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found.")
+
+    order_read = OrderRead.model_validate(order)
+    pdf_bytes = build_invoice_pdf(order_read)
+    return invoice_pdf_response(pdf_bytes, f"invoice-{order.order_number}.pdf")
 
 
 @router.patch("/{order_id}/refund-request", response_model=OrderRead)

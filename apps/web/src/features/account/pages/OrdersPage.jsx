@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Clock3, Download, LoaderCircle, ReceiptText, RotateCcw } from "lucide-react";
 import { StorefrontPageShell } from "../../cart/components/StorefrontPageShell";
 import { formatCurrency } from "../../cart/data/cartStorage";
+import { downloadResponseBlob } from "../../../lib/downloads";
 import { http } from "../../../lib/http";
 import { useStoredUser } from "../../../lib/useStoredUser";
 
@@ -98,173 +99,7 @@ function isRefundEligible(order) {
   return ageMs >= 0 && ageMs <= 30 * 24 * 60 * 60 * 1000;
 }
 
-function handleDownloadInvoice(order) {
-  const invoiceWindow = window.open("", "_blank");
-  if (!invoiceWindow) return;
-
-  const itemsHtml = order.items
-    .map(
-      (item) => `
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border-radius:1.5rem;border:1px solid rgba(226,232,240,1);background:rgba(248,250,252,0.9);padding:16px">
-          <div style="min-width:0">
-            <p style="font-size:14px;font-weight:600;color:#07111f">${item.product_name}</p>
-            <p style="margin-top:4px;font-size:12px;text-transform:uppercase;letter-spacing:0.18em;color:#64748b">Qty ${item.quantity}</p>
-          </div>
-          <p style="flex-shrink:0;font-size:14px;font-weight:600;color:#07111f">${formatCurrency(Number(item.line_total) || 0)}</p>
-        </div>`,
-    )
-    .join("");
-
-  invoiceWindow.document.write(`<!DOCTYPE html>
-<html>
-<head>
-  <title>Invoice - ${order.order_number}</title>
-  <style>
-    @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Sora:wght@400;600;700&display=swap");
-    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:"Space Grotesk",sans-serif; background:#f7fbff; color:#07111f; padding:40px 24px; }
-    h1,h2,h3,h4,h5,h6 { font-family:"Sora",sans-serif; }
-    .layout { max-width:1120px; margin:0 auto; display:grid; gap:24px; grid-template-columns:minmax(0,1.45fr) minmax(320px,0.9fr); }
-    .card { border-radius:2rem; border:1px solid rgba(226,232,240,0.8); background:rgba(255,255,255,0.92); padding:24px; box-shadow:0 20px 60px rgba(7,17,31,0.1); }
-    .card-hero { border-radius:2rem; border:1px solid rgba(226,232,240,0.8); background:linear-gradient(180deg,rgba(240,249,255,0.95),rgba(255,255,255,0.92)); padding:32px; box-shadow:0 24px 70px rgba(7,17,31,0.1); }
-    .icon-box { display:grid; width:48px; height:48px; flex-shrink:0; place-items:center; border-radius:1rem; }
-    .icon-cyan { background:rgba(0,209,178,0.12); color:#00d1b2; }
-    .icon-amber { background:rgba(246,196,83,0.15); color:#b45309; }
-    .eyebrow { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.28em; color:#00d1b2; }
-    .meta-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:32px; }
-    .meta-card { border-radius:1.5rem; border:1px solid rgba(255,255,255,0.8); background:rgba(255,255,255,0.85); padding:20px; }
-    .meta-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.24em; color:#64748b; }
-    .meta-value { margin-top:8px; font-size:20px; font-weight:600; color:#07111f; font-family:"Sora",sans-serif; }
-    .cards-grid { display:grid; gap:24px; grid-template-columns:1fr 1fr; margin-top:24px; }
-    .note-card { margin-top:24px; border-radius:1.5rem; border:1px solid #e2e8f0; background:rgba(248,250,252,0.9); padding:20px; font-size:14px; line-height:1.75; color:#475569; }
-    .summary-panel { border-radius:2rem; border:1px solid rgba(226,232,240,0.8); background:rgba(255,255,255,0.92); padding:24px; box-shadow:0 28px 80px rgba(7,17,31,0.12); }
-    .summary-items { margin-top:24px; display:flex; flex-direction:column; gap:16px; }
-    .summary-totals { margin-top:24px; border-top:1px solid #e2e8f0; padding-top:24px; display:flex; flex-direction:column; gap:12px; font-size:14px; color:#475569; }
-    .summary-row { display:flex; justify-content:space-between; align-items:center; }
-    .summary-row-value { font-weight:600; color:#07111f; }
-    .summary-total-row { display:flex; justify-content:space-between; align-items:center; border-top:1px solid #e2e8f0; padding-top:12px; margin-top:4px; font-size:16px; font-weight:600; color:#07111f; }
-    .receipt-footer { margin-top:24px; border-radius:1.5rem; border:1px solid #e2e8f0; background:rgba(248,250,252,0.9); padding:16px; display:flex; align-items:center; gap:12px; font-size:14px; color:#475569; }
-    .receipt-footer svg { width:20px; height:20px; color:#00d1b2; flex-shrink:0; }
-    .btn-print { display:inline-flex; align-items:center; justify-content:center; border-radius:1rem; padding:12px 20px; font-size:14px; font-weight:600; font-family:inherit; border:none; cursor:pointer; transition:background 0.15s; }
-    .btn-primary { background:#07111f; color:#fff; }
-    .btn-primary:hover { background:#1e293b; }
-    .btn-accent { background:#00d1b2; color:#07111f; }
-    .btn-accent:hover { background:#5eead4; }
-    @media print {
-      @page { margin:14mm; }
-      html, body { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
-      body { padding:0; background:#f7fbff; }
-      .no-print { display:none !important; }
-      .layout { display:block !important; }
-      .layout > * { width:100% !important; }
-      .card, .card-hero, .summary-panel { break-inside:avoid; box-shadow:none !important; border:1px solid #d9e4f0 !important; background:rgba(255,255,255,0.96) !important; margin-bottom:18px; }
-      .card-hero { background:linear-gradient(180deg,#ecfdf5 0%,#eff6ff 100%) !important; border-color:#a7f3d0 !important; }
-      .meta-card { background:#f8fbff !important; border-color:#d9e4f0 !important; }
-    }
-    @media (max-width:900px) {
-      .layout { grid-template-columns:1fr; }
-      .cards-grid { grid-template-columns:1fr; }
-      .meta-grid { grid-template-columns:1fr; }
-    }
-  </style>
-</head>
-<body>
-  <div class="layout">
-    <div style="display:flex;flex-direction:column;gap:24px">
-
-      <!-- Order info hero -->
-      <div class="card-hero">
-        <p class="eyebrow">Invoice</p>
-        <h2 style="margin-top:12px;font-size:28px;font-weight:600;color:#07111f;font-family:'Sora',sans-serif">
-          Order ${order.order_number}
-        </h2>
-        <p style="margin-top:16px;max-width:600px;font-size:14px;line-height:1.75;color:#475569">
-          Invoice generated from your order. You can print or save this page as a PDF for your records.
-        </p>
-        <div class="meta-grid">
-          <div class="meta-card">
-            <p class="meta-label">Order number</p>
-            <p class="meta-value">${order.order_number}</p>
-          </div>
-          <div class="meta-card">
-            <p class="meta-label">Order date</p>
-            <p class="meta-value" style="font-size:16px">${formatOrderDate(order.created_at)}</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Billing + Payment cards -->
-      <div class="cards-grid">
-        <div class="card">
-          <div style="display:flex;align-items:flex-start;gap:16px">
-            <div class="icon-box icon-cyan">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
-            </div>
-            <div>
-              <p class="eyebrow">Billing details</p>
-              <h3 style="margin-top:8px;font-size:24px;font-weight:600;color:#07111f;font-family:'Sora',sans-serif">${order.billing_name}</h3>
-            </div>
-          </div>
-          <div style="margin-top:24px;display:flex;flex-direction:column;gap:12px;font-size:14px;line-height:1.75;color:#475569">
-            <p>${order.billing_email}</p>
-            <p>${order.billing_phone}</p>
-            <p>${order.billing_address}</p>
-          </div>
-        </div>
-
-        <div class="card">
-          <div style="display:flex;align-items:flex-start;gap:16px">
-            <div class="icon-box icon-amber">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
-            </div>
-            <div>
-              <p class="eyebrow">Payment reference</p>
-              <h3 style="margin-top:8px;font-size:24px;font-weight:600;color:#07111f;font-family:'Sora',sans-serif">${order.payment_brand} ending in ${order.payment_last4}</h3>
-            </div>
-          </div>
-          <div class="note-card">
-            This is an invoice for order ${order.order_number}. You can print or save this document for your records.
-          </div>
-          <div style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap" class="no-print">
-            <button onclick="window.print()" class="btn-print btn-primary">Print / Save as PDF</button>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Order summary sidebar -->
-    <div class="summary-panel">
-      <p class="eyebrow">Order summary</p>
-      <h2 style="margin-top:12px;font-size:24px;font-weight:600;color:#07111f;font-family:'Sora',sans-serif">
-        ${order.items.length} product${order.items.length === 1 ? "" : "s"}
-      </h2>
-
-      <div class="summary-items">
-        ${itemsHtml}
-      </div>
-
-      <div class="summary-totals">
-        <div class="summary-row"><span>Subtotal</span><span class="summary-row-value">${formatCurrency(Number(order.subtotal) || 0)}</span></div>
-        <div class="summary-row"><span>Shipping</span><span class="summary-row-value">${Number(order.shipping) === 0 ? "Free" : formatCurrency(Number(order.shipping) || 0)}</span></div>
-        <div class="summary-row"><span>Estimated tax</span><span class="summary-row-value">${formatCurrency(Number(order.tax) || 0)}</span></div>
-        <div class="summary-total-row"><span>Total</span><span>${formatCurrency(Number(order.total) || 0)}</span></div>
-      </div>
-
-      <div class="receipt-footer" style="margin-top:24px">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg>
-        <p>Invoice generated for order ${order.order_number}.</p>
-      </div>
-
-      <p style="margin-top:16px;font-size:12px;line-height:1.5;color:#94a3b8">Save or print this summary for your records.</p>
-    </div>
-  </div>
-</body>
-</html>`);
-  invoiceWindow.document.close();
-}
-
-function OrderCard({ isRefunding, onRequestRefund, order }) {
+function OrderCard({ isDownloadingInvoice, isRefunding, onDownloadInvoice, onRequestRefund, order }) {
   const itemCount = order.items.reduce((count, item) => count + item.quantity, 0);
   const previewItems = order.items.slice(0, 3);
 
@@ -342,18 +177,27 @@ function OrderCard({ isRefunding, onRequestRefund, order }) {
         ) : null}
         <button
           type="button"
-          onClick={() => handleDownloadInvoice(order)}
-          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:border-cyan-300/60 hover:text-brand-ink"
+          disabled={isDownloadingInvoice}
+          onClick={() => onDownloadInvoice(order)}
+          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:border-cyan-300/60 hover:text-brand-ink disabled:opacity-50"
         >
           <Download className="h-3.5 w-3.5" />
-          Download Invoice
+          {isDownloadingInvoice ? "Downloading..." : "Download Invoice"}
         </button>
       </div>
     </article>
   );
 }
 
-function OrdersSection({ emptyMessage, onRequestRefund, orders, refundActionId, title }) {
+function OrdersSection({
+  downloadActionId,
+  emptyMessage,
+  onDownloadInvoice,
+  onRequestRefund,
+  orders,
+  refundActionId,
+  title,
+}) {
   return (
     <section className="rounded-[1.7rem] border border-slate-200 bg-slate-50/90 p-5">
       <div className="flex items-center justify-between gap-3">
@@ -377,7 +221,9 @@ function OrdersSection({ emptyMessage, onRequestRefund, orders, refundActionId, 
           orders.map((order) => (
             <OrderCard
               key={order.order_id}
+              isDownloadingInvoice={downloadActionId === order.order_id}
               isRefunding={refundActionId === order.order_id}
+              onDownloadInvoice={onDownloadInvoice}
               onRequestRefund={onRequestRefund}
               order={order}
             />
@@ -398,6 +244,7 @@ export function OrdersPage() {
   const [ordersError, setOrdersError] = useState("");
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [refundActionId, setRefundActionId] = useState(null);
+  const [downloadActionId, setDownloadActionId] = useState(null);
 
   useEffect(() => {
     if (!user?.user_id) {
@@ -461,6 +308,23 @@ export function OrdersPage() {
       setOrdersError(getErrorMessage(error, "Unable to request a refund for this order."));
     } finally {
       setRefundActionId(null);
+    }
+  }
+
+  async function handleDownloadInvoice(order) {
+    setDownloadActionId(order.order_id);
+    setOrdersError("");
+
+    try {
+      const response = await http.get(`/orders/${order.order_id}/invoice/pdf`, {
+        params: { user_id: user.user_id },
+        responseType: "blob",
+      });
+      downloadResponseBlob(response, `invoice-${order.order_number}.pdf`);
+    } catch (error) {
+      setOrdersError(getErrorMessage(error, "Unable to download this invoice."));
+    } finally {
+      setDownloadActionId(null);
     }
   }
 
@@ -538,16 +402,20 @@ export function OrdersPage() {
         ) : (
           <div className="mt-6 grid gap-5 xl:grid-cols-2">
             <OrdersSection
+              downloadActionId={downloadActionId}
               orders={currentOrders}
               title="Current orders"
               emptyMessage="Newly confirmed orders will appear here after checkout."
+              onDownloadInvoice={handleDownloadInvoice}
               onRequestRefund={handleRequestRefund}
               refundActionId={refundActionId}
             />
             <OrdersSection
+              downloadActionId={downloadActionId}
               orders={pastOrders}
               title="Past orders"
               emptyMessage="Completed or cancelled orders will move into this history section."
+              onDownloadInvoice={handleDownloadInvoice}
               onRequestRefund={handleRequestRefund}
               refundActionId={refundActionId}
             />

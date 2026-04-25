@@ -18,6 +18,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { StorefrontPageShell } from "../../cart/components/StorefrontPageShell";
+import { downloadResponseBlob } from "../../../lib/downloads";
 import { http } from "../../../lib/http";
 import { useStoredUser } from "../../../lib/useStoredUser";
 
@@ -56,36 +57,12 @@ function isAdminUser(user) {
   return user?.role === "sales_manager" || user?.role === "admin";
 }
 
-function getDownloadFilename(response, fallback) {
-  const disposition = response.headers?.["content-disposition"];
-  const match = typeof disposition === "string"
-    ? disposition.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i)
-    : null;
-
-  if (match?.[1]) {
-    return decodeURIComponent(match[1].replace(/"/g, ""));
-  }
-
-  return fallback;
-}
-
-function downloadBlob(blob, filename) {
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.URL.revokeObjectURL(url);
-}
-
 async function downloadInvoicePdf(user, invoice) {
   const response = await http.get(`/admin/invoices/${invoice.order_id}/pdf`, {
     params: { admin_user_id: user.user_id },
     responseType: "blob",
   });
-  downloadBlob(response.data, getDownloadFilename(response, `invoice-${invoice.order_number}.pdf`));
+  downloadResponseBlob(response, `invoice-${invoice.order_number}.pdf`);
 }
 
 async function downloadInvoiceRangePdf(user, startDate, endDate) {
@@ -97,7 +74,7 @@ async function downloadInvoiceRangePdf(user, startDate, endDate) {
     },
     responseType: "blob",
   });
-  downloadBlob(response.data, getDownloadFilename(response, "invoices.pdf"));
+  downloadResponseBlob(response, "invoices.pdf");
 }
 
 const TABS = [

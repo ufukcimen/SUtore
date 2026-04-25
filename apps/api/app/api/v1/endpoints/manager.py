@@ -1,9 +1,10 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.api.v1.endpoints.invoice_utils import invoice_pdf_response
 from app.db.session import get_db
 from app.models.category import Category
 from app.models.delivery import Delivery
@@ -16,6 +17,7 @@ from app.schemas.delivery import DeliveryRead
 from app.schemas.item_type import ItemTypeCreate, ItemTypeRead, ItemTypeUpdate
 from app.schemas.order import OrderRead
 from app.schemas.product import ProductCreate, ProductRead, ProductUpdate
+from app.services import build_invoice_pdf
 
 router = APIRouter()
 
@@ -424,6 +426,24 @@ def get_invoice(
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found.")
     return OrderRead.model_validate(order)
+
+
+@router.get("/invoices/{order_id}/pdf")
+def download_invoice_pdf(
+    order_id: int,
+    manager_user_id: int = Query(ge=1),
+    db: Session = Depends(get_db),
+) -> Response:
+    _require_manager(db, manager_user_id)
+    order = db.scalar(
+        select(Order).options(selectinload(Order.items)).where(Order.order_id == order_id)
+    )
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found.")
+
+    order_read = OrderRead.model_validate(order)
+    pdf_bytes = build_invoice_pdf(order_read)
+    return invoice_pdf_response(pdf_bytes, f"invoice-{order.order_number}.pdf")
 
 
 # ── Delivery management ──────────────────────────────────────────────

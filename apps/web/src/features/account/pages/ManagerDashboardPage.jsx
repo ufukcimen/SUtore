@@ -5,6 +5,7 @@ import {
   Box,
   CheckCircle2,
   ChevronDown,
+  Download,
   Edit,
   FolderOpen,
   LoaderCircle,
@@ -19,6 +20,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { StorefrontPageShell } from "../../cart/components/StorefrontPageShell";
+import { downloadResponseBlob } from "../../../lib/downloads";
 import { http } from "../../../lib/http";
 import { useStoredUser } from "../../../lib/useStoredUser";
 
@@ -80,6 +82,14 @@ function getDeliveryStatusClass(status) {
   }
 
   return "border-cyan-200 bg-cyan-50 text-brand-accent";
+}
+
+async function downloadManagerInvoicePdf(user, invoice) {
+  const response = await http.get(`/manager/invoices/${invoice.order_id}/pdf`, {
+    params: { manager_user_id: user.user_id },
+    responseType: "blob",
+  });
+  downloadResponseBlob(response, `invoice-${invoice.order_number}.pdf`);
 }
 
 const TABS = [
@@ -687,22 +697,41 @@ function InvoicesTab({ user }) {
   const [invoices, setInvoices] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
+  const [downloadingInvoiceId, setDownloadingInvoiceId] = useState(null);
+  const [error, setError] = useState("");
 
   useEffect(() => { loadInvoices(); }, []);
 
   async function loadInvoices() {
     setIsLoading(true);
+    setError("");
     try {
       const res = await http.get("/manager/invoices", { params: { manager_user_id: user.user_id } });
       setInvoices(res.data);
-    } catch { setInvoices([]); }
+    } catch {
+      setInvoices([]);
+      setError("Could not load invoices.");
+    }
     finally { setIsLoading(false); }
+  }
+
+  async function handleDownloadInvoice(invoice) {
+    setDownloadingInvoiceId(invoice.order_id);
+    setError("");
+    try {
+      await downloadManagerInvoicePdf(user, invoice);
+    } catch {
+      setError("Could not download this invoice PDF.");
+    } finally {
+      setDownloadingInvoiceId(null);
+    }
   }
 
   if (isLoading) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-brand-accent" />;
 
   return (
     <div className="space-y-3">
+      {error ? <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</p> : null}
       {invoices.map((inv) => (
         <div key={inv.order_id} className="rounded-[1.5rem] border border-slate-200 bg-white/90 p-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -714,6 +743,9 @@ function InvoicesTab({ user }) {
               <span className="text-sm font-semibold text-brand-accent">{formatCurrency(inv.total)}</span>
               <button type="button" onClick={() => setExpandedId(expandedId === inv.order_id ? null : inv.order_id)} className="inline-flex items-center gap-1 text-xs font-semibold text-brand-accent hover:underline">
                 <ChevronDown className={`h-3 w-3 transition ${expandedId === inv.order_id ? "rotate-180" : ""}`} /> Details
+              </button>
+              <button type="button" disabled={downloadingInvoiceId === inv.order_id} onClick={() => handleDownloadInvoice(inv)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:border-cyan-200 hover:text-brand-ink disabled:opacity-50">
+                <Download className="h-3 w-3" /> {downloadingInvoiceId === inv.order_id ? "Downloading..." : "PDF"}
               </button>
             </div>
           </div>

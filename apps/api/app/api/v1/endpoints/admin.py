@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from app.api.v1.endpoints.invoice_utils import invoice_pdf_response
 from app.db.session import get_db
 from app.models.order import Order
 from app.models.product import Product
@@ -78,15 +79,6 @@ def _orders_in_range(
         statement = statement.where(Order.created_at < end_dt)
 
     return list(db.scalars(statement).all())
-
-
-def _invoice_pdf_response(pdf_bytes: bytes, filename: str) -> Response:
-    safe_filename = filename.replace('"', "")
-    return Response(
-        content=pdf_bytes,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{safe_filename}"'},
-    )
 
 
 def _invoice_range_filename(start_date: date | None, end_date: date | None) -> str:
@@ -211,7 +203,7 @@ def download_invoice_range_pdf(
     order_reads = [OrderRead.model_validate(order) for order in orders]
     filename = _invoice_range_filename(start_date, end_date)
     pdf_bytes = build_invoice_range_pdf(order_reads, title="Invoice range")
-    return _invoice_pdf_response(pdf_bytes, filename)
+    return invoice_pdf_response(pdf_bytes, filename)
 
 
 @router.get("/invoices/{order_id}/pdf")
@@ -231,7 +223,7 @@ def download_invoice_pdf(
 
     order_read = OrderRead.model_validate(order)
     pdf_bytes = build_invoice_pdf(order_read)
-    return _invoice_pdf_response(pdf_bytes, f"invoice-{order.order_number}.pdf")
+    return invoice_pdf_response(pdf_bytes, f"invoice-{order.order_number}.pdf")
 
 
 @router.get("/analytics", response_model=FinancialSummary)
