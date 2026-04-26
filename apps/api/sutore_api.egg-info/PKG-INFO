@@ -11,3 +11,5 @@ Requires-Dist: pydantic-settings<3.0,>=2.10
 Requires-Dist: passlib[bcrypt]<2.0,>=1.7
 Requires-Dist: email-validator<3.0,>=2.2
 Requires-Dist: reportlab<5.0,>=4.2
+Provides-Extra: test
+Requires-Dist: pytest<9.0,>=8.3; extra == "test"

@@ -10,6 +10,7 @@ app/api/v1/endpoints/admin.py
 app/api/v1/endpoints/auth.py
 app/api/v1/endpoints/categories.py
 app/api/v1/endpoints/health.py
+app/api/v1/endpoints/invoice_utils.py
 app/api/v1/endpoints/manager.py
 app/api/v1/endpoints/orders.py
 app/api/v1/endpoints/products.py
@@ -47,3 +48,7 @@ sutore_api.egg-info/SOURCES.txt
 sutore_api.egg-info/dependency_links.txt
 sutore_api.egg-info/requires.txt
 sutore_api.egg-info/top_level.txt
+tests/test_auth_endpoints.py
+tests/test_auth_schemas.py
+tests/test_orders_endpoints.py
+tests/test_products_endpoints.py
