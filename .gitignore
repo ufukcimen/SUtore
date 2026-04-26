@@ -3,6 +3,8 @@ dist/
 .vite/
 .DS_Store
 *.log
+*.sql
+*.SQL
 .venv/
 __pycache__/
 *.pyc
@@ -14,4 +16,3 @@ apps/api/tools/import_runs/
 .env
 .env.*
 !.env.example
-
