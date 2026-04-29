@@ -294,20 +294,22 @@ export function StorefrontShell({ children, mainClassName = "" }) {
         </div>
       </header>
 
-      <div
-        className={`relative z-10 transition-[padding] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-          menuOpen ? "lg:pl-[24rem]" : "lg:pl-0"
-        }`}
-      >
+      <div className="relative z-10">
         <div
-          className={`pointer-events-none absolute left-0 top-0 z-30 hidden h-full w-full max-w-sm transition-opacity duration-300 lg:block ${
-            menuOpen ? "opacity-100" : "opacity-0"
+          aria-hidden={!menuOpen}
+          onClick={() => setMenuOpen(false)}
+          className={`fixed inset-0 z-20 bg-slate-950/30 backdrop-blur-[2px] transition-opacity duration-300 ${
+            menuOpen ? "opacity-100" : "pointer-events-none opacity-0"
           }`}
+        />
+        <div
+          className={`fixed left-0 top-0 z-30 h-full w-full max-w-sm transform-gpu transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            menuOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+          style={{ willChange: "transform" }}
         >
           <div
-            className={`pointer-events-auto h-full min-h-[calc(100vh-5.5rem)] w-full border-r border-slate-200/80 bg-[linear-gradient(180deg,rgba(13,27,42,0.98),rgba(8,17,31,0.98))] px-6 py-6 text-white shadow-2xl shadow-cyan-950/20 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-              menuOpen ? "translate-x-0" : "-translate-x-full"
-            }`}
+            className="pointer-events-auto h-full w-full overflow-y-auto border-r border-slate-200/80 bg-[linear-gradient(180deg,rgba(13,27,42,0.98),rgba(8,17,31,0.98))] px-6 py-6 text-white shadow-2xl shadow-cyan-950/20"
           >
             <div className="flex items-center justify-between">
               <div>
