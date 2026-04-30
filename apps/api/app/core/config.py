@@ -23,6 +23,18 @@ class Settings(BaseSettings):
         default="http://localhost:5173,http://127.0.0.1:5173",
         alias="CORS_ORIGINS",
     )
+    cors_origin_regex: str = Field(
+        default=(
+            r"^https?://("
+            r"localhost|"
+            r"127\.0\.0\.1|"
+            r"10(?:\.\d{1,3}){3}|"
+            r"172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2}|"
+            r"192\.168(?:\.\d{1,3}){2}"
+            r")(?::\d+)?$"
+        ),
+        alias="CORS_ORIGIN_REGEX",
+    )
     auto_create_tables: bool = False
     smtp_host: str | None = Field(default=None, alias="SMTP_HOST")
     smtp_port: int = Field(default=587, alias="SMTP_PORT")
