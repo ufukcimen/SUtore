@@ -147,21 +147,21 @@ export function CategoryProductsPage({
               <Icon className="h-4 w-4" />
               {badgeLabel}
             </div>
-            <h1 className="mt-4 text-4xl font-semibold tracking-tight text-brand-ink">
+            <h1 className="mt-4 break-words text-3xl font-semibold tracking-tight text-brand-ink sm:text-4xl">
               {heading}
             </h1>
           </div>
 
           {!isLoading && !errorMessage ? (
-            <div className="flex items-center gap-3">
+            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
               <div className="rounded-[1.5rem] border border-cyan-100 bg-cyan-50 px-5 py-4 text-sm text-slate-700">
                 <p className="font-semibold text-brand-ink">{products.length} products found</p>
               </div>
-              <div className="relative">
+              <div className="relative w-full sm:w-auto">
                 <select
                   value={sortValue}
                   onChange={(event) => setSortValue(event.target.value)}
-                  className="appearance-none rounded-[1.5rem] border border-slate-200 bg-white px-5 py-4 pr-10 text-sm font-semibold text-brand-ink shadow-sm transition hover:border-cyan-300/50 focus:border-cyan-300 focus:outline-none"
+                  className="w-full appearance-none rounded-[1.5rem] border border-slate-200 bg-white px-5 py-4 pr-10 text-sm font-semibold text-brand-ink shadow-sm transition hover:border-cyan-300/50 focus:border-cyan-300 focus:outline-none"
                 >
                   {SORT_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -193,7 +193,7 @@ export function CategoryProductsPage({
             ) : null}
           </div>
 
-          <div className="mt-4 flex flex-wrap items-start gap-4">
+          <div className="mt-4 flex flex-col items-stretch gap-4 sm:flex-row sm:flex-wrap sm:items-start">
             {hasFilters ? (
               <div className="min-w-0">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
@@ -224,7 +224,7 @@ export function CategoryProductsPage({
               </div>
             ) : null}
 
-            <div className={hasFilters ? "ml-auto" : ""}>
+            <div className={hasFilters ? "sm:ml-auto" : ""}>
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                 Price
               </p>
@@ -232,7 +232,7 @@ export function CategoryProductsPage({
                 <select
                   value={selectedPriceRange}
                   onChange={(event) => setSelectedPriceRange(event.target.value)}
-                  className="appearance-none rounded-full border border-slate-200 bg-white px-4 py-1.5 pr-8 text-xs font-semibold text-brand-ink shadow-sm transition hover:border-cyan-300/50 focus:border-cyan-300 focus:outline-none"
+                  className="w-full appearance-none rounded-full border border-slate-200 bg-white px-4 py-1.5 pr-8 text-xs font-semibold text-brand-ink shadow-sm transition hover:border-cyan-300/50 focus:border-cyan-300 focus:outline-none sm:w-auto"
                 >
                   {PRICE_RANGES.map((range) => (
                     <option key={range.value} value={range.value}>

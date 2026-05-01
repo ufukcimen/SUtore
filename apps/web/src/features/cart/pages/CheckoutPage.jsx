@@ -430,7 +430,7 @@ export function CheckoutPage() {
                     {cardBrand?.label ?? "Card"}
                   </span>
                 </div>
-                <p className="mt-10 text-2xl font-semibold tracking-[0.18em] text-white/95">
+                <p className="mt-10 break-all text-xl font-semibold tracking-[0.12em] text-white/95 sm:text-2xl sm:tracking-[0.18em]">
                   {form.cardNumber || "•••• •••• •••• ••••"}
                 </p>
                 <div className="mt-6 flex items-center justify-between text-sm text-slate-300">

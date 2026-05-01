@@ -186,26 +186,26 @@ export function HomePage() {
           isLoggingOut ? "scale-[0.99] opacity-0" : "opacity-100"
         }`}
       >
-        <div className="mx-auto flex max-w-[90rem] flex-wrap items-center gap-4 px-2 py-4 sm:px-4 lg:flex-nowrap lg:justify-between lg:px-5">
-          <div className="flex shrink-0 items-center gap-4 lg:min-w-[18rem]">
+        <div className="mx-auto flex max-w-[90rem] flex-wrap items-center gap-3 px-3 py-4 sm:gap-4 sm:px-4 lg:flex-nowrap lg:justify-between lg:px-5">
+          <div className="flex min-w-0 shrink-0 items-center gap-3 sm:gap-4 lg:min-w-[18rem]">
             <button
               type="button"
               onClick={() => setMenuOpen((current) => !current)}
-              className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-white transition hover:bg-white/10"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white transition hover:bg-white/10 sm:h-12 sm:w-12 sm:rounded-2xl"
               aria-label="Open store menu"
               aria-expanded={menuOpen}
             >
               <Menu className="h-5 w-5" />
             </button>
 
-            <Link to="/" className="shrink-0 min-w-fit">
-              <div className="flex items-center gap-3">
-                <div className="rounded-2xl bg-[linear-gradient(135deg,#22d3ee,#2563eb)] px-3 py-2 text-sm font-bold uppercase tracking-[0.3em] text-slate-950">
+            <Link to="/" className="min-w-0 shrink-0">
+              <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                <div className="rounded-xl bg-[linear-gradient(135deg,#22d3ee,#2563eb)] px-2.5 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-slate-950 sm:rounded-2xl sm:px-3 sm:py-2 sm:text-sm sm:tracking-[0.3em]">
                   SU
                 </div>
-                <div>
-                  <p className="text-2xl font-semibold tracking-tight text-white">SUtore</p>
-                  <p className="text-xs uppercase tracking-[0.32em] text-cyan-200/70">
+                <div className="min-w-0">
+                  <p className="truncate text-xl font-semibold tracking-tight text-white sm:text-2xl">SUtore</p>
+                  <p className="hidden text-xs uppercase tracking-[0.32em] text-cyan-200/70 sm:block">
                     Electronics Store
                   </p>
                 </div>
@@ -223,18 +223,18 @@ export function HomePage() {
                 <button
                   type="button"
                   onClick={() => setProfileMenuOpen((current) => !current)}
-                  className="inline-flex h-12 items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10"
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10 sm:h-12 sm:gap-3 sm:rounded-2xl sm:px-4"
                   aria-label="Profile"
                   aria-expanded={profileMenuOpen}
                 >
                   <User className="h-5 w-5 shrink-0" />
-                  <span className="max-w-32 truncate text-sm font-medium text-white">
+                  <span className="hidden max-w-32 truncate text-sm font-medium text-white sm:inline">
                     {displayName}
                   </span>
                   <ChevronDown
                     className={`h-4 w-4 shrink-0 text-cyan-200 transition-transform ${
                       profileMenuOpen ? "rotate-180" : ""
-                    }`}
+                    } hidden sm:block`}
                   />
                 </button>
 
@@ -298,7 +298,7 @@ export function HomePage() {
             ) : (
               <Link
                 to="/login"
-                className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10 sm:h-12 sm:w-12 sm:rounded-2xl"
                 aria-label="Profile"
               >
                 <User className="h-5 w-5" />
@@ -306,7 +306,7 @@ export function HomePage() {
             )}
             <Link
               to="/cart"
-              className="relative inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10"
+              className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10 sm:h-12 sm:w-12 sm:rounded-2xl"
               aria-label="Cart"
             >
               <CartItemCountBadge count={distinctItemCount} className="absolute -right-1.5 -top-1.5" />
@@ -316,16 +316,16 @@ export function HomePage() {
         </div>
       </header>
 
-      <div className="relative z-10">
+      <div className={`relative ${menuOpen ? "z-[70]" : "z-10"}`}>
         <div
           aria-hidden={!menuOpen}
           onClick={() => setMenuOpen(false)}
-          className={`fixed inset-0 z-20 bg-slate-950/30 backdrop-blur-[2px] transition-opacity duration-300 ${
+          className={`fixed inset-0 z-50 bg-slate-950/30 backdrop-blur-[2px] transition-opacity duration-300 ${
             menuOpen ? "opacity-100" : "pointer-events-none opacity-0"
           }`}
         />
         <div
-          className={`fixed left-0 top-0 z-30 h-full w-full max-w-sm transform-gpu transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          className={`fixed left-0 top-0 z-[60] h-dvh w-full transform-gpu transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] sm:max-w-sm ${
             menuOpen ? "translate-x-0" : "-translate-x-full"
           }`}
           style={{ willChange: "transform" }}
@@ -543,7 +543,7 @@ export function HomePage() {
             ) : recommendations.length > 0 ? (
               <RecommendationCarousel>
                 {recommendations.map((product) => (
-                  <div key={product.product_id} className="w-[21rem] shrink-0 py-3">
+                  <div key={product.product_id} className="w-[82vw] shrink-0 py-3 sm:w-[21rem]">
                     <ProductCard product={product} compact floating />
                   </div>
                 ))}

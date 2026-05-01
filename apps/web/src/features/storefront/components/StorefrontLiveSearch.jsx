@@ -41,12 +41,12 @@ function getDropdownClassName(variant) {
 
 function getResultButtonClassName(variant, isActive) {
   if (variant === "light") {
-    return `flex w-full items-start justify-between gap-4 rounded-[1.2rem] px-4 py-4 text-left transition ${
+    return `flex w-full flex-col items-start justify-between gap-3 rounded-[1.2rem] px-4 py-4 text-left transition min-[420px]:flex-row min-[420px]:gap-4 ${
       isActive ? "bg-slate-100 ring-1 ring-cyan-300/60" : "hover:bg-slate-100"
     }`;
   }
 
-  return `flex w-full items-start justify-between gap-4 rounded-[1.2rem] px-4 py-4 text-left transition ${
+  return `flex w-full flex-col items-start justify-between gap-3 rounded-[1.2rem] px-4 py-4 text-left transition min-[420px]:flex-row min-[420px]:gap-4 ${
     isActive ? "bg-slate-800 ring-1 ring-cyan-300/40" : "hover:bg-slate-800"
   }`;
 }
@@ -65,6 +65,14 @@ function getFooterButtonClassName(variant, isActive) {
       ? "border-cyan-300/50 text-cyan-100 ring-1 ring-cyan-300/30"
       : "border-slate-800 hover:border-cyan-300/40 hover:bg-slate-800"
   }`;
+}
+
+function shouldDismissMobileFocus() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return window.matchMedia("(max-width: 767px)").matches;
 }
 
 export function StorefrontLiveSearch({
@@ -130,6 +138,12 @@ export function StorefrontLiveSearch({
     navigate(`/search?q=${encodeURIComponent(resolvedQuery)}`);
   }
 
+  function dismissMobileSearchFocus() {
+    if (shouldDismissMobileFocus()) {
+      inputRef.current?.blur();
+    }
+  }
+
   function handleSubmit(event) {
     event.preventDefault();
     openSearchResults(query);
@@ -139,11 +153,13 @@ export function StorefrontLiveSearch({
     setQuery(nextQuery);
     setIsOpen(false);
     openSearchResults(nextQuery);
+    dismissMobileSearchFocus();
   }
 
   function handleFooterSelect() {
     setIsOpen(false);
     openSearchResults(query);
+    dismissMobileSearchFocus();
   }
 
   function handleKeyDown(event) {
@@ -268,7 +284,7 @@ export function StorefrontLiveSearch({
                 >
                   <div className="min-w-0">
                     <p
-                      className={`truncate text-sm font-semibold ${
+                      className={`break-words text-sm font-semibold min-[420px]:truncate ${
                         variant === "light" ? "text-brand-ink" : "text-white"
                       }`}
                     >

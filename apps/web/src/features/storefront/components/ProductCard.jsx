@@ -89,8 +89,8 @@ export function ProductCard({ product, compact = false, floating = false }) {
         ) : null}
       </Link>
 
-      <div className="space-y-4 p-5">
-        <div className="flex items-start justify-between gap-4">
+      <div className="space-y-4 p-4 sm:p-5">
+        <div className="flex flex-col items-start justify-between gap-3 min-[420px]:flex-row min-[420px]:gap-4">
           <div className="min-w-0">
             {product.category ? (
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
@@ -98,10 +98,10 @@ export function ProductCard({ product, compact = false, floating = false }) {
               </p>
             ) : null}
             <Link to={productUrl} className="block">
-              <h2 className={`mt-2 text-xl font-semibold text-brand-ink hover:text-brand-accent transition${compact ? " line-clamp-1" : ""}`}>{product.name}</h2>
+              <h2 className={`mt-2 break-words text-lg font-semibold text-brand-ink transition hover:text-brand-accent sm:text-xl${compact ? " line-clamp-1" : ""}`}>{product.name}</h2>
             </Link>
           </div>
-          <div className="shrink-0 rounded-2xl bg-cyan-50 px-3 py-2 text-right">
+          <div className="shrink-0 rounded-2xl bg-cyan-50 px-3 py-2 text-left min-[420px]:text-right">
             {hasDiscount ? (
               <>
                 <p className="text-xs text-slate-400 line-through">{formatPrice(originalPrice)}</p>
@@ -136,7 +136,7 @@ export function ProductCard({ product, compact = false, floating = false }) {
           type="button"
           onClick={handleAddToCart}
           disabled={isOutOfStock}
-          className={`inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+          className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition sm:w-auto ${
             isOutOfStock
               ? "cursor-not-allowed bg-slate-200 text-slate-500"
               : isAdded

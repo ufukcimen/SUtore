@@ -89,8 +89,8 @@ export function CartPage() {
                             {item.availability || "Availability pending"}
                           </span>
                         </div>
-                        <h2 className="mt-3 text-xl font-semibold text-brand-ink">{item.name}</h2>
-                        <p className="mt-2 text-sm text-slate-600">
+                        <h2 className="mt-3 break-words text-lg font-semibold text-brand-ink sm:text-xl">{item.name}</h2>
+                        <p className="mt-2 break-words text-sm text-slate-600">
                           {(item.variant || "Standard configuration") + " | SKU " + (item.sku || "N/A")}
                         </p>
 
@@ -158,7 +158,7 @@ export function CartPage() {
                     <button
                       type="button"
                       onClick={() => removeItem(item.id)}
-                      className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 sm:w-auto"
                     >
                       <Trash2 className="h-4 w-4" />
                       Remove

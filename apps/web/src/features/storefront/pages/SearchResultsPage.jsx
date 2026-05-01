@@ -47,7 +47,7 @@ export function SearchResultsPage() {
                 <Search className="h-4 w-4" />
                 Search results
               </div>
-              <h1 className="mt-4 text-4xl font-semibold tracking-tight text-brand-ink">
+              <h1 className="mt-4 break-words text-3xl font-semibold tracking-tight text-brand-ink sm:text-4xl">
                 {activeQuery ? `Results for "${activeQuery}"` : "Search the live catalog."}
               </h1>
               {!isLoading && !errorMessage && activeQuery ? (

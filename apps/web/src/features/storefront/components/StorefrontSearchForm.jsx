@@ -1,5 +1,13 @@
 import { Search } from "lucide-react";
 
+function shouldDismissMobileFocus() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return window.matchMedia("(max-width: 767px)").matches;
+}
+
 export function StorefrontSearchForm({
   value,
   onChange,
@@ -19,11 +27,22 @@ export function StorefrontSearchForm({
 
   const inputClassName =
     variant === "light"
-      ? "h-full w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
-      : "h-full w-full bg-transparent text-sm outline-none placeholder:text-slate-500";
+      ? "h-full w-full bg-transparent text-base outline-none placeholder:text-slate-400 sm:text-sm"
+      : "h-full w-full bg-transparent text-base outline-none placeholder:text-slate-500 sm:text-sm";
+
+  function handleSubmit(event) {
+    onSubmit(event);
+
+    if (!shouldDismissMobileFocus()) {
+      return;
+    }
+
+    const searchInput = inputRef?.current ?? event.currentTarget.querySelector("input[type='search']");
+    searchInput?.blur();
+  }
 
   return (
-    <form onSubmit={onSubmit} className={className}>
+    <form onSubmit={handleSubmit} className={className}>
       <label className={labelClassName}>
         <Search className="h-5 w-5 text-cyan-200" />
         <input

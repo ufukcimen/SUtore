@@ -202,7 +202,7 @@ export function WishlistPage() {
                         </span>
                       ) : null}
                       <Link to={`/products/${product.product_id}`}>
-                        <h2 className="mt-2 text-xl font-semibold text-brand-ink transition hover:text-brand-accent">
+                        <h2 className="mt-2 break-words text-lg font-semibold text-brand-ink transition hover:text-brand-accent sm:text-xl">
                           {product.name}
                         </h2>
                       </Link>
@@ -216,7 +216,7 @@ export function WishlistPage() {
                     </div>
                   </div>
 
-                  <div className="flex shrink-0 items-center gap-4">
+                  <div className="flex shrink-0 flex-wrap items-center gap-3 sm:gap-4">
                     <p className="rounded-2xl bg-cyan-50 px-4 py-2 text-lg font-semibold text-brand-accent">
                       {formatPrice(product.price)}
                     </p>

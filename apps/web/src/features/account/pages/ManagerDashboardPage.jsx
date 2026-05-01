@@ -217,7 +217,7 @@ function ProductsTab({ user }) {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm font-semibold text-slate-600">{products.length} products total</p>
         <button type="button" onClick={() => { setEditingProduct(null); setShowForm(true); }} className="inline-flex items-center gap-2 rounded-2xl bg-brand-accent px-4 py-2.5 text-sm font-semibold text-brand-ink transition hover:bg-brand-glow">
           <Plus className="h-4 w-4" /> Add product
@@ -236,7 +236,7 @@ function ProductsTab({ user }) {
               </div>
               <p className="mt-1 text-xs text-slate-500">ID: {p.product_id} &middot; {p.category} &middot; {formatCurrency(p.price)}{p.discount_percent > 0 ? ` (−${p.discount_percent}%)` : ""} &middot; Stock: {p.stock_quantity ?? 0}</p>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
               <button type="button" onClick={() => handleEdit(p)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-cyan-200 hover:text-brand-ink">
                 <Edit className="h-3 w-3" /> Edit
               </button>
@@ -458,7 +458,7 @@ function CategoriesTab({ user }) {
         <div className="mt-3 flex flex-wrap items-center gap-4">
           <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={addForm.is_visible_in_sidebar} onChange={handleAddChange("is_visible_in_sidebar")} /> Sidebar</label>
           <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={addForm.is_visible_on_homepage} onChange={handleAddChange("is_visible_on_homepage")} /> Homepage</label>
-          <button type="submit" className="ml-auto inline-flex items-center gap-2 rounded-2xl bg-brand-accent px-4 py-2 text-sm font-semibold text-brand-ink hover:bg-brand-glow"><Plus className="h-4 w-4" /> Add category</button>
+          <button type="submit" className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-accent px-4 py-2 text-sm font-semibold text-brand-ink hover:bg-brand-glow sm:ml-auto sm:w-auto"><Plus className="h-4 w-4" /> Add category</button>
         </div>
       </form>
 
@@ -500,7 +500,7 @@ function CategoriesTab({ user }) {
                     <span className="text-xs text-slate-400">order: {c.sort_order}</span>
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
                   <button type="button" onClick={() => setExpandedId(expandedId === c.category_id ? null : c.category_id)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:border-cyan-200 hover:text-brand-ink">
                     <ChevronDown className={`h-3 w-3 transition ${expandedId === c.category_id ? "rotate-180" : ""}`} /> Filters
                   </button>
@@ -670,7 +670,7 @@ function StockTab({ user }) {
                 {isLow ? <AlertTriangle className="h-3.5 w-3.5 text-amber-500" /> : null}
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
               {editingId === p.product_id ? (
                 <>
                   <input type="number" min="0" value={editingQty} onChange={(e) => setEditingQty(e.target.value)} className="w-20 rounded-xl border border-cyan-300 bg-white px-2 py-1.5 text-sm outline-none" />
@@ -739,7 +739,7 @@ function InvoicesTab({ user }) {
               <p className="text-sm font-semibold text-brand-ink">{inv.order_number}</p>
               <p className="mt-1 text-xs text-slate-500">{formatDate(inv.created_at)} &middot; {inv.billing_name} &middot; {inv.billing_email}</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <span className="text-sm font-semibold text-brand-accent">{formatCurrency(inv.total)}</span>
               <button type="button" onClick={() => setExpandedId(expandedId === inv.order_id ? null : inv.order_id)} className="inline-flex items-center gap-1 text-xs font-semibold text-brand-accent hover:underline">
                 <ChevronDown className={`h-3 w-3 transition ${expandedId === inv.order_id ? "rotate-180" : ""}`} /> Details
@@ -900,7 +900,7 @@ function CommentsTab({ user }) {
         <div key={r.review_id} className="rounded-[1.5rem] border border-slate-200 bg-white/90 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <div className="flex gap-0.5">
                   {[1,2,3,4,5].map((v) => <Star key={v} className={`h-3.5 w-3.5 ${v <= r.rating ? "fill-amber-400 text-amber-400" : "fill-slate-200 text-slate-200"}`} />)}
                 </div>
@@ -909,7 +909,7 @@ function CommentsTab({ user }) {
               </div>
               <p className="mt-2 text-sm text-slate-600">{r.comment}</p>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
               <button type="button" disabled={actionId === r.review_id} onClick={() => handleAction(r.review_id, "approved")} className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"><CheckCircle2 className="h-3 w-3" /> Approve</button>
               <button type="button" disabled={actionId === r.review_id} onClick={() => handleAction(r.review_id, "rejected")} className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50"><XCircle className="h-3 w-3" /> Reject</button>
             </div>

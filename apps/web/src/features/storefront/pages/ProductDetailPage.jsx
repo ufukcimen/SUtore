@@ -392,7 +392,7 @@ export function ProductDetailPage() {
                   ) : null}
                 </div>
 
-                <h1 className="mt-4 text-3xl font-semibold tracking-tight text-brand-ink sm:text-4xl">
+                <h1 className="mt-4 break-words text-3xl font-semibold tracking-tight text-brand-ink sm:text-4xl">
                   {product.name}
                 </h1>
 
@@ -414,8 +414,8 @@ export function ProductDetailPage() {
 
                 <div className="mt-6">
                   {hasDiscount ? (
-                    <div className="flex items-center gap-3">
-                      <p className="text-4xl font-semibold text-brand-ink">
+                    <div className="flex flex-col gap-3 min-[420px]:flex-row min-[420px]:items-center">
+                      <p className="text-3xl font-semibold text-brand-ink sm:text-4xl">
                         {formatPrice(discountedPrice)}
                       </p>
                       <div>
@@ -426,7 +426,7 @@ export function ProductDetailPage() {
                       </div>
                     </div>
                   ) : (
-                    <p className="text-4xl font-semibold text-brand-ink">
+                    <p className="text-3xl font-semibold text-brand-ink sm:text-4xl">
                       {formatPrice(originalPrice)}
                     </p>
                   )}
@@ -440,12 +440,12 @@ export function ProductDetailPage() {
                   </span>
                 </div>
 
-                <div className="mt-6 flex flex-wrap items-center gap-3">
+                <div className="mt-6 flex flex-col gap-3 min-[420px]:flex-row min-[420px]:flex-wrap min-[420px]:items-center">
                   <button
                     type="button"
                     onClick={handleAddToCart}
                     disabled={isOutOfStock}
-                    className={`inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-4 text-sm font-semibold transition ${
+                    className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-4 text-sm font-semibold transition min-[420px]:w-auto ${
                       isOutOfStock
                         ? "cursor-not-allowed bg-slate-200 text-slate-500"
                         : isAdded
@@ -465,7 +465,7 @@ export function ProductDetailPage() {
                     type="button"
                     onClick={handleToggleWishlist}
                     disabled={wishlistLoading}
-                    className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-5 py-4 text-sm font-semibold transition ${
+                    className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl border px-5 py-4 text-sm font-semibold transition min-[420px]:w-auto ${
                       isWishlisted
                         ? "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
                         : "border-slate-200 bg-white text-slate-700 hover:border-cyan-300/50 hover:text-brand-ink"
@@ -539,7 +539,7 @@ export function ProductDetailPage() {
             </div>
 
             {reviewSummary.review_count > 0 ? (
-              <div className="mt-4 flex items-center gap-4">
+              <div className="mt-4 flex flex-col gap-3 min-[420px]:flex-row min-[420px]:items-center min-[420px]:gap-4">
                 <div className="flex items-center gap-2">
                   <StarRating rating={Math.round(reviewSummary.average_rating ?? 0)} size="h-6 w-6" />
                   <span className="text-2xl font-semibold text-brand-ink">
@@ -562,7 +562,7 @@ export function ProductDetailPage() {
                     key={review.review_id}
                     className="rounded-[1.5rem] border border-slate-200 bg-slate-50/60 p-5"
                   >
-                    <div className="flex items-center justify-between gap-4">
+                    <div className="flex flex-col gap-3 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
                       <div className="flex items-center gap-3">
                         <StarRating rating={review.rating} size="h-4 w-4" />
                         <span className="text-sm font-semibold text-brand-ink">

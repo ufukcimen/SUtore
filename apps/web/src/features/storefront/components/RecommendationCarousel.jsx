@@ -193,6 +193,71 @@ export function RecommendationCarousel({ children }) {
     };
   }
 
+  function handleTouchStart(event) {
+    if (event.touches.length !== 1) {
+      return;
+    }
+
+    if (cleanupDragRef.current) {
+      cleanupDragRef.current();
+    }
+
+    const touch = event.touches[0];
+    dragRef.current = {
+      active: true,
+      startX: touch.pageX,
+      offsetStart: offsetRef.current,
+      moved: false,
+    };
+
+    function onMove(e) {
+      if (!dragRef.current.active || e.touches.length !== 1) {
+        return;
+      }
+
+      const currentTouch = e.touches[0];
+      const delta = currentTouch.pageX - dragRef.current.startX;
+
+      if (Math.abs(delta) > DRAG_THRESHOLD) {
+        dragRef.current.moved = true;
+      }
+
+      let newOffset = dragRef.current.offsetStart + delta;
+      const c = cycleWidthRef.current;
+
+      if (c > 0) {
+        if (newOffset > -c) {
+          newOffset -= c;
+          dragRef.current.offsetStart -= c;
+        } else if (newOffset <= -2 * c) {
+          newOffset += c;
+          dragRef.current.offsetStart += c;
+        }
+      }
+
+      offsetRef.current = newOffset;
+      trackRef.current.style.transform = `translateX(${newOffset}px)`;
+    }
+
+    function onEnd() {
+      dragRef.current.active = false;
+      document.removeEventListener("touchmove", onMove);
+      document.removeEventListener("touchend", onEnd);
+      document.removeEventListener("touchcancel", onEnd);
+      cleanupDragRef.current = null;
+    }
+
+    document.addEventListener("touchmove", onMove, { passive: true });
+    document.addEventListener("touchend", onEnd);
+    document.addEventListener("touchcancel", onEnd);
+
+    cleanupDragRef.current = () => {
+      document.removeEventListener("touchmove", onMove);
+      document.removeEventListener("touchend", onEnd);
+      document.removeEventListener("touchcancel", onEnd);
+    };
+  }
+
   function handleClickCapture(event) {
     if (dragRef.current.moved) {
       event.stopPropagation();
@@ -207,6 +272,7 @@ export function RecommendationCarousel({ children }) {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
       onClickCapture={handleClickCapture}
       className="mt-6 overflow-hidden py-2"
       style={{ cursor: "grab" }}

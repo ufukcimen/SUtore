@@ -12,11 +12,11 @@ export function AuthShell({ eyebrow, title, description, children, alternateLink
       <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-brand-gold/20 blur-3xl" />
 
       <div className="relative mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-6 sm:px-6 lg:flex-row lg:items-center lg:gap-10 lg:px-8">
-        <section className="flex flex-1 flex-col justify-between rounded-[2rem] bg-brand-panel px-6 py-8 text-white shadow-float sm:px-8 lg:min-h-[720px] lg:px-10 lg:py-10">
+        <section className="flex flex-1 flex-col justify-between rounded-[1.5rem] bg-brand-panel px-5 py-7 text-white shadow-float sm:rounded-[2rem] sm:px-8 lg:min-h-[720px] lg:px-10 lg:py-10">
           <div className="space-y-8">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm uppercase tracking-[0.35em] text-brand-glow/80">
+                <p className="text-xs uppercase tracking-[0.24em] text-brand-glow/80 sm:text-sm sm:tracking-[0.35em]">
                   SUtore
                 </p>
                 <div className="mt-5">
@@ -28,7 +28,7 @@ export function AuthShell({ eyebrow, title, description, children, alternateLink
                     Back to store
                   </Link>
                 </div>
-                <h1 className="mt-3 max-w-md text-4xl font-semibold leading-tight sm:text-5xl">
+                <h1 className="mt-3 max-w-md text-3xl font-semibold leading-tight sm:text-5xl">
                   Trusted tech shopping for parts, performance, and fast delivery.
                 </h1>
               </div>
@@ -83,12 +83,12 @@ export function AuthShell({ eyebrow, title, description, children, alternateLink
         </section>
 
         <section className="flex flex-1 items-center justify-center py-8 lg:py-0">
-          <div className="w-full max-w-xl rounded-[2rem] border border-white/60 bg-white/80 p-6 shadow-float backdrop-blur-xl sm:p-8">
+          <div className="w-full max-w-xl rounded-[1.5rem] border border-white/60 bg-white/80 p-5 shadow-float backdrop-blur-xl sm:rounded-[2rem] sm:p-8">
             <div className="mb-8 space-y-3">
-              <p className="text-sm uppercase tracking-[0.35em] text-brand-accent">
+              <p className="text-xs uppercase tracking-[0.24em] text-brand-accent sm:text-sm sm:tracking-[0.35em]">
                 {eyebrow}
               </p>
-              <h2 className="text-3xl font-semibold text-brand-ink sm:text-4xl">
+              <h2 className="text-2xl font-semibold text-brand-ink sm:text-4xl">
                 {title}
               </h2>
               <p className="max-w-lg text-sm leading-6 text-slate-600">{description}</p>

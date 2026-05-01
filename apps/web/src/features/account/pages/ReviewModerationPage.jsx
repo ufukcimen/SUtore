@@ -195,7 +195,7 @@ export function ReviewModerationPage() {
                     </span>
                   </div>
 
-                  <div className="mt-2 flex items-center gap-2">
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
                     <span className="text-xs text-slate-500">
                       Product #{review.product_id}
                     </span>
@@ -210,7 +210,7 @@ export function ReviewModerationPage() {
                   <p className="mt-3 text-sm leading-7 text-slate-600">{review.comment}</p>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={() => handleAction(review.review_id, "approved")}
