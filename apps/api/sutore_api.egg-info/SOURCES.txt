@@ -43,6 +43,7 @@ app/schemas/review.py
 app/schemas/wishlist.py
 app/services/__init__.py
 app/services/invoices.py
+app/services/product_variants.py
 sutore_api.egg-info/PKG-INFO
 sutore_api.egg-info/SOURCES.txt
 sutore_api.egg-info/dependency_links.txt
@@ -51,4 +52,5 @@ sutore_api.egg-info/top_level.txt
 tests/test_auth_endpoints.py
 tests/test_auth_schemas.py
 tests/test_orders_endpoints.py
+tests/test_product_variants_service.py
 tests/test_products_endpoints.py

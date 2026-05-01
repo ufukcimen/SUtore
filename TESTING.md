@@ -1,14 +1,14 @@
 # Test Suite Reference
 
-Last checked: 2026-04-26
+Last checked: 2026-05-01
 
 The project currently has two automated test suites:
 
 | Area | Runner | Location | Test files | Test cases | Current result |
 | --- | --- | --- | ---: | ---: | --- |
-| API | pytest | `apps/api/tests` | 4 | 13 | 13 passed |
+| API | pytest | `apps/api/tests` | 5 | 47 | 47 passed |
 | Web | Vitest | `apps/web/src/**/*.test.js` | 4 | 12 | 12 passed |
-| Total |  |  | 8 | 25 | 25 passed |
+| Total |  |  | 9 | 59 | 59 passed |
 
 ## How To Run
 
@@ -107,6 +107,31 @@ Shared fixture:
 | `test_search_matches_partial_keywords_case_insensitively_and_trims_whitespace` | Searching for `"  rtx  "` trims whitespace, matches case-insensitively, and returns product IDs `[1, 2]`. |
 | `test_search_returns_an_empty_list_when_no_products_match` | Searching for unmatched terms returns an empty list. |
 | `test_price_range_filter_returns_only_products_inside_the_bounds` | Filtering between `600.00` and `1600.00` returns product IDs `[2, 3]`. |
+| `test_list_products_collapses_ram_and_ssd_variants` | Listing laptop products collapses RAM/SSD variants into one representative per variant group and returns product IDs `[10, 12]`. |
+| `test_product_variants_include_capacities_and_prices` | Fetching variants for product `10` returns products `[10, 11]`, exposes RAM/storage labels `16 GB`/`512 GB` and `32 GB`/`1 TB`, and preserves each variant price. |
+| `test_hydroc_scraped_id_variants_collapse_and_expose_ram_options` | HYDROC variants with scraped numeric model IDs collapse by hardware configuration, expose RTX 5090 RAM options `[2813, 2816]`, and keep RTX 5080 variants separate as `[2812, 2911]`. |
+| `test_structured_variant_fields_group_products_without_capacity_text` | Products with explicit `variant_group`, `ram_capacity_gb`, and `storage_capacity_gb` collapse to product `30` and expose variants `(30, "32 GB", "1 TB")` and `(31, "64 GB", "2 TB")`. |
+
+### `apps/api/tests/test_product_variants_service.py`
+
+| Test | Expected outcome |
+| --- | --- |
+| `test_format_capacity_gb` | Capacity values format as human-readable labels, including `32 GB`, `512 GB`, `1 TB`, `2 TB`, and `1536 GB`; missing and zero values return `None`. |
+| `test_normalize_variant_group` | Variant group strings are trimmed, lowercased, and normalized by replacing separators with spaces; empty values return `None`. |
+| `test_extracts_supported_text_formats` | RAM and storage capacities are extracted from supported product-name and description formats, including `RAM: 32GB SSD: 1TB`, `16GB/512GB`, and HYDROC-style descriptions. |
+| `test_uses_largest_bare_capacity_as_storage_for_systems` | For system products with RAM and an unlabelled larger capacity, `32 GB` is treated as RAM and `2 TB` is treated as storage. |
+| `test_does_not_treat_gpu_memory_as_laptop_variant_capacity` | GPU memory in component products is not exposed as RAM or storage variant capacity. |
+| `test_capacity_fields_override_text_parsing` | Structured `ram_capacity_gb` and `storage_capacity_gb` values override capacities parsed from product text. |
+| `test_partial_capacity_fields_are_supported_with_explicit_group` | A product with an explicit variant group and only RAM capacity still exposes that RAM label and receives a normalized variant group key. |
+| `test_explicit_group_can_group_products_without_capacity_text` | Products without capacity text but with the same explicit variant group share the same variant group key. |
+| `test_inferred_group_ignores_numeric_scraped_model_ids_and_capacities` | HYDROC products that differ only by scraped numeric model IDs and RAM capacity infer the same variant group. |
+| `test_inferred_group_keeps_hardware_differences_separate` | Similar products with different GPU hardware, such as RTX 5080 versus RTX 5090, infer different variant groups. |
+| `test_storage_generation_descriptors_do_not_split_same_group` | Storage generation wording like `Gen 5` does not split products that otherwise belong to the same variant group. |
+| `test_explicit_variant_group_wins_over_inferred_identity` | Explicit variant groups override inferred identity and normalize to `variant:oem falcon rtx4070`. |
+| `test_products_without_group_or_capacity_remain_standalone` | Products without a variant group or capacity data are treated as standalone products with a `product:<id>` key. |
+| `test_collapse_chooses_lowest_price_representative` | Collapsing variant products chooses the lowest-priced representative for a group and leaves standalone products in the result. |
+| `test_collapse_keeps_standalone_products_separate_even_when_names_match` | Standalone products remain separate even if they share the same display name. |
+| `test_matching_variants_filters_group_and_sorts_by_configuration` | Matching variants filters candidates to the current product group and sorts them by RAM, storage, then price. |
 
 ## Web Vitest Coverage
 
