@@ -277,6 +277,9 @@ function ProductForm({ user, product, onDone, onCancel }) {
     category_id: product?.category_id ?? "",
     item_type: product?.item_type ?? "",
     discount_percent: product?.discount_percent ?? 0,
+    variant_group: product?.variant_group ?? "",
+    ram_capacity_gb: product?.ram_capacity_gb ?? "",
+    storage_capacity_gb: product?.storage_capacity_gb ?? "",
   });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -314,6 +317,9 @@ function ProductForm({ user, product, onDone, onCancel }) {
       stock_quantity: Number(form.stock_quantity) || 0,
       category_id: form.category_id ? Number(form.category_id) : null,
       discount_percent: Math.min(100, Math.max(0, parseInt(form.discount_percent, 10) || 0)),
+      variant_group: form.variant_group.trim() || null,
+      ram_capacity_gb: form.ram_capacity_gb === "" ? null : Math.max(0, parseInt(form.ram_capacity_gb, 10) || 0),
+      storage_capacity_gb: form.storage_capacity_gb === "" ? null : Math.max(0, parseInt(form.storage_capacity_gb, 10) || 0),
     };
     try {
       if (isEdit) {
@@ -340,6 +346,9 @@ function ProductForm({ user, product, onDone, onCancel }) {
         <div><label className={labelCls}>Price</label><input type="number" step="0.01" value={form.price} onChange={handleChange("price")} className={inputCls} required /></div>
         <div><label className={labelCls}>Discount %</label><input type="number" min="0" max="100" value={form.discount_percent} onChange={handleChange("discount_percent")} className={inputCls} /></div>
         <div><label className={labelCls}>Stock</label><input type="number" value={form.stock_quantity} onChange={handleChange("stock_quantity")} className={inputCls} /></div>
+        <div><label className={labelCls}>Variant Group</label><input value={form.variant_group} onChange={handleChange("variant_group")} placeholder="e.g. hydroc-16-g2-rtx5090" className={inputCls} /></div>
+        <div><label className={labelCls}>RAM Capacity (GB)</label><input type="number" min="0" value={form.ram_capacity_gb} onChange={handleChange("ram_capacity_gb")} placeholder="e.g. 48" className={inputCls} /></div>
+        <div><label className={labelCls}>SSD Capacity (GB)</label><input type="number" min="0" value={form.storage_capacity_gb} onChange={handleChange("storage_capacity_gb")} placeholder="e.g. 4096" className={inputCls} /></div>
         <div>
           <label className={labelCls}>Category</label>
           <select value={form.category_id} onChange={handleCategoryChange} className={inputCls}>

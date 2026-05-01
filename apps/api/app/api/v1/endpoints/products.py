@@ -5,9 +5,26 @@ from random import sample
 
 from app.db.session import get_db
 from app.models.product import Product
-from app.schemas.product import ProductCreate, ProductRead
+from app.schemas.product import ProductCreate, ProductRead, ProductVariantRead
+from app.services.product_variants import (
+    collapse_variant_products,
+    extract_variant_specs,
+    matching_variant_products,
+)
 
 router = APIRouter()
+
+
+def _read_variant(product: Product) -> ProductVariantRead:
+    specs = extract_variant_specs(product)
+    data = ProductRead.model_validate(product).model_dump()
+    data.update(
+        ram_capacity=specs.ram_capacity,
+        ram_capacity_gb=specs.ram_capacity_gb,
+        storage_capacity=specs.storage_capacity,
+        storage_capacity_gb=specs.storage_capacity_gb,
+    )
+    return ProductVariantRead(**data)
 
 
 @router.get("", response_model=list[ProductRead])
@@ -52,13 +69,15 @@ def list_products(
             )
         )
 
+    products = db.scalars(statement).all()
+    products = collapse_variant_products(products)
+
     if offset:
-        statement = statement.offset(offset)
+        products = products[offset:]
 
     if limit is not None:
-        statement = statement.limit(limit)
+        products = products[:limit]
 
-    products = db.scalars(statement).all()
     return [ProductRead.model_validate(product) for product in products]
 
 
@@ -68,8 +87,23 @@ def random_products(
     db: Session = Depends(get_db),
 ) -> list[ProductRead]:
     all_products = db.scalars(select(Product).where(Product.is_active == True)).all()
+    all_products = collapse_variant_products(all_products)
     chosen = sample(all_products, min(count, len(all_products)))
     return [ProductRead.model_validate(p) for p in chosen]
+
+
+@router.get("/{product_id}/variants", response_model=list[ProductVariantRead])
+def get_product_variants(product_id: int, db: Session = Depends(get_db)) -> list[ProductVariantRead]:
+    product = db.get(Product, product_id)
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found.",
+        )
+
+    candidates = db.scalars(select(Product).where(Product.is_active == True)).all()
+    variants = matching_variant_products(product, candidates)
+    return [_read_variant(variant) for variant in variants]
 
 
 @router.get("/{product_id}", response_model=ProductRead)

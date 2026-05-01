@@ -34,6 +34,41 @@ function formatPrice(price) {
   }).format(numericPrice);
 }
 
+function getDiscountedPrice(product) {
+  const price = Number(product?.price) || 0;
+  const discount = Number(product?.discount_percent) || 0;
+  return discount > 0 ? price * (1 - discount / 100) : price;
+}
+
+function buildVariantOptions(variants, currentVariant, valueKey, sortKey, pairedValueKey) {
+  const seen = new Set();
+
+  return variants
+    .filter((variant) => {
+      const value = variant[valueKey];
+      if (!value || seen.has(value)) {
+        return false;
+      }
+      seen.add(value);
+      return true;
+    })
+    .map((variant) => {
+      const selectedPairValue = currentVariant?.[pairedValueKey];
+      const matchingCurrentPair = variants.find(
+        (candidate) =>
+          candidate[valueKey] === variant[valueKey] &&
+          (!selectedPairValue || candidate[pairedValueKey] === selectedPairValue),
+      );
+
+      return {
+        label: variant[valueKey],
+        sortValue: Number(variant[sortKey]) || 0,
+        product: matchingCurrentPair ?? variant,
+      };
+    })
+    .sort((a, b) => a.sortValue - b.sortValue);
+}
+
 function StarRating({ rating, onSelect, interactive = false, size = "h-5 w-5" }) {
   return (
     <div className="flex items-center gap-1">
@@ -79,6 +114,8 @@ export function ProductDetailPage() {
   const [isAdded, setIsAdded] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [variants, setVariants] = useState([]);
+  const [variantsLoading, setVariantsLoading] = useState(false);
 
   const [reviews, setReviews] = useState([]);
   const [reviewSummary, setReviewSummary] = useState({ average_rating: null, review_count: 0 });
@@ -128,6 +165,43 @@ export function ProductDetailPage() {
     return () => {
       isActive = false;
     };
+  }, [productId]);
+
+  useEffect(() => {
+    if (!productId) {
+      setVariants([]);
+      return;
+    }
+
+    let isActive = true;
+    setVariants([]);
+    setVariantsLoading(true);
+
+    http
+      .get(`/products/${productId}/variants`)
+      .then((response) => {
+        if (isActive) {
+          setVariants(Array.isArray(response.data) ? response.data : []);
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setVariants([]);
+        }
+      })
+      .finally(() => {
+        if (isActive) {
+          setVariantsLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [productId]);
+
+  useEffect(() => {
+    setIsAdded(false);
   }, [productId]);
 
   useEffect(() => {
@@ -193,7 +267,25 @@ export function ProductDetailPage() {
   const discount = product ? (Number(product.discount_percent) || 0) : 0;
   const hasDiscount = discount > 0;
   const originalPrice = product ? (Number(product.price) || 0) : 0;
-  const discountedPrice = hasDiscount ? originalPrice * (1 - discount / 100) : originalPrice;
+  const discountedPrice = product ? getDiscountedPrice(product) : 0;
+  const currentVariant =
+    variants.find((variant) => String(variant.product_id) === String(product?.product_id)) ??
+    product;
+  const ramOptions = buildVariantOptions(
+    variants,
+    currentVariant,
+    "ram_capacity",
+    "ram_capacity_gb",
+    "storage_capacity",
+  );
+  const storageOptions = buildVariantOptions(
+    variants,
+    currentVariant,
+    "storage_capacity",
+    "storage_capacity_gb",
+    "ram_capacity",
+  );
+  const hasVariantChoices = ramOptions.length > 1 || storageOptions.length > 1;
 
   function getStockLabel() {
     if (isOutOfStock) {
@@ -258,6 +350,51 @@ export function ProductDetailPage() {
     } finally {
       setWishlistLoading(false);
     }
+  }
+
+  function handleVariantSelect(nextProductId) {
+    if (!nextProductId || String(nextProductId) === String(productId)) {
+      return;
+    }
+
+    navigate(`/products/${nextProductId}`);
+  }
+
+  function renderVariantGroup(label, options, selectedValue) {
+    if (options.length <= 1) {
+      return null;
+    }
+
+    return (
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+          {label}
+        </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {options.map((option) => {
+            const isActive = option.label === selectedValue;
+
+            return (
+              <button
+                key={option.label}
+                type="button"
+                onClick={() => handleVariantSelect(option.product.product_id)}
+                className={`min-w-[6.5rem] rounded-2xl border px-3 py-2 text-left transition ${
+                  isActive
+                    ? "border-cyan-400 bg-cyan-50 text-brand-accent shadow-sm"
+                    : "border-slate-200 bg-white text-slate-700 hover:border-cyan-300/60 hover:text-brand-ink"
+                }`}
+              >
+                <span className="block text-sm font-semibold">{option.label}</span>
+                <span className="mt-0.5 block text-xs text-slate-500">
+                  {formatPrice(getDiscountedPrice(option.product))}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
   }
 
   async function handleSubmitReview(event) {
@@ -431,6 +568,21 @@ export function ProductDetailPage() {
                     </p>
                   )}
                 </div>
+
+                {hasVariantChoices ? (
+                  <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-slate-50/80 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold text-brand-ink">Configuration</p>
+                      {variantsLoading ? (
+                        <span className="text-xs font-semibold text-slate-400">Updating</span>
+                      ) : null}
+                    </div>
+                    <div className="mt-4 space-y-4">
+                      {renderVariantGroup("RAM", ramOptions, currentVariant?.ram_capacity)}
+                      {renderVariantGroup("SSD capacity", storageOptions, currentVariant?.storage_capacity)}
+                    </div>
+                  </div>
+                ) : null}
 
                 <div className="mt-4 flex flex-wrap items-center gap-3">
                   <span

@@ -24,3 +24,6 @@ class Product(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, server_default="true", nullable=False)
     category_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("categories.category_id", ondelete="SET NULL"), nullable=True)
     discount_percent: Mapped[int] = mapped_column(Integer, server_default="0", nullable=False)
+    variant_group: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    ram_capacity_gb: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    storage_capacity_gb: Mapped[int | None] = mapped_column(Integer, nullable=True)

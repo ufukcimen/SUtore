@@ -1210,6 +1210,16 @@ def import_products(products: list[ScrapedProduct], run_id: str, update_existing
 
     from app.db.session import SessionLocal
     from app.models.product import Product
+    from app.services.product_variants import extract_variant_specs, infer_variant_group
+
+    def fill_variant_fields(product: Product) -> None:
+        specs = extract_variant_specs(product)
+        if product.ram_capacity_gb is None:
+            product.ram_capacity_gb = specs.ram_capacity_gb
+        if product.storage_capacity_gb is None:
+            product.storage_capacity_gb = specs.storage_capacity_gb
+        if not (product.variant_group or "").strip():
+            product.variant_group = infer_variant_group(product)
 
     inserted = 0
     updated = 0
@@ -1244,24 +1254,25 @@ def import_products(products: list[ScrapedProduct], run_id: str, update_existing
                 existing.category = scraped.category
                 existing.item_type = scraped.item_type
                 existing.distributor = distributor
+                fill_variant_fields(existing)
                 updated += 1
                 continue
 
-            db.add(
-                Product(
-                    name=scraped.name,
-                    model=scraped.model,
-                    serial_number=scraped.source_product_id,
-                    description=description,
-                    price=scraped.price,
-                    warranty_status=None,
-                    distributor=distributor,
-                    stock_quantity=scraped.stock_quantity,
-                    image_url=scraped.image_url,
-                    category=scraped.category,
-                    item_type=scraped.item_type,
-                )
+            product = Product(
+                name=scraped.name,
+                model=scraped.model,
+                serial_number=scraped.source_product_id,
+                description=description,
+                price=scraped.price,
+                warranty_status=None,
+                distributor=distributor,
+                stock_quantity=scraped.stock_quantity,
+                image_url=scraped.image_url,
+                category=scraped.category,
+                item_type=scraped.item_type,
             )
+            fill_variant_fields(product)
+            db.add(product)
             inserted += 1
             inserted_serial_numbers.append(scraped.source_product_id)
 

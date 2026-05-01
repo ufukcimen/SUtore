@@ -46,7 +46,10 @@ CREATE TABLE products (
     item_type VARCHAR(50),
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     category_id INTEGER REFERENCES categories(category_id) ON DELETE SET NULL,
-    discount_percent INTEGER NOT NULL DEFAULT 0 CHECK (discount_percent >= 0 AND discount_percent <= 100)
+    discount_percent INTEGER NOT NULL DEFAULT 0 CHECK (discount_percent >= 0 AND discount_percent <= 100),
+    variant_group VARCHAR(160),
+    ram_capacity_gb INTEGER CHECK (ram_capacity_gb IS NULL OR ram_capacity_gb >= 0),
+    storage_capacity_gb INTEGER CHECK (storage_capacity_gb IS NULL OR storage_capacity_gb >= 0)
 );
 
 CREATE TABLE reviews (
