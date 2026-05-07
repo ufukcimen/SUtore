@@ -4,7 +4,9 @@ from sqlalchemy.orm import Session
 from random import sample
 
 from app.db.session import get_db
+from app.models.order import OrderItem
 from app.models.product import Product
+from app.models.review import Review
 from app.schemas.product import ProductCreate, ProductRead, ProductVariantRead
 from app.services.product_variants import (
     collapse_variant_products,
@@ -35,11 +37,12 @@ def list_products(
     price_min: float | None = Query(default=None, ge=0),
     price_max: float | None = Query(default=None, ge=0),
     search: str | None = Query(default=None, min_length=1, max_length=200),
+    sort: str | None = Query(default=None, max_length=30),
     limit: int | None = Query(default=None, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ) -> list[ProductRead]:
-    statement = select(Product).where(Product.is_active == True).order_by(Product.product_id)
+    statement = select(Product).where(Product.is_active == True)
 
     if category_id is not None:
         statement = statement.where(Product.category_id == category_id)
@@ -68,6 +71,45 @@ def list_products(
                 Product.description.ilike(search_pattern),
             )
         )
+
+    normalized_sort = sort.strip().lower() if sort else None
+    if normalized_sort == "popularity":
+        # Composite popularity score:
+        #   approved_review_count * REVIEW_WEIGHT  +  units_sold * SALES_WEIGHT
+        # Reviews are weighted higher because they signal stronger engagement
+        # (a customer cared enough to rate the product, not just buy it).
+        REVIEW_WEIGHT = 10
+        SALES_WEIGHT = 1
+
+        sales_subquery = (
+            select(
+                OrderItem.product_id,
+                func.coalesce(func.sum(OrderItem.quantity), 0).label("units_sold"),
+            )
+            .group_by(OrderItem.product_id)
+            .subquery()
+        )
+        reviews_subquery = (
+            select(
+                Review.product_id,
+                func.count(Review.review_id).label("review_count"),
+            )
+            .where(Review.status == "approved")
+            .group_by(Review.product_id)
+            .subquery()
+        )
+        popularity_score = (
+            func.coalesce(reviews_subquery.c.review_count, 0) * REVIEW_WEIGHT
+            + func.coalesce(sales_subquery.c.units_sold, 0) * SALES_WEIGHT
+        )
+        statement = (
+            statement
+            .outerjoin(sales_subquery, Product.product_id == sales_subquery.c.product_id)
+            .outerjoin(reviews_subquery, Product.product_id == reviews_subquery.c.product_id)
+            .order_by(popularity_score.desc(), Product.product_id)
+        )
+    else:
+        statement = statement.order_by(Product.product_id)
 
     products = db.scalars(statement).all()
     products = collapse_variant_products(products)

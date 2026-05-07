@@ -34,11 +34,8 @@ function sortProducts(products, sortValue) {
   }
 
   if (sortValue === "popularity") {
-    for (let i = sorted.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [sorted[i], sorted[j]] = [sorted[j], sorted[i]];
-    }
-    return sorted;
+    // Backend returns the list already ordered by total units sold.
+    return products;
   }
 
   return products;
@@ -93,6 +90,10 @@ export function CategoryProductsPage({
           params.price_max = max;
         }
 
+        if (sortValue === "popularity") {
+          params.sort = "popularity";
+        }
+
         const response = await http.get("/products", { params });
 
         if (!isActive) {
@@ -123,7 +124,7 @@ export function CategoryProductsPage({
     return () => {
       isActive = false;
     };
-  }, [category, categoryId, selectedItemType, selectedPriceRange]);
+  }, [category, categoryId, selectedItemType, selectedPriceRange, sortValue]);
 
   function clearFilters() {
     setSelectedItemType("");
