@@ -62,7 +62,7 @@ export function ProductCard({ product, compact = false, floating = false }) {
   const productUrl = `/products/${product.product_id ?? product.id}`;
 
   const articleClassName = floating
-    ? "overflow-hidden rounded-[1.6rem] border border-white/60 bg-white/95 shadow-[0_8px_30px_rgba(7,17,31,0.08),0_1.5px_4px_rgba(7,17,31,0.04)] backdrop-blur-sm transition duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_20px_50px_rgba(7,17,31,0.14),0_8px_20px_rgba(7,17,31,0.06)] hover:border-cyan-200/50"
+    ? "overflow-hidden rounded-[1.6rem] border border-slate-200/60 bg-white shadow-[0_8px_30px_rgba(7,17,31,0.08),0_1.5px_4px_rgba(7,17,31,0.04)] transition duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_20px_50px_rgba(7,17,31,0.14),0_8px_20px_rgba(7,17,31,0.06)] hover:border-cyan-200/50"
     : "overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white/85 shadow-[0_18px_45px_rgba(7,17,31,0.08)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_24px_55px_rgba(7,17,31,0.12)]";
 
   return (

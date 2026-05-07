@@ -410,10 +410,8 @@ export function ProductDetailPage() {
       return;
     }
 
-    if (!reviewComment.trim()) {
-      setReviewSubmitState({ kind: "error", message: "Please write a comment." });
-      return;
-    }
+    const trimmedComment = reviewComment.trim();
+    const hasComment = trimmedComment.length > 0;
 
     setReviewSubmitting(true);
     setReviewSubmitState({ kind: "idle", message: "" });
@@ -423,21 +421,38 @@ export function ProductDetailPage() {
         user_id: user.user_id,
         product_id: Number(productId),
         rating: reviewRating,
-        comment: reviewComment.trim(),
+        comment: hasComment ? trimmedComment : null,
       });
 
       setReviewRating(0);
       setReviewComment("");
       setReviewSubmitState({
         kind: "success",
-        message: "Your review has been submitted and is pending approval. It will appear publicly once a product manager approves it.",
+        message: hasComment
+          ? "Your review has been submitted and is pending approval. It will appear publicly once a product manager approves it."
+          : "Thanks for your rating! It has been counted toward this product's average.",
       });
+
+      // Refresh the public reviews + summary so a rating-only review's effect on the average is visible immediately.
+      try {
+        const [reviewsRes, summaryRes] = await Promise.all([
+          http.get(`/reviews/product/${productId}`),
+          http.get(`/reviews/product/${productId}/summary`),
+        ]);
+        setReviews(Array.isArray(reviewsRes.data) ? reviewsRes.data : []);
+        setReviewSummary(summaryRes.data ?? { average_rating: null, review_count: 0 });
+      } catch {
+        // ignore — UI stays as-is, will refresh on next page load
+      }
     } catch (error) {
       const detail = error.response?.data?.detail;
-      setReviewSubmitState({
-        kind: "error",
-        message: typeof detail === "string" ? detail : "Could not submit your review. Please try again.",
-      });
+      let message = "Could not submit your review. Please try again.";
+      if (typeof detail === "string") {
+        message = detail;
+      } else if (Array.isArray(detail) && detail.length > 0) {
+        message = detail.map((d) => d?.msg).filter(Boolean).join(" ") || message;
+      }
+      setReviewSubmitState({ kind: "error", message });
     } finally {
       setReviewSubmitting(false);
     }
@@ -725,7 +740,9 @@ export function ProductDetailPage() {
                         {formatReviewDate(review.created_at)}
                       </span>
                     </div>
-                    <p className="mt-3 text-sm leading-7 text-slate-600">{review.comment}</p>
+                    {review.comment && review.comment.trim() ? (
+                      <p className="mt-3 text-sm leading-7 text-slate-600">{review.comment}</p>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -755,17 +772,20 @@ export function ProductDetailPage() {
 
                   <div>
                     <label htmlFor="review-comment" className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                      Your comment
+                      Your comment <span className="font-normal normal-case tracking-normal text-slate-400">(optional)</span>
                     </label>
                     <textarea
                       id="review-comment"
                       value={reviewComment}
                       onChange={(e) => setReviewComment(e.target.value)}
-                      placeholder="Share your experience with this product..."
+                      placeholder="Share your experience with this product, or leave this blank to submit a star rating only."
                       rows={4}
                       maxLength={2000}
                       className="w-full rounded-[1.25rem] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-cyan-300"
                     />
+                    <p className="mt-1.5 text-xs text-slate-400">
+                      Leave the comment blank to skip moderation and have your rating count immediately.
+                    </p>
                   </div>
 
                   {reviewSubmitState.kind === "error" ? (

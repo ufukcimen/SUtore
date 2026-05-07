@@ -57,7 +57,7 @@ CREATE TABLE reviews (
     user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
     product_id INTEGER NOT NULL REFERENCES products(product_id) ON DELETE CASCADE,
     rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
-    comment TEXT NOT NULL,
+    comment TEXT,
     status VARCHAR(20) NOT NULL DEFAULT 'pending',
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -207,7 +207,9 @@ export function ReviewModerationPage() {
                     </Link>
                   </div>
 
-                  <p className="mt-3 text-sm leading-7 text-slate-600">{review.comment}</p>
+                  {review.comment ? (
+                    <p className="mt-3 text-sm leading-7 text-slate-600">{review.comment}</p>
+                  ) : null}
                 </div>
 
                 <div className="flex shrink-0 flex-wrap items-center gap-2">

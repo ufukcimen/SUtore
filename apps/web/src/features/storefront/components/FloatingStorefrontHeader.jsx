@@ -93,7 +93,7 @@ export function FloatingStorefrontHeader() {
           : "pointer-events-none -translate-y-full opacity-0"
       }`}
     >
-      <header className="border-b border-white/10 bg-slate-950/85 shadow-[0_18px_45px_rgba(7,17,31,0.18)] backdrop-blur-xl">
+      <header className="border-b border-white/10 bg-slate-950 shadow-[0_18px_45px_rgba(7,17,31,0.18)]">
         <div className="mx-auto flex max-w-[90rem] flex-wrap items-center gap-3 px-3 py-3 sm:gap-4 sm:px-4 lg:flex-nowrap lg:justify-between lg:px-5">
           <div className="flex min-w-0 shrink-0 items-center gap-3 sm:gap-4 lg:min-w-[18rem]">
             <div className="relative" ref={menuRef}>

@@ -108,11 +108,13 @@ export function StorefrontShell({ children, mainClassName = "" }) {
   }
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[linear-gradient(135deg,#f7fbff_0%,#ecfeff_45%,#fff8eb_100%)] text-slate-950">
-      <div className="absolute inset-0 bg-grid bg-[size:28px_28px] opacity-25" />
-      <div className="absolute -left-20 top-16 h-72 w-72 rounded-full bg-brand-glow/30 blur-3xl" />
-      <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-brand-gold/20 blur-3xl" />
-      <div className="absolute bottom-20 left-1/3 h-72 w-72 rounded-full bg-cyan-200/30 blur-3xl" />
+    <div className="min-h-screen overflow-hidden text-slate-950">
+      <div className="pointer-events-none fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-grid bg-[size:28px_28px] opacity-25" />
+        <div className="absolute -left-20 top-16 h-72 w-72 rounded-full bg-brand-glow/30 blur-3xl" />
+        <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-brand-gold/20 blur-3xl" />
+        <div className="absolute bottom-20 left-1/3 h-72 w-72 rounded-full bg-cyan-200/30 blur-3xl" />
+      </div>
 
       {isLoggingOut ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-md">
@@ -157,7 +159,7 @@ export function StorefrontShell({ children, mainClassName = "" }) {
       ) : null}
 
       <header
-        className={`relative z-20 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl transition duration-500 ${
+        className={`relative z-20 border-b border-white/10 bg-slate-950 transition duration-500 ${
           isLoggingOut ? "scale-[0.99] opacity-0" : "opacity-100"
         }`}
       >

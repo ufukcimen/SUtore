@@ -108,11 +108,15 @@ def submit_review(
             detail="You have already submitted a review for this product.",
         )
 
+    cleaned_comment = payload.comment.strip() if payload.comment else ""
+    has_comment = len(cleaned_comment) > 0
+
     review = Review(
         user_id=payload.user_id,
         product_id=payload.product_id,
         rating=payload.rating,
-        comment=payload.comment,
+        comment=cleaned_comment if has_comment else None,
+        status="pending" if has_comment else "approved",
     )
     db.add(review)
     db.commit()
@@ -134,7 +138,11 @@ def list_pending_reviews(
 
     reviews = db.scalars(
         select(Review)
-        .where(Review.status == "pending")
+        .where(
+            Review.status == "pending",
+            Review.comment.isnot(None),
+            Review.comment != "",
+        )
         .order_by(Review.created_at.asc())
     ).all()
 

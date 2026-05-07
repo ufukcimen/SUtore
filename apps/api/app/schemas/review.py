@@ -7,7 +7,7 @@ class ReviewCreate(BaseModel):
     user_id: int = Field(ge=1)
     product_id: int = Field(ge=1)
     rating: int = Field(ge=1, le=5)
-    comment: str = Field(min_length=1, max_length=2000)
+    comment: str | None = Field(default=None, max_length=2000)
 
 
 class ReviewRead(BaseModel):
@@ -17,7 +17,7 @@ class ReviewRead(BaseModel):
     user_id: int
     product_id: int
     rating: int
-    comment: str
+    comment: str | None = None
     status: str
     created_at: datetime
     user_name: str | None = None

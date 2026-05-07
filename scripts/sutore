@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Launches the SUtore dev environment (backend + frontend) from anywhere.
+# Install: ln -sf "$(pwd)/scripts/sutore" /usr/local/bin/sutore  (run from repo root)
+set -e
+
+# Resolve symlink to find the real script location, then walk up to repo root.
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+while [ -L "$SCRIPT_PATH" ]; do
+  SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" && pwd)"
+  SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
+  [[ "$SCRIPT_PATH" != /* ]] && SCRIPT_PATH="$SCRIPT_DIR/$SCRIPT_PATH"
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+cd "$REPO_ROOT"
+exec npm run dev

@@ -21,14 +21,16 @@ export function StorefrontPageShell({
   const { distinctItemCount } = useCart();
 
   return (
-    <div className="storefront-page-shell min-h-screen overflow-hidden bg-[linear-gradient(135deg,#f7fbff_0%,#ecfeff_45%,#fff8eb_100%)] text-slate-950">
-      <div className="absolute inset-0 bg-grid bg-[size:28px_28px] opacity-25" />
-      <div className="absolute -left-20 top-16 h-72 w-72 rounded-full bg-brand-glow/30 blur-3xl" />
-      <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-brand-gold/20 blur-3xl" />
-      <div className="absolute bottom-20 left-1/3 h-72 w-72 rounded-full bg-cyan-200/30 blur-3xl" />
+    <div className="storefront-page-shell min-h-screen overflow-hidden text-slate-950">
+      <div className="pointer-events-none fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-grid bg-[size:28px_28px] opacity-25" />
+        <div className="absolute -left-20 top-16 h-72 w-72 rounded-full bg-brand-glow/30 blur-3xl" />
+        <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-brand-gold/20 blur-3xl" />
+        <div className="absolute bottom-20 left-1/3 h-72 w-72 rounded-full bg-cyan-200/30 blur-3xl" />
+      </div>
 
       <header className="checkout-shell-header relative z-20 overflow-hidden border-b border-white/10">
-        <div className="pointer-events-none absolute inset-0 bg-slate-950/80 backdrop-blur-xl" />
+        <div className="pointer-events-none absolute inset-0 bg-slate-950" />
 
         <div className="relative mx-auto flex max-w-[90rem] flex-wrap items-center gap-3 px-3 py-4 sm:gap-4 sm:px-4 lg:flex-nowrap lg:justify-between lg:px-5">
           <div className="flex min-w-0 shrink-0 items-center gap-3 sm:gap-4 lg:min-w-[18rem]">

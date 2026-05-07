@@ -33,6 +33,8 @@ body {
   margin: 0;
   min-width: 320px;
   background-color: #f7fbff;
+  background-image: linear-gradient(135deg, #f7fbff 0%, #ecfeff 45%, #fff8eb 100%);
+  background-repeat: no-repeat;
   position: relative;
   overscroll-behavior-x: none;
 }
