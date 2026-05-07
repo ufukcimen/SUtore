@@ -5,6 +5,7 @@ import {
   Box,
   Heart,
   MessageSquare,
+  Pencil,
   RefreshCcw,
   Send,
   ShieldCheck,
@@ -118,11 +119,50 @@ export function ProductDetailPage() {
   const [variantsLoading, setVariantsLoading] = useState(false);
 
   const [reviews, setReviews] = useState([]);
+  const [myReview, setMyReview] = useState(null);
   const [reviewSummary, setReviewSummary] = useState({ average_rating: null, review_count: 0 });
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewSubmitState, setReviewSubmitState] = useState({ kind: "idle", message: "" });
+  const [editingReviewId, setEditingReviewId] = useState(null);
+  const [editReviewRating, setEditReviewRating] = useState(0);
+  const [editReviewComment, setEditReviewComment] = useState("");
+  const [reviewUpdating, setReviewUpdating] = useState(false);
+  const [reviewUpdateState, setReviewUpdateState] = useState({ kind: "idle", message: "" });
+
+  async function fetchReviewData() {
+    const [reviewsRes, summaryRes] = await Promise.all([
+      http.get(`/reviews/product/${productId}`),
+      http.get(`/reviews/product/${productId}/summary`),
+    ]);
+
+    let nextMyReview = null;
+    if (user?.user_id) {
+      try {
+        const mineRes = await http.get(`/reviews/product/${productId}/mine`, {
+          params: { user_id: user.user_id },
+        });
+        nextMyReview = mineRes.data;
+      } catch (error) {
+        if (error.response?.status !== 404) {
+          throw error;
+        }
+      }
+    }
+
+    return {
+      reviews: Array.isArray(reviewsRes.data) ? reviewsRes.data : [],
+      summary: summaryRes.data ?? { average_rating: null, review_count: 0 },
+      myReview: nextMyReview,
+    };
+  }
+
+  function applyReviewData(data) {
+    setReviews(data.reviews);
+    setReviewSummary(data.summary);
+    setMyReview(data.myReview);
+  }
 
   useEffect(() => {
     let isActive = true;
@@ -232,24 +272,26 @@ export function ProductDetailPage() {
 
   useEffect(() => {
     if (!productId) {
+      setReviews([]);
+      setMyReview(null);
+      setReviewSummary({ average_rating: null, review_count: 0 });
       return;
     }
 
     let isActive = true;
+    setEditingReviewId(null);
+    setReviewUpdateState({ kind: "idle", message: "" });
 
-    Promise.all([
-      http.get(`/reviews/product/${productId}`),
-      http.get(`/reviews/product/${productId}/summary`),
-    ])
-      .then(([reviewsRes, summaryRes]) => {
+    fetchReviewData()
+      .then((data) => {
         if (isActive) {
-          setReviews(Array.isArray(reviewsRes.data) ? reviewsRes.data : []);
-          setReviewSummary(summaryRes.data ?? { average_rating: null, review_count: 0 });
+          applyReviewData(data);
         }
       })
       .catch(() => {
         if (isActive) {
           setReviews([]);
+          setMyReview(null);
           setReviewSummary({ average_rating: null, review_count: 0 });
         }
       });
@@ -257,7 +299,7 @@ export function ProductDetailPage() {
     return () => {
       isActive = false;
     };
-  }, [productId]);
+  }, [productId, user?.user_id]);
 
   const stockQuantity = product ? Number(product.stock_quantity) : 0;
   const remainingStock = Number.isFinite(stockQuantity)
@@ -435,12 +477,7 @@ export function ProductDetailPage() {
 
       // Refresh the public reviews + summary so a rating-only review's effect on the average is visible immediately.
       try {
-        const [reviewsRes, summaryRes] = await Promise.all([
-          http.get(`/reviews/product/${productId}`),
-          http.get(`/reviews/product/${productId}/summary`),
-        ]);
-        setReviews(Array.isArray(reviewsRes.data) ? reviewsRes.data : []);
-        setReviewSummary(summaryRes.data ?? { average_rating: null, review_count: 0 });
+        applyReviewData(await fetchReviewData());
       } catch {
         // ignore — UI stays as-is, will refresh on next page load
       }
@@ -458,6 +495,69 @@ export function ProductDetailPage() {
     }
   }
 
+  function handleEditReview(review) {
+    setEditingReviewId(review.review_id);
+    setEditReviewRating(review.rating);
+    setEditReviewComment(review.comment ?? "");
+    setReviewUpdateState({ kind: "idle", message: "" });
+  }
+
+  function handleCancelEditReview() {
+    setEditingReviewId(null);
+    setEditReviewRating(0);
+    setEditReviewComment("");
+    setReviewUpdateState({ kind: "idle", message: "" });
+  }
+
+  async function handleUpdateReview(event) {
+    event.preventDefault();
+
+    if (!user || !editingReviewId) {
+      return;
+    }
+
+    if (editReviewRating < 1 || editReviewRating > 5) {
+      setReviewUpdateState({ kind: "error", message: "Please select a rating from 1 to 5 stars." });
+      return;
+    }
+
+    const trimmedComment = editReviewComment.trim();
+    const hasComment = trimmedComment.length > 0;
+
+    setReviewUpdating(true);
+    setReviewUpdateState({ kind: "idle", message: "" });
+
+    try {
+      await http.patch(`/reviews/${editingReviewId}`, {
+        user_id: user.user_id,
+        rating: editReviewRating,
+        comment: hasComment ? trimmedComment : null,
+      });
+
+      applyReviewData(await fetchReviewData());
+      setEditingReviewId(null);
+      setEditReviewRating(0);
+      setEditReviewComment("");
+      setReviewUpdateState({
+        kind: "success",
+        message: hasComment
+          ? "Your updated comment is pending approval. Your review will appear publicly once a product manager approves it."
+          : "Your rating has been updated and counted toward this product's average.",
+      });
+    } catch (error) {
+      const detail = error.response?.data?.detail;
+      let message = "Could not update your review. Please try again.";
+      if (typeof detail === "string") {
+        message = detail;
+      } else if (Array.isArray(detail) && detail.length > 0) {
+        message = detail.map((d) => d?.msg).filter(Boolean).join(" ") || message;
+      }
+      setReviewUpdateState({ kind: "error", message });
+    } finally {
+      setReviewUpdating(false);
+    }
+  }
+
   const itemTypeLabel = (() => {
     if (!product?.item_type) return null;
     for (const cat of categories) {
@@ -469,9 +569,32 @@ export function ProductDetailPage() {
     return product.item_type;
   })();
 
-  const userAlreadyReviewed = user
-    ? reviews.some((r) => r.user_id === user.user_id)
-    : false;
+  const userAlreadyReviewed = Boolean(myReview);
+  const publicReviews = myReview
+    ? reviews.filter((review) => review.review_id !== myReview.review_id)
+    : reviews;
+
+  function getReviewStatusLabel(statusValue) {
+    const normalizedStatus = typeof statusValue === "string" ? statusValue.toLowerCase() : "";
+    if (normalizedStatus === "approved") {
+      return "Published";
+    }
+    if (normalizedStatus === "rejected") {
+      return "Rejected";
+    }
+    return "Pending approval";
+  }
+
+  function getReviewStatusClassName(statusValue) {
+    const normalizedStatus = typeof statusValue === "string" ? statusValue.toLowerCase() : "";
+    if (normalizedStatus === "approved") {
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    }
+    if (normalizedStatus === "rejected") {
+      return "border-rose-200 bg-rose-50 text-rose-700";
+    }
+    return "border-amber-200 bg-amber-50 text-amber-800";
+  }
 
   return (
     <StorefrontShell>
@@ -721,10 +844,119 @@ export function ProductDetailPage() {
               <p className="mt-4 text-sm text-slate-500">No reviews yet. Be the first to share your experience.</p>
             )}
 
+            {myReview ? (
+              <div className="mt-6 rounded-[1.5rem] border border-cyan-200 bg-cyan-50/60 p-5">
+                <div className="flex flex-col gap-3 min-[420px]:flex-row min-[420px]:items-start min-[420px]:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <StarRating rating={myReview.rating} size="h-4 w-4" />
+                      <span className="text-sm font-semibold text-brand-ink">
+                        Your review
+                      </span>
+                      <span
+                        className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${getReviewStatusClassName(myReview.status)}`}
+                      >
+                        {getReviewStatusLabel(myReview.status)}
+                      </span>
+                    </div>
+                    <span className="mt-2 block text-xs text-slate-400">
+                      {formatReviewDate(myReview.created_at)}
+                    </span>
+                  </div>
+
+                  {editingReviewId !== myReview.review_id ? (
+                    <button
+                      type="button"
+                      onClick={() => handleEditReview(myReview)}
+                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-200 bg-white text-brand-accent transition hover:border-cyan-300 hover:bg-cyan-50"
+                      aria-label="Edit your review"
+                      title="Edit your review"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  ) : null}
+                </div>
+
+                {editingReviewId === myReview.review_id ? (
+                  <form onSubmit={handleUpdateReview} className="mt-5 space-y-4 border-t border-cyan-100 pt-5">
+                    <div>
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                        Your rating
+                      </p>
+                      <StarRating
+                        rating={editReviewRating}
+                        onSelect={setEditReviewRating}
+                        interactive
+                        size="h-7 w-7"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="edit-review-comment" className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                        Your comment <span className="font-normal normal-case tracking-normal text-slate-400">(optional)</span>
+                      </label>
+                      <textarea
+                        id="edit-review-comment"
+                        value={editReviewComment}
+                        onChange={(event) => setEditReviewComment(event.target.value)}
+                        placeholder="Update your written review, or leave this blank to keep a rating only."
+                        rows={4}
+                        maxLength={2000}
+                        className="w-full rounded-[1.25rem] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-cyan-300"
+                      />
+                      <p className="mt-1.5 text-xs text-slate-500">
+                        Updating a written comment sends it back to product manager approval.
+                      </p>
+                    </div>
+
+                    {reviewUpdateState.kind === "error" ? (
+                      <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                        {reviewUpdateState.message}
+                      </p>
+                    ) : null}
+
+                    <div className="flex flex-col gap-3 min-[420px]:flex-row min-[420px]:items-center">
+                      <button
+                        type="button"
+                        onClick={handleCancelEditReview}
+                        disabled={reviewUpdating}
+                        className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-cyan-300/50 hover:text-brand-ink disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={reviewUpdating}
+                        className="inline-flex items-center justify-center rounded-2xl bg-brand-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-900 disabled:opacity-50"
+                      >
+                        {reviewUpdating ? "Updating..." : "Update"}
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    {myReview.comment && myReview.comment.trim() ? (
+                      <p className="mt-3 text-sm leading-7 text-slate-600">{myReview.comment}</p>
+                    ) : (
+                      <p className="mt-3 text-sm italic leading-7 text-slate-500">
+                        No written comment.
+                      </p>
+                    )}
+                  </>
+                )}
+
+                {reviewUpdateState.kind === "success" && editingReviewId !== myReview.review_id ? (
+                  <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                    {reviewUpdateState.message}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
             {/* Approved reviews list */}
-            {reviews.length > 0 ? (
+            {publicReviews.length > 0 ? (
               <div className="mt-6 space-y-4">
-                {reviews.map((review) => (
+                {publicReviews.map((review) => (
                   <div
                     key={review.review_id}
                     className="rounded-[1.5rem] border border-slate-200 bg-slate-50/60 p-5"

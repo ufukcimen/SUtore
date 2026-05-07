@@ -9,7 +9,7 @@ from app.models.order import Order, OrderItem
 from app.models.product import Product
 from app.models.review import Review
 from app.models.user import User
-from app.schemas.review import ReviewCreate, ReviewRead, ReviewStatusUpdate, ReviewSummary
+from app.schemas.review import ReviewCreate, ReviewRead, ReviewStatusUpdate, ReviewSummary, ReviewUpdate
 
 router = APIRouter()
 
@@ -74,6 +74,29 @@ def review_summary(
     )
 
 
+@router.get("/product/{product_id}/mine", response_model=ReviewRead)
+def get_my_review(
+    product_id: int,
+    user_id: int = Query(ge=1),
+    db: Session = Depends(get_db),
+) -> ReviewRead:
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
+    review = db.scalars(
+        select(Review).where(
+            Review.user_id == user_id,
+            Review.product_id == product_id,
+        )
+    ).first()
+
+    if not review:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found.")
+
+    return _enrich_review(review, db)
+
+
 # ── Authenticated: submit a review ──────────────────────────────────
 
 @router.post("", response_model=ReviewRead, status_code=status.HTTP_201_CREATED)
@@ -119,6 +142,32 @@ def submit_review(
         status="pending" if has_comment else "approved",
     )
     db.add(review)
+    db.commit()
+    db.refresh(review)
+
+    return _enrich_review(review, db)
+
+
+@router.patch("/{review_id}", response_model=ReviewRead)
+def update_review(
+    review_id: int,
+    payload: ReviewUpdate,
+    db: Session = Depends(get_db),
+) -> ReviewRead:
+    review = db.get(Review, review_id)
+    if not review:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found.")
+
+    if review.user_id != payload.user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+
+    cleaned_comment = payload.comment.strip() if payload.comment else ""
+    has_comment = len(cleaned_comment) > 0
+
+    review.rating = payload.rating
+    review.comment = cleaned_comment if has_comment else None
+    review.status = "pending" if has_comment else "approved"
+    review.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(review)
 

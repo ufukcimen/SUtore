@@ -10,6 +10,12 @@ class ReviewCreate(BaseModel):
     comment: str | None = Field(default=None, max_length=2000)
 
 
+class ReviewUpdate(BaseModel):
+    user_id: int = Field(ge=1)
+    rating: int = Field(ge=1, le=5)
+    comment: str | None = Field(default=None, max_length=2000)
+
+
 class ReviewRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
