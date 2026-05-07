@@ -46,10 +46,25 @@ export function LoginPage() {
 
     try {
       const response = await http.post("/auth/login", form);
-      writeStoredUser(response.data.user);
-      const redirectTo = location.state?.from || "/";
+      const user = response.data.user;
+      writeStoredUser(user);
+
+      // If the user was redirected to /login from a specific page, send them
+      // back there. Otherwise, send manager-style accounts to their dashboard
+      // and regular customers to the homepage.
+      let redirectTo = location.state?.from;
+      if (!redirectTo) {
+        if (user.role === "product_manager") {
+          redirectTo = "/manager/dashboard";
+        } else if (user.role === "sales_manager" || user.role === "admin") {
+          redirectTo = "/admin/dashboard";
+        } else {
+          redirectTo = "/";
+        }
+      }
+
       if (redirectTo === "/") {
-        sessionStorage.setItem(WELCOME_STORAGE_KEY, JSON.stringify(response.data.user));
+        sessionStorage.setItem(WELCOME_STORAGE_KEY, JSON.stringify(user));
       }
       navigate(redirectTo, { replace: true });
     } catch (error) {
