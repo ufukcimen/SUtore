@@ -17,6 +17,12 @@ Installs npm packages, creates the Python venv, installs API dependencies, and c
 npm run setup
 ```
 
+On Windows PowerShell, if `npm` is blocked by the execution policy, use:
+
+```powershell
+npm.cmd run setup
+```
+
 Then set `DATABASE_URL` in `apps/api/.env` to point at your PostgreSQL instance.
 
 ### 2. Run the project
@@ -27,6 +33,14 @@ Pick whichever you prefer — they all do the same thing (start backend + fronte
 npm start              # standard npm convention
 npm run sutore         # branded alias
 npm run dev            # explicit dev script
+```
+
+On Windows PowerShell, use `npm.cmd` for the same commands:
+
+```powershell
+npm.cmd start
+npm.cmd run sutore
+npm.cmd run dev
 ```
 
 Backend runs on `http://localhost:8000`, frontend on `http://localhost:5173`. The browser opens automatically. Press `Ctrl+C` once to stop both servers.
@@ -58,6 +72,8 @@ npm run test:web     # frontend tests
 npm run test:api     # backend tests (pytest)
 ```
 
+Use `npm.cmd run ...` instead of `npm run ...` on Windows PowerShell if script execution is disabled.
+
 ## Original manual setup (if `npm run setup` doesn't work)
 
 ```bash
@@ -67,10 +83,19 @@ npm install
 # backend
 cd apps/api
 python -m venv .venv
-source .venv/bin/activate
 pip install -e .
 test -f .env || cp .env.example .env
 cd ../..
+```
+
+On Windows, the virtualenv Python is `.venv\Scripts\python.exe`, so the backend install command can be run as:
+
+```powershell
+cd apps/api
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e .
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+cd ..\..
 ```
 
 The backend dev script runs Python with `-B`, which prevents `__pycache__` and

@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "bin": {
-    "sutore": "scripts/sutore"
+    "sutore": "scripts/sutore.mjs"
   },
   "workspaces": [
     "apps/web"
@@ -12,13 +12,13 @@
     "start": "npm run dev",
     "sutore": "npm run dev",
     "dev": "concurrently --names \"API,WEB\" --prefix-colors \"cyan.bold,magenta.bold\" --kill-others-on-fail \"npm run dev:api\" \"npm run dev:web\"",
-    "dev:api": "cd apps/api && .venv/bin/python -B -m uvicorn app.main:app --reload",
+    "dev:api": "node scripts/api-dev.mjs",
     "dev:web": "npm --workspace apps/web run dev -- --open",
     "build:web": "npm --workspace apps/web run build",
     "preview:web": "npm --workspace apps/web run preview",
     "test:web": "npm --workspace apps/web run test",
-    "test:api": "cd apps/api && .venv/bin/python -m pytest",
-    "setup": "npm install && cd apps/api && (test -d .venv || python3 -m venv .venv) && .venv/bin/pip install -e . && (test -f .env || cp .env.example .env)"
+    "test:api": "node scripts/api-test.mjs",
+    "setup": "node scripts/setup.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

@@ -16,9 +16,17 @@ FastAPI backend wired to PostgreSQL with SQLAlchemy models for the existing
 ```bash
 cd apps/api
 python -m venv .venv
-source .venv/bin/activate
 pip install -e .
 test -f .env || cp .env.example .env
+```
+
+On Windows PowerShell:
+
+```powershell
+cd apps/api
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e .
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
 Update `.env` with your PostgreSQL connection string:
@@ -68,6 +76,9 @@ AUTO_CREATE_TABLES=true
 cd apps/api
 python -B -m uvicorn app.main:app --reload
 ```
+
+From the repository root, `npm.cmd run dev:api` on Windows or `npm run dev:api`
+on macOS/Linux starts the same server through the project launcher.
 
 The `-B` flag disables Python bytecode writes, so local runs do not generate
 `__pycache__` directories or `.pyc` files in the repository.
