@@ -6,6 +6,21 @@ PASSWORD_RULES_MESSAGE = (
     "number, special character, and no spaces."
 )
 
+
+def validate_password_strength(value: str) -> str:
+    if re.search(r"\s", value):
+        raise ValueError(PASSWORD_RULES_MESSAGE)
+    if not re.search(r"[A-Z]", value):
+        raise ValueError(PASSWORD_RULES_MESSAGE)
+    if not re.search(r"[a-z]", value):
+        raise ValueError(PASSWORD_RULES_MESSAGE)
+    if not re.search(r"\d", value):
+        raise ValueError(PASSWORD_RULES_MESSAGE)
+    if not re.search(r"[^\w\s]", value):
+        raise ValueError(PASSWORD_RULES_MESSAGE)
+    return value
+
+
 class UserCreate(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     email: EmailStr
@@ -15,18 +30,8 @@ class UserCreate(BaseModel):
 
     @field_validator("password")
     @classmethod
-    def validate_password_strength(cls, value: str) -> str:
-        if re.search(r"\s", value):
-            raise ValueError(PASSWORD_RULES_MESSAGE)
-        if not re.search(r"[A-Z]", value):
-            raise ValueError(PASSWORD_RULES_MESSAGE)
-        if not re.search(r"[a-z]", value):
-            raise ValueError(PASSWORD_RULES_MESSAGE)
-        if not re.search(r"\d", value):
-            raise ValueError(PASSWORD_RULES_MESSAGE)
-        if not re.search(r"[^\w\s]", value):
-            raise ValueError(PASSWORD_RULES_MESSAGE)
-        return value
+    def validate_create_password_strength(cls, value: str) -> str:
+        return validate_password_strength(value)
 
 
 class UserLogin(BaseModel):
@@ -60,6 +65,34 @@ class UserRead(BaseModel):
 
 class UserUpdate(BaseModel):
     name: str = Field(min_length=1, max_length=100)
+
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def validate_email_not_blank(cls, value: str) -> str:
+        if isinstance(value, str) and not value.strip():
+            raise ValueError("Email can't be left blank.")
+        return value
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str = Field(min_length=1, max_length=256)
+    password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("token", mode="before")
+    @classmethod
+    def validate_token_not_blank(cls, value: str) -> str:
+        if isinstance(value, str) and not value.strip():
+            raise ValueError("Reset token can't be left blank.")
+        return value
+
+    @field_validator("password")
+    @classmethod
+    def validate_reset_password_strength(cls, value: str) -> str:
+        return validate_password_strength(value)
 
 
 class AuthResponse(BaseModel):

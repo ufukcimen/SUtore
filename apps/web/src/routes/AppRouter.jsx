@@ -1,6 +1,8 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { LoginPage } from "../features/auth/pages/LoginPage";
 import { SignupPage } from "../features/auth/pages/SignupPage";
+import { ForgotPasswordPage } from "../features/auth/pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "../features/auth/pages/ResetPasswordPage";
 import { AccountSettingsPage } from "../features/account/pages/AccountSettingsPage";
 import { OrdersPage } from "../features/account/pages/OrdersPage";
 import { AdminDashboardPage } from "../features/account/pages/AdminDashboardPage";
@@ -48,6 +50,8 @@ export function AppRouter() {
       <Route path="/search" element={<SearchResultsPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
     </Routes>
   );
 }

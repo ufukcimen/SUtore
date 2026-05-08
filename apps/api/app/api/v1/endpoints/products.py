@@ -72,7 +72,7 @@ def list_products(
             )
         )
 
-    normalized_sort = sort.strip().lower() if sort else None
+    normalized_sort = sort.strip().lower() if isinstance(sort, str) and sort else None
     if normalized_sort == "popularity":
         # Composite popularity score:
         #   approved_review_count * REVIEW_WEIGHT  +  units_sold * SALES_WEIGHT

@@ -83,6 +83,9 @@ Shared fixture:
 | `test_login_rejects_an_invalid_password` | Login with a wrong password raises `HTTPException` with status `401` and detail `Invalid email or password.` |
 | `test_signup_rejects_duplicate_email_addresses` | A second signup with an existing email raises `HTTPException` with status `409` and detail `A user with this email already exists.` |
 | `test_update_and_delete_account_changes_persist` | Updating a user trims and persists the new name, deleting the user returns `Account deleted.`, and the user record is removed from the database. |
+| `test_password_reset_request_stores_hashed_token_and_reset_updates_password` | Requesting a reset stores only a hashed token, queues one email task, then a valid token updates the password and clears reset fields. |
+| `test_password_reset_request_does_not_reveal_unknown_email` | Requesting a reset for an unknown email returns the same generic message and queues no email task. |
+| `test_reset_password_rejects_expired_token` | An expired reset token raises status `400`, reports the link is invalid or expired, and clears the stored reset fields. |
 
 ### `apps/api/tests/test_auth_schemas.py`
 

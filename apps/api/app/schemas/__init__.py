@@ -1,4 +1,11 @@
-from app.schemas.auth import AuthResponse, UserCreate, UserLogin, UserRead
+from app.schemas.auth import (
+    AuthResponse,
+    PasswordResetConfirm,
+    PasswordResetRequest,
+    UserCreate,
+    UserLogin,
+    UserRead,
+)
 from app.schemas.order import OrderCreate, OrderRead
 from app.schemas.product import ProductCreate, ProductRead
 

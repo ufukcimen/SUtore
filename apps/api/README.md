@@ -43,7 +43,7 @@ The API always loads `apps/api/.env`, even if you start `uvicorn` from the repos
 root. Values in `.env` override the defaults in `app/core/config.py`.
 
 To email invoice PDFs automatically after checkout, also configure SMTP in
-`apps/api/.env`:
+`apps/api/.env`. The same SMTP transport is used for password reset emails:
 
 ```env
 SMTP_HOST=smtp.example.com
@@ -54,10 +54,14 @@ SMTP_USE_TLS=true
 SMTP_USE_SSL=false
 MAIL_FROM_EMAIL=billing@example.com
 MAIL_FROM_NAME=SUtore Billing
+FRONTEND_BASE_URL=http://localhost:5173
+PASSWORD_RESET_TOKEN_MINUTES=60
+PASSWORD_RESET_MAIL_FROM_NAME=SUtore Support
 ```
 
 If SMTP is not configured, the order is still created successfully and the API
-skips invoice email delivery.
+skips invoice email delivery. Password reset requests still return a generic
+success response, but no email can be sent until SMTP is configured.
 
 If you are using Neon or another hosted Postgres instance, make sure the database name
 at the end of `DATABASE_URL` matches the actual database that contains your `users`

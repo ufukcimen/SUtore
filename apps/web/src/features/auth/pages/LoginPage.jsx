@@ -121,9 +121,13 @@ export function LoginPage() {
             <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-brand-accent" />
             Keep me signed in on this device
           </label>
-          <button type="button" className="text-left font-semibold text-brand-accent">
+          <Link
+            className="text-left font-semibold text-brand-accent"
+            to="/forgot-password"
+            state={{ email: form.email, from: location.state?.from }}
+          >
             Forgot password?
-          </button>
+          </Link>
         </div>
 
         <Button

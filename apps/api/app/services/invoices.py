@@ -206,7 +206,7 @@ def send_email_message(message: EmailMessage) -> None:
     sender_email = (settings.mail_from_email or "").strip()
 
     if not smtp_host or not sender_email:
-        raise RuntimeError("SMTP_HOST and MAIL_FROM_EMAIL are required to send invoices.")
+        raise RuntimeError("SMTP_HOST and MAIL_FROM_EMAIL are required to send email.")
 
     client_factory = smtplib.SMTP_SSL if settings.smtp_use_ssl else smtplib.SMTP
     with client_factory(

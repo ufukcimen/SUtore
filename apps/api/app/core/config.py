@@ -45,6 +45,12 @@ class Settings(BaseSettings):
     smtp_timeout_seconds: int = Field(default=20, alias="SMTP_TIMEOUT_SECONDS")
     mail_from_email: str | None = Field(default=None, alias="MAIL_FROM_EMAIL")
     mail_from_name: str = Field(default="SUtore Billing", alias="MAIL_FROM_NAME")
+    frontend_base_url: str = Field(default="http://localhost:5173", alias="FRONTEND_BASE_URL")
+    password_reset_token_minutes: int = Field(default=60, alias="PASSWORD_RESET_TOKEN_MINUTES")
+    password_reset_mail_from_name: str = Field(
+        default="SUtore Support",
+        alias="PASSWORD_RESET_MAIL_FROM_NAME",
+    )
 
     @property
     def cors_origins(self) -> list[str]:
@@ -56,6 +62,12 @@ class Settings(BaseSettings):
 
     @property
     def invoice_email_enabled(self) -> bool:
+        return bool(
+            (self.smtp_host or "").strip() and (self.mail_from_email or "").strip()
+        )
+
+    @property
+    def email_enabled(self) -> bool:
         return bool(
             (self.smtp_host or "").strip() and (self.mail_from_email or "").strip()
         )

@@ -5,6 +5,8 @@ CREATE TABLE users (
     email VARCHAR(150),
     home_address TEXT,
     password_hash TEXT,
+    password_reset_token_hash TEXT,
+    password_reset_expires_at TIMESTAMPTZ,
     role VARCHAR(30) NOT NULL DEFAULT 'customer'
 );
 
