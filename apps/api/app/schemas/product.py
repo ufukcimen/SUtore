@@ -60,3 +60,24 @@ class ProductVariantRead(ProductRead):
     ram_capacity_gb: int | None = None
     storage_capacity: str | None = None
     storage_capacity_gb: int | None = None
+
+
+class ProductFilterOption(BaseModel):
+    value: str
+    label: str
+    count: int = Field(ge=0)
+
+
+class ProductCapacityFilterOption(BaseModel):
+    value: int = Field(ge=0)
+    label: str
+    count: int = Field(ge=0)
+
+
+class ProductFilterOptionsRead(BaseModel):
+    brands: list[ProductFilterOption] = Field(default_factory=list)
+    cpus: list[ProductFilterOption] = Field(default_factory=list)
+    gpus: list[ProductFilterOption] = Field(default_factory=list)
+    ram_capacities: list[ProductCapacityFilterOption] = Field(default_factory=list)
+    storage_capacities: list[ProductCapacityFilterOption] = Field(default_factory=list)
+    discounted_count: int = Field(default=0, ge=0)
