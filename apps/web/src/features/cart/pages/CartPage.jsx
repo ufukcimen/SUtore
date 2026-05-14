@@ -36,7 +36,8 @@ const itemIconStyles = {
 };
 
 export function CartPage() {
-  const { items, removeItem, summary, updateQuantity } = useCart();
+  const { clearCart, items, removeItem, summary, updateQuantity } = useCart();
+  const isCartEmpty = items.length === 0;
 
   return (
     <StorefrontPageShell
@@ -45,7 +46,19 @@ export function CartPage() {
       eyebrow="Cart"
       title="Everything you need for the next build is here."
     >
-      {items.length > 0 ? (
+      <div className="mb-5 flex justify-end">
+        <button
+          type="button"
+          onClick={clearCart}
+          disabled={isCartEmpty}
+          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400 disabled:hover:bg-slate-100"
+        >
+          <Trash2 className="h-4 w-4" />
+          Remove all
+        </button>
+      </div>
+
+      {!isCartEmpty ? (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
           <section className="space-y-5">
             {items.map((item) => {
