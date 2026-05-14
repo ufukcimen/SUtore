@@ -379,13 +379,13 @@ export function HomePage() {
             className="rounded-[2rem] border border-slate-200/80 bg-white/95 p-6 shadow-[0_28px_80px_rgba(7,17,31,0.12)] sm:p-8"
           >
             <div className="mt-2 flex flex-wrap gap-3">
-              <a
-                href="#custom-pc-creator"
+              <Link
+                to="/custom-pc-creator"
                 className="inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
               >
                 Custom PC Creator
                 <ChevronRight className="h-4 w-4" />
-              </a>
+              </Link>
             </div>
 
             <div className="mt-8 grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">

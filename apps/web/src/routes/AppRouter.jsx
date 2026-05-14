@@ -13,6 +13,7 @@ import { CartPage } from "../features/cart/pages/CartPage";
 import { CheckoutPage } from "../features/cart/pages/CheckoutPage";
 import { CheckoutSuccessPage } from "../features/cart/pages/CheckoutSuccessPage";
 import { HomePage } from "../features/storefront/pages/HomePage";
+import { CustomPcCreatorPage } from "../features/storefront/pages/CustomPcCreatorPage";
 import { DynamicCategoryPage } from "../features/storefront/pages/DynamicCategoryPage";
 import { ProductDetailPage } from "../features/storefront/pages/ProductDetailPage";
 import { SearchResultsPage } from "../features/storefront/pages/SearchResultsPage";
@@ -21,6 +22,7 @@ export function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/custom-pc-creator" element={<CustomPcCreatorPage />} />
       <Route path="/account/settings" element={<AccountSettingsPage />} />
       <Route path="/account/orders" element={<OrdersPage />} />
       <Route path="/account/wishlist" element={<WishlistPage />} />
