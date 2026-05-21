@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, CreditCard, LockKeyhole, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle2, CreditCard, LockKeyhole, ShieldCheck, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../../../components/ui/Button";
 import { CheckoutField } from "../components/CheckoutField";
@@ -108,10 +108,29 @@ function focusInvalidField(field) {
   }
 }
 
+function describeStockChange(change) {
+  if (change.type === "removed") {
+    return change.reason === "out_of_stock"
+      ? `${change.name} is now out of stock and was removed from your cart.`
+      : `${change.name} is no longer available and was removed from your cart.`;
+  }
+  if (change.type === "quantity_reduced") {
+    return `${change.name} quantity was reduced from ${change.previousQuantity} to ${change.nextQuantity} to match current stock.`;
+  }
+  return `${change.name} availability was updated.`;
+}
+
 export function CheckoutPage() {
   const navigate = useNavigate();
   const user = useStoredUser();
-  const { items, summary, clearCart } = useCart();
+  const {
+    items,
+    summary,
+    clearCart,
+    refreshStock,
+    stockChanges,
+    dismissStockChanges,
+  } = useCart();
   const [form, setForm] = useState(INITIAL_FORM);
   const [touched, setTouched] = useState({});
   const [submitState, setSubmitState] = useState({
@@ -201,6 +220,17 @@ export function CheckoutPage() {
     setSubmitState({ kind: "idle", message: "" });
 
     try {
+      const { changes } = await refreshStock();
+      if (changes.length > 0) {
+        setIsSubmitting(false);
+        setSubmitState({
+          kind: "error",
+          message:
+            "Stock changed for one or more items. Please review the updated cart before placing the order.",
+        });
+        return;
+      }
+
       const response = await http.post("/orders", {
         user_id: user?.user_id ?? null,
         items: items.map((item) => ({
@@ -245,6 +275,33 @@ export function CheckoutPage() {
       eyebrow="Payment"
       title="Billing and card details for a secure checkout."
     >
+      {stockChanges.length > 0 ? (
+        <div
+          className="mb-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+          role="status"
+        >
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div className="flex-1 space-y-1">
+            <p className="font-semibold">Cart updated to match current stock</p>
+            <ul className="list-disc space-y-1 pl-5">
+              {stockChanges.map((change, index) => (
+                <li key={`${change.type}-${change.name}-${index}`}>
+                  {describeStockChange(change)}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <button
+            type="button"
+            onClick={dismissStockChanges}
+            className="rounded-full p-1 text-amber-700 transition hover:bg-amber-100"
+            aria-label="Dismiss stock update notice"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      ) : null}
+
       {hasItems ? (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.9fr)]">
           <form id="checkout-form" className="space-y-6" onSubmit={handleSubmit}>

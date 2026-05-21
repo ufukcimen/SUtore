@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   ArrowRight,
   Cpu,
   HardDrive,
@@ -10,6 +11,7 @@ import {
   Sparkles,
   Trash2,
   Truck,
+  X,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { OrderSummaryPanel } from "../components/OrderSummaryPanel";
@@ -35,8 +37,28 @@ const itemIconStyles = {
   component: "bg-brand-gold/15 text-amber-700",
 };
 
+function describeStockChange(change) {
+  if (change.type === "removed") {
+    return change.reason === "out_of_stock"
+      ? `${change.name} is now out of stock and was removed from your cart.`
+      : `${change.name} is no longer available and was removed from your cart.`;
+  }
+  if (change.type === "quantity_reduced") {
+    return `${change.name} quantity was reduced from ${change.previousQuantity} to ${change.nextQuantity} to match current stock.`;
+  }
+  return `${change.name} availability was updated.`;
+}
+
 export function CartPage() {
-  const { clearCart, items, removeItem, summary, updateQuantity } = useCart();
+  const {
+    clearCart,
+    items,
+    removeItem,
+    summary,
+    updateQuantity,
+    stockChanges,
+    dismissStockChanges,
+  } = useCart();
   const isCartEmpty = items.length === 0;
 
   return (
@@ -46,6 +68,33 @@ export function CartPage() {
       eyebrow="Cart"
       title="Everything you need for the next build is here."
     >
+      {stockChanges.length > 0 ? (
+        <div
+          className="mb-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+          role="status"
+        >
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div className="flex-1 space-y-1">
+            <p className="font-semibold">Cart updated to match current stock</p>
+            <ul className="list-disc space-y-1 pl-5">
+              {stockChanges.map((change, index) => (
+                <li key={`${change.type}-${change.name}-${index}`}>
+                  {describeStockChange(change)}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <button
+            type="button"
+            onClick={dismissStockChanges}
+            className="rounded-full p-1 text-amber-700 transition hover:bg-amber-100"
+            aria-label="Dismiss stock update notice"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      ) : null}
+
       <div className="mb-5 flex justify-end">
         <button
           type="button"

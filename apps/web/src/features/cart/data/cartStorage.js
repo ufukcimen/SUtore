@@ -227,6 +227,75 @@ export function addProductToCart(product) {
   return nextItems;
 }
 
+function getFreshProductForItem(item, freshProductsById) {
+  const candidateKeys = [item.productId, item.id?.replace?.("product-", "")];
+  for (const key of candidateKeys) {
+    if (key == null) continue;
+    const direct = freshProductsById.get(key);
+    if (direct) return direct;
+    const numeric = Number(key);
+    if (Number.isFinite(numeric)) {
+      const numericMatch = freshProductsById.get(numeric);
+      if (numericMatch) return numericMatch;
+    }
+    const stringMatch = freshProductsById.get(String(key));
+    if (stringMatch) return stringMatch;
+  }
+  return null;
+}
+
+export function reconcileCartItemsWithStock(items, freshProductsById) {
+  const nextItems = [];
+  const changes = [];
+
+  items.forEach((item) => {
+    const fresh = getFreshProductForItem(item, freshProductsById);
+
+    if (!fresh) {
+      changes.push({ type: "removed", name: item.name, reason: "missing" });
+      return;
+    }
+
+    const freshStock = getStockLimit(fresh.stock_quantity);
+
+    if (freshStock <= 0) {
+      changes.push({ type: "removed", name: item.name, reason: "out_of_stock" });
+      return;
+    }
+
+    const previousQuantity = item.quantity;
+    const clampedQuantity = clampQuantity(previousQuantity, fresh.stock_quantity);
+    const stockChanged = freshStock !== Number(item.stockQuantity);
+    const quantityChanged = clampedQuantity !== previousQuantity;
+
+    if (!stockChanged && !quantityChanged) {
+      nextItems.push(item);
+      return;
+    }
+
+    nextItems.push({
+      ...item,
+      quantity: clampedQuantity,
+      stockQuantity: freshStock,
+      availability: getAvailabilityLabel(fresh.stock_quantity),
+      shippingLabel: getShippingLabel(fresh.category ?? item.category, fresh.stock_quantity),
+    });
+
+    if (quantityChanged) {
+      changes.push({
+        type: "quantity_reduced",
+        name: item.name,
+        previousQuantity,
+        nextQuantity: clampedQuantity,
+      });
+    } else if (stockChanged) {
+      changes.push({ type: "stock_updated", name: item.name });
+    }
+  });
+
+  return { items: nextItems, changes };
+}
+
 export function getCartItemCount(items) {
   return items.reduce((count, item) => count + item.quantity, 0);
 }
