@@ -2,9 +2,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   addProductToCart,
   getCartItemCount,
+  getCartSubtotal,
   getCartSummary,
   readCartItems,
   reconcileCartItemsWithStock,
+  sanitizeCartItems,
 } from "./cartStorage";
 import { cleanupMockBrowser, installMockBrowser } from "../../../test/browserMocks";
 
@@ -122,6 +124,67 @@ describe("cartStorage", () => {
 
     expect(items).toEqual(storedItems);
     expect(changes).toEqual([]);
+  });
+
+  it("drops cart rows with invalid quantity or price when reading from storage", () => {
+    const validRow = {
+      id: "product-1",
+      productId: 1,
+      name: "Valid product",
+      price: 100,
+      quantity: 2,
+      stockQuantity: 5,
+    };
+    const malformedRows = [
+      validRow,
+      { ...validRow, id: "product-2", productId: 2, quantity: -1 },
+      { ...validRow, id: "product-3", productId: 3, quantity: "abc" },
+      { ...validRow, id: "product-4", productId: 4, price: "free" },
+      { ...validRow, id: "product-5", productId: 5, price: -50 },
+      { id: "product-6", quantity: 1, price: 50 },
+      null,
+      "not an object",
+    ];
+    window.localStorage.setItem("sutoreCartItemsV2", JSON.stringify(malformedRows));
+
+    const items = readCartItems();
+    expect(items).toHaveLength(1);
+    expect(items[0].productId).toBe(1);
+
+    const subtotal = getCartSubtotal(items);
+    expect(Number.isFinite(subtotal)).toBe(true);
+    expect(subtotal).toBe(200);
+  });
+
+  it("clamps quantity above stock when reading malformed storage", () => {
+    const rows = [
+      {
+        id: "product-1",
+        productId: 1,
+        name: "Capped product",
+        price: 10,
+        quantity: 9999,
+        stockQuantity: 3,
+      },
+    ];
+    window.localStorage.setItem("sutoreCartItemsV2", JSON.stringify(rows));
+
+    const items = readCartItems();
+    expect(items).toHaveLength(1);
+    expect(items[0].quantity).toBe(3);
+  });
+
+  it("produces finite cart totals even when storage was poisoned", () => {
+    const rows = [
+      { id: "product-1", productId: 1, name: "Bad", price: NaN, quantity: 1 },
+      { id: "product-2", productId: 2, name: "Bad too", price: 10, quantity: "x" },
+    ];
+    const sanitized = sanitizeCartItems(rows);
+    expect(sanitized).toEqual([]);
+    const summary = getCartSummary(sanitized);
+    expect(Number.isFinite(summary.subtotal)).toBe(true);
+    expect(Number.isFinite(summary.total)).toBe(true);
+    expect(summary.total).toBe(0);
   });
 
   it("stores discounted price details when a product is on sale", () => {

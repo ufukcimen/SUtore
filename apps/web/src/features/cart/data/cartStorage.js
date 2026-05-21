@@ -143,6 +143,87 @@ function buildCartItem(product, productIdentifier, quantity) {
   };
 }
 
+function sanitizeNonNegativeNumber(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric >= 0 ? numeric : null;
+}
+
+function sanitizePositiveInteger(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return null;
+  const integer = Math.floor(numeric);
+  return integer >= 1 ? integer : null;
+}
+
+function sanitizeStringField(value, fallback) {
+  if (typeof value !== "string") return fallback;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : fallback;
+}
+
+function sanitizeCartItem(rawItem) {
+  if (!rawItem || typeof rawItem !== "object" || Array.isArray(rawItem)) {
+    return null;
+  }
+
+  const productId = rawItem.productId ?? rawItem.product_id;
+  if (productId == null || productId === "") {
+    return null;
+  }
+
+  const price = sanitizeNonNegativeNumber(rawItem.price);
+  if (price === null) {
+    return null;
+  }
+
+  const stockQuantityRaw = sanitizeNonNegativeNumber(rawItem.stockQuantity);
+  const stockQuantity =
+    stockQuantityRaw === null
+      ? MAX_CART_ITEM_QUANTITY
+      : Math.min(Math.floor(stockQuantityRaw), MAX_CART_ITEM_QUANTITY);
+
+  const quantityCandidate = sanitizePositiveInteger(rawItem.quantity);
+  if (quantityCandidate === null) {
+    return null;
+  }
+  const quantityCap = stockQuantity > 0 ? stockQuantity : MAX_CART_ITEM_QUANTITY;
+  const quantity = Math.min(quantityCandidate, quantityCap);
+
+  const originalPrice = sanitizeNonNegativeNumber(rawItem.originalPrice);
+  const discountPercent = sanitizeNonNegativeNumber(rawItem.discountPercent) ?? 0;
+
+  const id = sanitizeStringField(rawItem.id, `product-${productId}`);
+
+  return {
+    ...rawItem,
+    id,
+    productId,
+    name: sanitizeStringField(rawItem.name, "Unnamed product"),
+    category: sanitizeStringField(rawItem.category, "Product"),
+    availability: sanitizeStringField(rawItem.availability, ""),
+    variant: sanitizeStringField(rawItem.variant, "Standard configuration"),
+    sku: sanitizeStringField(rawItem.sku, "N/A"),
+    shippingLabel: sanitizeStringField(rawItem.shippingLabel, ""),
+    type: sanitizeStringField(rawItem.type, "component"),
+    imageUrl: typeof rawItem.imageUrl === "string" ? rawItem.imageUrl : "",
+    price,
+    originalPrice: originalPrice !== null && originalPrice > 0 ? originalPrice : null,
+    discountPercent: Math.min(Math.max(Math.floor(discountPercent), 0), 100),
+    stockQuantity,
+    quantity,
+  };
+}
+
+export function sanitizeCartItems(rawItems) {
+  if (!Array.isArray(rawItems)) return [];
+  const sanitized = [];
+  for (const rawItem of rawItems) {
+    const item = sanitizeCartItem(rawItem);
+    if (item) sanitized.push(item);
+  }
+  return sanitized;
+}
+
 function clearLegacyCartStorage() {
   if (!canUseStorage()) {
     return;
@@ -178,7 +259,12 @@ export function readCartItems() {
 
   try {
     const parsedCart = JSON.parse(storedCart);
-    return Array.isArray(parsedCart) ? cloneCartItems(parsedCart) : [];
+    if (!Array.isArray(parsedCart)) return [];
+    const sanitized = sanitizeCartItems(parsedCart);
+    if (sanitized.length !== parsedCart.length) {
+      window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(sanitized));
+    }
+    return cloneCartItems(sanitized);
   } catch {
     return [];
   }
