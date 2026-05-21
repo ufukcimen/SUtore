@@ -7,8 +7,8 @@ The project currently has two automated test suites:
 | Area | Runner | Location | Test files | Test cases | Current result |
 | --- | --- | --- | ---: | ---: | --- |
 | API | pytest | `apps/api/tests` | 5 | 47 | 47 passed |
-| Web | Vitest | `apps/web/src/**/*.test.js` | 4 | 12 | 12 passed |
-| Total |  |  | 9 | 59 | 59 passed |
+| Web | Vitest | `apps/web/src/**/*.test.js` | 4 | 19 | 19 passed |
+| Total |  |  | 9 | 66 | 66 passed |
 
 ## How To Run
 
@@ -158,6 +158,13 @@ Shared helper:
 | `merges repeated adds into one cart row and caps quantity at stock` | Adding the same product three times creates one cart row capped at stock quantity `2`, keeps the product name, and reports item count `2`. |
 | `does not add out-of-stock products` | Adding a product with stock `0` returns an empty cart and leaves stored cart items empty. |
 | `applies shipping only below the free-shipping threshold` | A `999.99` subtotal gets shipping `24.9`; a `1200` subtotal gets shipping `0`. |
+| `reduces cart quantity when stock drops below stored quantity` | After three adds with stock `5`, when fresh stock drops to `1`, reconciliation clamps quantity to `1`, sets `stockQuantity` to `1`, updates the availability label, and reports a `quantity_reduced` change. |
+| `removes cart items that are out of stock on the server` | When fresh stock is `0`, the cart item is dropped and a `removed` change with reason `out_of_stock` is returned. |
+| `removes cart items the server no longer knows about` | When the fresh products map is empty, the cart item is dropped and a `removed` change with reason `missing` is returned. |
+| `leaves cart items unchanged when current stock still covers the quantity` | When fresh stock matches the stored snapshot, items pass through unchanged and no changes are reported. |
+| `drops cart rows with invalid quantity or price when reading from storage` | Reading malformed localStorage drops rows with negative, non-numeric, or missing quantity/price/productId; only the valid row remains and the subtotal stays finite. |
+| `clamps quantity above stock when reading malformed storage` | A stored quantity of `9999` against stock `3` is clamped to `3` on read. |
+| `produces finite cart totals even when storage was poisoned` | Rows with `NaN` price or non-numeric quantity sanitize to an empty array; resulting summary subtotal and total are finite numbers (zero). |
 | `stores discounted price details when a product is on sale` | A product priced `1000` with `25%` discount stores effective price `750`, original price `1000`, and discount percent `25`. |
 
 ### `apps/web/src/features/cart/utils/payment.test.js`
