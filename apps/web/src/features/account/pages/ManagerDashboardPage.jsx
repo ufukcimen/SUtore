@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
@@ -12,6 +12,7 @@ import {
   MessageSquare,
   Package,
   Plus,
+  RefreshCw,
   ReceiptText,
   ShieldAlert,
   Star,
@@ -82,6 +83,54 @@ function getDeliveryStatusClass(status) {
   }
 
   return "border-cyan-200 bg-cyan-50 text-brand-accent";
+}
+
+function getManagerRequestErrorMessage(error, fallback) {
+  if (error.response?.status === 403) {
+    return "Access denied. Sign out and sign in again with a product manager account.";
+  }
+
+  const detail = error.response?.data?.detail;
+  if (typeof detail === "string") {
+    return detail;
+  }
+
+  return fallback;
+}
+
+function isCanceledRequest(error) {
+  return error?.code === "ERR_CANCELED" || error?.name === "CanceledError";
+}
+
+function isRetryableRequestError(error) {
+  if (isCanceledRequest(error)) {
+    return false;
+  }
+
+  if (!error.response) {
+    return true;
+  }
+
+  return error.response.status === 408 || error.response.status === 429 || error.response.status >= 500;
+}
+
+function waitForRetry(ms, signal) {
+  return new Promise((resolve) => {
+    if (signal?.aborted) {
+      resolve();
+      return;
+    }
+
+    const timeout = window.setTimeout(resolve, ms);
+    signal?.addEventListener(
+      "abort",
+      () => {
+        window.clearTimeout(timeout);
+        resolve();
+      },
+      { once: true },
+    );
+  });
 }
 
 async function downloadManagerInvoicePdf(user, invoice) {
@@ -786,46 +835,121 @@ function DeliveriesTab({ user }) {
   const [deliveries, setDeliveries] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [error, setError] = useState("");
+  const latestLoadId = useRef(0);
+  const managerUserId = user?.user_id;
 
-  useEffect(() => { loadDeliveries(); }, [showCompleted]);
+  useEffect(() => {
+    const controller = new AbortController();
+    loadDeliveries({ includeCompleted: showCompleted, signal: controller.signal });
+    return () => controller.abort();
+  }, [showCompleted, managerUserId]);
 
-  async function loadDeliveries() {
+  async function loadDeliveries({ includeCompleted = showCompleted, signal, maxAttempts = 3 } = {}) {
+    const loadId = latestLoadId.current + 1;
+    latestLoadId.current = loadId;
     setIsLoading(true);
+    setError("");
+    if (!managerUserId) {
+      setError("Sign out and sign in again with a product manager account.");
+      setIsLoading(false);
+      return;
+    }
+
+    let lastError = null;
     try {
-      const res = await http.get("/manager/deliveries", { params: { manager_user_id: user.user_id, show_completed: showCompleted } });
-      setDeliveries(res.data);
-    } catch { setDeliveries([]); }
-    finally { setIsLoading(false); }
+      for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        try {
+          const res = await http.get("/manager/deliveries", {
+            params: { manager_user_id: managerUserId, show_completed: includeCompleted },
+            signal,
+          });
+          if (loadId !== latestLoadId.current || signal?.aborted) return;
+          if (!Array.isArray(res.data)) {
+            throw new Error("Delivery response was not a list.");
+          }
+          setDeliveries(res.data);
+          setError("");
+          return;
+        } catch (err) {
+          if (isCanceledRequest(err) || signal?.aborted) return;
+
+          lastError = err;
+          if (attempt < maxAttempts && isRetryableRequestError(err)) {
+            await waitForRetry(250 * attempt, signal);
+            if (signal?.aborted) return;
+            continue;
+          }
+
+          break;
+        }
+      }
+
+      if (loadId === latestLoadId.current && !signal?.aborted) {
+        setError(
+          getManagerRequestErrorMessage(
+            lastError,
+            deliveries.length > 0
+              ? "Could not refresh deliveries. Showing the last loaded list."
+              : "Could not load deliveries.",
+          ),
+        );
+      }
+    } finally {
+      if (loadId === latestLoadId.current && !signal?.aborted) {
+        setIsLoading(false);
+      }
+    }
   }
 
   async function handleMarkInTransit(id) {
+    setError("");
     try {
-      const res = await http.patch(`/manager/deliveries/${id}/in-transit`, null, { params: { manager_user_id: user.user_id } });
+      const res = await http.patch(`/manager/deliveries/${id}/in-transit`, null, { params: { manager_user_id: managerUserId } });
       setDeliveries((prev) => prev.map((d) => d.delivery_id === id ? res.data : d));
-    } catch { /* silent */ }
+    } catch (err) {
+      setError(getManagerRequestErrorMessage(err, "Could not update this delivery."));
+    }
   }
 
   async function handleComplete(id) {
+    setError("");
     try {
-      const res = await http.patch(`/manager/deliveries/${id}/complete`, null, { params: { manager_user_id: user.user_id } });
+      const res = await http.patch(`/manager/deliveries/${id}/complete`, null, { params: { manager_user_id: managerUserId } });
       setDeliveries((prev) => (
         showCompleted
           ? prev.map((d) => d.delivery_id === id ? res.data : d)
           : prev.filter((d) => d.delivery_id !== id)
       ));
-    } catch { /* silent */ }
+    } catch (err) {
+      setError(getManagerRequestErrorMessage(err, "Could not mark this delivery as delivered."));
+    }
   }
 
-  if (isLoading) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-brand-accent" />;
+  if (isLoading && deliveries.length === 0) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-brand-accent" />;
 
   return (
     <div>
-      <div className="mb-4">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <label className="flex items-center gap-2 text-sm text-slate-600">
           <input type="checkbox" checked={showCompleted} onChange={(e) => setShowCompleted(e.target.checked)} />
           Show completed deliveries
         </label>
+        {isLoading ? (
+          <span className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500">
+            <LoaderCircle className="h-4 w-4 animate-spin" /> Refreshing deliveries
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => loadDeliveries({ includeCompleted: showCompleted, maxAttempts: 1 })}
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-cyan-200 hover:text-brand-ink"
+          >
+            <RefreshCw className="h-4 w-4" /> Refresh
+          </button>
+        )}
       </div>
+      {error ? <p className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</p> : null}
       <div className="space-y-3">
         {deliveries.map((d) => {
           const deliveryStatus = normalizeDeliveryStatus(d);
@@ -858,7 +982,7 @@ function DeliveriesTab({ user }) {
             </div>
           );
         })}
-        {deliveries.length === 0 ? <p className="text-center text-sm text-slate-500">{showCompleted ? "No deliveries found." : "No pending deliveries."}</p> : null}
+        {deliveries.length === 0 && !error ? <p className="text-center text-sm text-slate-500">{showCompleted ? "No deliveries found." : "No pending deliveries."}</p> : null}
       </div>
     </div>
   );
