@@ -27,6 +27,9 @@ class DiscountApplyResult(BaseModel):
     products: list[DiscountedProductRead]
     notified_users_count: int
     notified_emails: list[str]
+    in_app_notifications_created: int = 0
+    email_notifications_sent: int = 0
+    email_notifications_failed: int = 0
 
 
 class DailyFinancialPoint(BaseModel):

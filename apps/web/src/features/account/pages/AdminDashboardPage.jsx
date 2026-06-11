@@ -333,6 +333,13 @@ function DiscountsTab({ user }) {
             <div>
               <p className="font-semibold">{result.products.length} products discounted. {result.notified_users_count} wishlist users matched.</p>
               {result.notified_emails.length > 0 ? <p className="mt-1 text-xs">{result.notified_emails.join(", ")}</p> : null}
+              <p className="mt-2 text-xs">
+                {result.in_app_notifications_created ?? 0} in-app notifications created.
+                {" "}
+                {result.email_notifications_sent ?? 0} emails sent.
+                {" "}
+                {result.email_notifications_failed ?? 0} email failures.
+              </p>
             </div>
           </div>
         </div>

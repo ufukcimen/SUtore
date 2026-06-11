@@ -1,6 +1,7 @@
 from collections import Counter
 from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal, ROUND_HALF_UP
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
@@ -8,6 +9,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.api.v1.endpoints.invoice_utils import invoice_pdf_response
 from app.db.session import get_db
+from app.models.notification import Notification
 from app.models.order import Order
 from app.models.product import Product
 from app.models.user import User
@@ -22,9 +24,15 @@ from app.schemas.admin import (
 )
 from app.schemas.order import OrderRead
 from app.schemas.product import ProductRead
-from app.services import build_invoice_pdf, build_invoice_range_pdf
+from app.services import (
+    build_invoice_pdf,
+    build_invoice_range_pdf,
+    send_discount_notification_email,
+    send_refund_approved_email,
+)
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 SALES_ADMIN_ROLES = {"sales_manager", "admin"}
 MONEY = Decimal("0.01")
@@ -85,6 +93,18 @@ def _invoice_range_filename(start_date: date | None, end_date: date | None) -> s
     start_label = start_date.isoformat() if start_date else "all"
     end_label = end_date.isoformat() if end_date else "all"
     return f"invoices-{start_label}-to-{end_label}.pdf"
+
+
+def _notification_message_discount(
+    product_name: str,
+    discount_rate: Decimal,
+    old_price: Decimal,
+    new_price: Decimal,
+) -> str:
+    return (
+        f"{product_name} on your wishlist is now {discount_rate:g}% off. "
+        f"Price changed from ${old_price:,.2f} to ${new_price:,.2f}."
+    )
 
 
 @router.get("/products", response_model=list[ProductRead])
@@ -149,13 +169,20 @@ def apply_discount(
     wishlist_counts = Counter(row[0] for row in wishlist_rows)
     notified_user_ids = {row[1] for row in wishlist_rows}
     notified_emails = sorted({row[2] for row in wishlist_rows if row[2]})
+    wishlist_rows_by_product: dict[int, list[tuple[int, str | None]]] = {}
+    for product_id, user_id, email in wishlist_rows:
+        wishlist_rows_by_product.setdefault(product_id, []).append((user_id, email))
 
     multiplier = (Decimal("100") - payload.discount_rate) / Decimal("100")
     discounted_products: list[DiscountedProductRead] = []
+    in_app_notifications_created = 0
+    email_notifications_sent = 0
+    email_notifications_failed = 0
     for product in products:
         old_price = _money(product.price)
         new_price = _money(old_price * multiplier)
         product.price = new_price
+        product_name = product.name or f"Product {product.product_id}"
         discounted_products.append(
             DiscountedProductRead(
                 product_id=product.product_id,
@@ -166,6 +193,36 @@ def apply_discount(
                 wishlist_users_notified=wishlist_counts[product.product_id],
             )
         )
+        for user_id, email in wishlist_rows_by_product.get(product.product_id, []):
+            db.add(
+                Notification(
+                    user_id=user_id,
+                    notification_type="discount",
+                    title="Wishlist item on sale",
+                    message=_notification_message_discount(
+                        product_name,
+                        payload.discount_rate,
+                        old_price,
+                        new_price,
+                    ),
+                    product_id=product.product_id,
+                )
+            )
+            in_app_notifications_created += 1
+            if not email:
+                continue
+            try:
+                if send_discount_notification_email(
+                    recipient_email=email,
+                    product_name=product_name,
+                    discount_rate=payload.discount_rate,
+                    old_price=old_price,
+                    new_price=new_price,
+                ):
+                    email_notifications_sent += 1
+            except Exception:
+                email_notifications_failed += 1
+                logger.exception("Discount email delivery failed for product %s to %s.", product.product_id, email)
 
     db.commit()
     return DiscountApplyResult(
@@ -173,6 +230,9 @@ def apply_discount(
         products=discounted_products,
         notified_users_count=len(notified_user_ids),
         notified_emails=notified_emails,
+        in_app_notifications_created=in_app_notifications_created,
+        email_notifications_sent=email_notifications_sent,
+        email_notifications_failed=email_notifications_failed,
     )
 
 
@@ -354,6 +414,36 @@ def approve_refund(
             product.stock_quantity = (product.stock_quantity or 0) + item.quantity
 
     order.status = "refunded"
+    if order.user_id:
+        product_names = [item.product_name for item in order.items]
+        db.add(
+            Notification(
+                user_id=order.user_id,
+                notification_type="refund_approved",
+                title="Refund approved",
+                message=(
+                    f"Your refund for order {order.order_number} has been approved. "
+                    f"Refund amount: ${_money(order.total):,.2f}."
+                ),
+                order_id=order.order_id,
+            )
+        )
+
+        if order.billing_email:
+            try:
+                send_refund_approved_email(
+                    recipient_email=order.billing_email,
+                    order_number=order.order_number,
+                    total=_money(order.total),
+                    product_names=product_names,
+                )
+            except Exception:
+                logger.exception(
+                    "Refund approval email delivery failed for order %s to %s.",
+                    order.order_number,
+                    order.billing_email,
+                )
+
     db.commit()
     return OrderRead.model_validate(order)
 
