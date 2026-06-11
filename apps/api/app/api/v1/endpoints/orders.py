@@ -124,6 +124,44 @@ def request_refund(
     return serialize_order(db, order.order_id)
 
 
+@router.patch("/{order_id}/cancel", response_model=OrderRead)
+def cancel_order(
+    order_id: int,
+    user_id: int = Query(ge=1),
+    db: Session = Depends(get_db),
+) -> OrderRead:
+    order = db.scalar(
+        select(Order)
+        .options(selectinload(Order.items))
+        .where(Order.order_id == order_id)
+        .with_for_update()
+    )
+    if not order or order.user_id != user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found.")
+
+    normalized_status = (order.status or "").lower()
+    if normalized_status not in {"confirmed", "processing"}:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Only confirmed or processing orders can be cancelled.",
+        )
+
+    for item in order.items:
+        if not item.product_id:
+            continue
+        product = db.scalar(
+            select(Product)
+            .where(Product.product_id == item.product_id)
+            .with_for_update()
+        )
+        if product:
+            product.stock_quantity = (product.stock_quantity or 0) + item.quantity
+
+    order.status = "cancelled"
+    db.commit()
+    return serialize_order(db, order.order_id)
+
+
 @router.post("", response_model=OrderRead, status_code=status.HTTP_201_CREATED)
 def create_order(
     payload: OrderCreate,

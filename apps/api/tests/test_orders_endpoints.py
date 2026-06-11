@@ -4,7 +4,7 @@ import pytest
 from fastapi import BackgroundTasks, HTTPException
 from sqlalchemy import select
 
-from app.api.v1.endpoints.orders import create_order
+from app.api.v1.endpoints.orders import cancel_order, create_order
 from app.models.delivery import Delivery
 from app.models.product import Product
 from app.models.user import User
@@ -114,3 +114,28 @@ def test_create_order_rejects_requests_above_available_stock(db_session) -> None
     assert exc_info.value.status_code == 409
     assert exc_info.value.detail == "Only 1 left in stock for GeForce RTX 5080."
     assert db_session.get(Product, product.product_id).stock_quantity == 1
+
+
+def test_cancel_order_restocks_processing_order(db_session) -> None:
+    user, product = seed_checkout_state(db_session, stock=5)
+    created_order = create_order(
+        OrderCreate(
+            user_id=user.user_id,
+            items=[OrderCheckoutItem(product_id=product.product_id, quantity=2)],
+            billing_name="Checkout User",
+            billing_email="checkout@example.com",
+            billing_phone="+90 555 111 2233",
+            billing_address="123 Checkout Street",
+            payment_brand="Visa",
+            payment_last4="1111",
+        ),
+        BackgroundTasks(),
+        db_session,
+    )
+
+    assert db_session.get(Product, product.product_id).stock_quantity == 3
+
+    cancelled_order = cancel_order(created_order.order_id, user.user_id, db_session)
+
+    assert cancelled_order.status == "cancelled"
+    assert db_session.get(Product, product.product_id).stock_quantity == 5

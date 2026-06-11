@@ -10,6 +10,5 @@ const defaultApiBaseUrl =
 export const http = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? defaultApiBaseUrl,
   withCredentials: true,
-  timeout: 10000,
+  timeout: 30000,
 });
-

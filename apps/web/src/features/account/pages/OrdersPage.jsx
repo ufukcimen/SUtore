@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Clock3, Download, LoaderCircle, ReceiptText, RotateCcw } from "lucide-react";
+import { Clock3, Download, LoaderCircle, ReceiptText, RotateCcw, XCircle } from "lucide-react";
 import { StorefrontPageShell } from "../../cart/components/StorefrontPageShell";
 import { formatCurrency } from "../../cart/data/cartStorage";
 import { downloadResponseBlob } from "../../../lib/downloads";
@@ -74,6 +74,7 @@ function formatStatusLabel(status) {
     processing: "Processing",
     "in-transit": "In-transit",
     delivered: "Delivered",
+    refund_requested: "Refund requested",
   };
   if (statusLabels[normalizedStatus]) {
     return statusLabels[normalizedStatus];
@@ -99,7 +100,19 @@ function isRefundEligible(order) {
   return ageMs >= 0 && ageMs <= 30 * 24 * 60 * 60 * 1000;
 }
 
-function OrderCard({ isDownloadingInvoice, isRefunding, onDownloadInvoice, onRequestRefund, order }) {
+function isCancellationEligible(order) {
+  return ["confirmed", "processing"].includes(normalizeOrderStatus(order.status));
+}
+
+function OrderCard({
+  isCancelling,
+  isDownloadingInvoice,
+  isRefunding,
+  onCancelOrder,
+  onDownloadInvoice,
+  onRequestRefund,
+  order,
+}) {
   const itemCount = order.items.reduce((count, item) => count + item.quantity, 0);
   const previewItems = order.items.slice(0, 3);
 
@@ -164,6 +177,17 @@ function OrderCard({ isDownloadingInvoice, isRefunding, onDownloadInvoice, onReq
       </div>
 
       <div className="mt-4 flex flex-wrap justify-end gap-2">
+        {isCancellationEligible(order) ? (
+          <button
+            type="button"
+            disabled={isCancelling}
+            onClick={() => onCancelOrder(order.order_id)}
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:border-rose-200 hover:text-rose-700 disabled:opacity-50"
+          >
+            <XCircle className="h-3.5 w-3.5" />
+            {isCancelling ? "Cancelling..." : "Cancel order"}
+          </button>
+        ) : null}
         {isRefundEligible(order) ? (
           <button
             type="button"
@@ -190,8 +214,10 @@ function OrderCard({ isDownloadingInvoice, isRefunding, onDownloadInvoice, onReq
 }
 
 function OrdersSection({
+  cancelActionId,
   downloadActionId,
   emptyMessage,
+  onCancelOrder,
   onDownloadInvoice,
   onRequestRefund,
   orders,
@@ -221,8 +247,10 @@ function OrdersSection({
           orders.map((order) => (
             <OrderCard
               key={order.order_id}
+              isCancelling={cancelActionId === order.order_id}
               isDownloadingInvoice={downloadActionId === order.order_id}
               isRefunding={refundActionId === order.order_id}
+              onCancelOrder={onCancelOrder}
               onDownloadInvoice={onDownloadInvoice}
               onRequestRefund={onRequestRefund}
               order={order}
@@ -243,6 +271,7 @@ export function OrdersPage() {
   const [orders, setOrders] = useState([]);
   const [ordersError, setOrdersError] = useState("");
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
+  const [cancelActionId, setCancelActionId] = useState(null);
   const [refundActionId, setRefundActionId] = useState(null);
   const [downloadActionId, setDownloadActionId] = useState(null);
 
@@ -308,6 +337,26 @@ export function OrdersPage() {
       setOrdersError(getErrorMessage(error, "Unable to request a refund for this order."));
     } finally {
       setRefundActionId(null);
+    }
+  }
+
+  async function handleCancelOrder(orderId) {
+    if (!window.confirm("Cancel this processing order and return the items to stock?")) return;
+
+    setCancelActionId(orderId);
+    setOrdersError("");
+
+    try {
+      const response = await http.patch(`/orders/${orderId}/cancel`, null, {
+        params: { user_id: user.user_id },
+      });
+      setOrders((prev) => prev.map((order) => (
+        order.order_id === orderId ? response.data : order
+      )));
+    } catch (error) {
+      setOrdersError(getErrorMessage(error, "Unable to cancel this order."));
+    } finally {
+      setCancelActionId(null);
     }
   }
 
@@ -402,19 +451,23 @@ export function OrdersPage() {
         ) : (
           <div className="mt-6 grid gap-5 xl:grid-cols-2">
             <OrdersSection
+              cancelActionId={cancelActionId}
               downloadActionId={downloadActionId}
               orders={currentOrders}
               title="Current orders"
               emptyMessage="Newly confirmed orders will appear here after checkout."
+              onCancelOrder={handleCancelOrder}
               onDownloadInvoice={handleDownloadInvoice}
               onRequestRefund={handleRequestRefund}
               refundActionId={refundActionId}
             />
             <OrdersSection
+              cancelActionId={cancelActionId}
               downloadActionId={downloadActionId}
               orders={pastOrders}
               title="Past orders"
               emptyMessage="Completed or cancelled orders will move into this history section."
+              onCancelOrder={handleCancelOrder}
               onDownloadInvoice={handleDownloadInvoice}
               onRequestRefund={handleRequestRefund}
               refundActionId={refundActionId}
