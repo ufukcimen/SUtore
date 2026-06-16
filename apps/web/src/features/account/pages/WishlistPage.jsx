@@ -129,23 +129,23 @@ export function WishlistPage() {
     >
       {isLoading ? (
         <div className="flex justify-center py-12">
-          <LoaderCircle className="h-8 w-8 animate-spin text-brand-accent" />
+          <LoaderCircle className="h-8 w-8 animate-spin text-cyan-700" />
         </div>
       ) : null}
 
       {!isLoading && errorMessage ? (
-        <div className="rounded-[2rem] border border-rose-200 bg-rose-50 px-6 py-10 text-center text-rose-900 shadow-[0_18px_45px_rgba(7,17,31,0.08)]">
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-6 py-10 text-center text-rose-900 shadow-sm">
           <p className="text-lg font-semibold">Could not load wishlist</p>
           <p className="mt-2 text-sm">{errorMessage}</p>
         </div>
       ) : null}
 
       {!isLoading && !errorMessage && items.length === 0 ? (
-        <section className="rounded-[2rem] border border-dashed border-slate-300 bg-white/88 px-6 py-10 text-center shadow-[0_20px_60px_rgba(7,17,31,0.08)]">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+        <section className="rounded-lg border border-dashed border-slate-300 bg-white px-6 py-10 text-center shadow-sm">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
             <Heart className="h-6 w-6" />
           </div>
-          <h2 className="mt-4 text-2xl font-semibold text-brand-ink">
+          <h2 className="mt-4 text-2xl font-semibold text-slate-950">
             Your wishlist is empty.
           </h2>
           <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-slate-600">
@@ -154,7 +154,7 @@ export function WishlistPage() {
           </p>
           <Link
             to="/"
-            className="mt-6 inline-flex items-center justify-center rounded-2xl bg-brand-accent px-5 py-3 text-sm font-semibold text-brand-ink transition hover:bg-brand-glow"
+            className="mt-6 inline-flex items-center justify-center rounded-md bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
           >
             Browse products
           </Link>
@@ -173,19 +173,19 @@ export function WishlistPage() {
             return (
               <article
                 key={item.wishlist_item_id}
-                className="rounded-[2rem] border border-slate-200/80 bg-white/92 p-5 shadow-[0_18px_50px_rgba(7,17,31,0.1)] sm:p-6"
+                className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
               >
                 <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex min-w-0 gap-4">
                     <Link
                       to={`/products/${product.product_id}`}
-                      className="block h-24 w-24 shrink-0 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-[linear-gradient(135deg,#e0f2fe_0%,#f8fafc_48%,#fff7ed_100%)] shadow-sm"
+                      className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-slate-50 p-2"
                     >
                       {product.image_url ? (
                         <img
                           src={product.image_url}
                           alt={product.name}
-                          className="h-full w-full object-cover"
+                          className="max-h-full max-w-full object-contain"
                           loading="lazy"
                         />
                       ) : (
@@ -197,18 +197,18 @@ export function WishlistPage() {
 
                     <div className="min-w-0">
                       {product.category ? (
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
                           {product.category}
                         </span>
                       ) : null}
                       <Link to={`/products/${product.product_id}`}>
-                        <h2 className="mt-2 break-words text-lg font-semibold text-brand-ink transition hover:text-brand-accent sm:text-xl">
+                        <h2 className="mt-2 break-words text-lg font-semibold text-slate-950 transition hover:text-cyan-700 sm:text-xl">
                           {product.name}
                         </h2>
                       </Link>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span
-                          className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${getStockClassName(product.stock_quantity)}`}
+                          className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${getStockClassName(product.stock_quantity)}`}
                         >
                           {getStockLabel(product.stock_quantity)}
                         </span>
@@ -217,13 +217,13 @@ export function WishlistPage() {
                   </div>
 
                   <div className="flex shrink-0 flex-wrap items-center gap-3 sm:gap-4">
-                    <p className="rounded-2xl bg-cyan-50 px-4 py-2 text-lg font-semibold text-brand-accent">
+                    <p className="rounded-md bg-cyan-50 px-4 py-2 text-lg font-semibold text-cyan-700">
                       {formatPrice(product.price)}
                     </p>
                     <button
                       type="button"
                       onClick={() => handleRemove(product.product_id)}
-                      className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                      className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
                     >
                       <Trash2 className="h-4 w-4" />
                       Remove

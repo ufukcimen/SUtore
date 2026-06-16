@@ -19,8 +19,9 @@ import { clearStoredUser } from "../../../lib/authStorage";
 import { useStoredUser } from "../../../lib/useStoredUser";
 import { CartItemCountBadge } from "../../cart/components/CartItemCountBadge";
 import { useCart } from "../../cart/hooks/useCart";
-import { StorefrontLiveSearch } from "./StorefrontLiveSearch";
 import { useCategories } from "../context/CategoriesContext";
+import { getDisplayCategories } from "../data/categoryFallbacks";
+import { StorefrontLiveSearch } from "./StorefrontLiveSearch";
 
 const WELCOME_STORAGE_KEY = "sutoreWelcomeUser";
 
@@ -28,18 +29,36 @@ function getUserDisplayName(user) {
   return user?.name?.trim() || user?.email?.split("@")[0] || "";
 }
 
-export function StorefrontShell({ children, mainClassName = "" }) {
+function ProfileMenuLink({ to, onClick, icon: Icon, children }) {
+  return (
+    <Link
+      to={to}
+      onClick={onClick}
+      className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-950"
+    >
+      <Icon className="h-4 w-4 text-cyan-700" />
+      {children}
+    </Link>
+  );
+}
+
+export function StorefrontShell({
+  children,
+  headerClassName = "",
+  mainClassName = "",
+  rootClassName = "",
+}) {
   const navigate = useNavigate();
-  const [menuOpen, setMenuOpen] = useState(false);
   const user = useStoredUser();
   const { categories } = useCategories();
-  const sidebarItems = categories.filter((c) => c.is_visible_in_sidebar);
+  const sidebarItems = getDisplayCategories(categories).filter((c) => c.is_visible_in_sidebar);
+  const { distinctItemCount } = useCart();
+  const [menuOpen, setMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [welcomeName, setWelcomeName] = useState("");
   const profileMenuRef = useRef(null);
   const logoutTimeoutRef = useRef(null);
-  const { distinctItemCount } = useCart();
   const displayName = getUserDisplayName(user);
 
   useEffect(() => {
@@ -104,52 +123,39 @@ export function StorefrontShell({ children, mainClassName = "" }) {
       setWelcomeName("");
       setIsLoggingOut(false);
       navigate("/", { replace: true });
-    }, 700);
+    }, 500);
   }
 
   return (
-    <div className="min-h-screen overflow-hidden text-slate-950">
-      <div className="pointer-events-none fixed inset-0 -z-10">
-        <div className="absolute inset-0 bg-grid bg-[size:28px_28px] opacity-25" />
-        <div className="absolute -left-20 top-16 h-72 w-72 rounded-full bg-brand-glow/30 blur-3xl" />
-        <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-brand-gold/20 blur-3xl" />
-        <div className="absolute bottom-20 left-1/3 h-72 w-72 rounded-full bg-cyan-200/30 blur-3xl" />
-      </div>
-
+    <div className={`min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#f3f6f2_52%,#f8fafc_100%)] text-slate-950 ${rootClassName}`}>
       {isLoggingOut ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-md">
-          <div className="w-full max-w-sm rounded-[1.9rem] border border-white/60 bg-white/90 px-6 py-6 text-center shadow-[0_28px_80px_rgba(7,17,31,0.2)]">
-            <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-cyan-400/20 text-brand-accent">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/30 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-lg border border-slate-200 bg-white px-6 py-6 text-center shadow-xl">
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-lg bg-cyan-50 text-cyan-700">
               <LoaderCircle className="h-6 w-6 animate-spin" />
             </div>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
-              Signing out
-            </p>
-            <p className="mt-2 text-lg font-semibold text-brand-ink">
-              Closing your session.
-            </p>
+            <p className="mt-4 text-sm font-semibold text-slate-950">Signing out</p>
+            <p className="mt-1 text-sm text-slate-500">Closing your session.</p>
           </div>
         </div>
       ) : null}
 
       {welcomeName ? (
-        <div className="fixed inset-x-4 top-24 z-40 flex justify-start sm:inset-x-6 lg:top-28 lg:px-10">
-          <div className="flex w-full max-w-sm items-start gap-4 rounded-[1.75rem] border border-cyan-200/70 bg-white/90 px-5 py-4 text-slate-900 shadow-[0_24px_60px_rgba(7,17,31,0.18)] backdrop-blur-xl">
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-cyan-400/20 text-brand-accent">
+        <div className="fixed right-4 top-20 z-[80] w-[calc(100%-2rem)] max-w-sm rounded-lg border border-cyan-200 bg-white p-4 shadow-lg sm:right-6">
+          <div className="flex items-start gap-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-cyan-50 text-cyan-700">
               <Sparkles className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">
                 Signed in
               </p>
-              <p className="mt-1 text-base font-semibold text-brand-ink">
-                Hello, {welcomeName}.
-              </p>
+              <p className="mt-1 text-sm font-semibold text-slate-950">Hello, {welcomeName}.</p>
             </div>
             <button
               type="button"
               onClick={() => setWelcomeName("")}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 transition hover:border-cyan-300/50 hover:text-brand-ink"
+              className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
               aria-label="Close welcome message"
             >
               <X className="h-4 w-4" />
@@ -158,118 +164,112 @@ export function StorefrontShell({ children, mainClassName = "" }) {
         </div>
       ) : null}
 
-      <header
-        className={`relative z-20 border-b border-white/10 bg-slate-950 transition duration-500 ${
-          isLoggingOut ? "scale-[0.99] opacity-0" : "opacity-100"
-        }`}
-      >
-        <div className="mx-auto flex max-w-[90rem] flex-wrap items-center gap-3 px-3 py-4 sm:gap-4 sm:px-4 lg:flex-nowrap lg:justify-between lg:px-5">
-          <div className="flex min-w-0 shrink-0 items-center gap-3 sm:gap-4 lg:min-w-[18rem]">
+      <header className={`sticky top-0 z-40 border-b border-slate-800 bg-slate-950/95 text-white shadow-[0_14px_36px_rgba(15,23,42,0.24)] backdrop-blur ${headerClassName}`}>
+        <div className="mx-auto flex max-w-[90rem] min-w-0 flex-wrap items-center gap-3 px-4 py-3 lg:flex-nowrap lg:px-6">
+          <div className="flex min-w-0 shrink-0 items-center gap-3 max-md:flex-1 lg:min-w-[18rem]">
             <button
               type="button"
-              onClick={() => setMenuOpen((current) => !current)}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white transition hover:bg-white/10 sm:h-12 sm:w-12 sm:rounded-2xl"
-              aria-label="Open store menu"
+              onClick={() => setMenuOpen(true)}
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/5 text-slate-200 transition hover:border-cyan-300 hover:bg-white/10 hover:text-cyan-200"
+              aria-label="Open departments menu"
               aria-expanded={menuOpen}
             >
               <Menu className="h-5 w-5" />
             </button>
 
             <Link to="/" className="min-w-0 shrink-0">
-              <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-                <div className="rounded-xl bg-[linear-gradient(135deg,#22d3ee,#2563eb)] px-2.5 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-slate-950 sm:rounded-2xl sm:px-3 sm:py-2 sm:text-sm sm:tracking-[0.3em]">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-md bg-cyan-400 text-sm font-black uppercase text-slate-950 shadow-[0_0_0_1px_rgba(255,255,255,0.18)]">
                   SU
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-xl font-semibold tracking-tight text-white sm:text-2xl">SUtore</p>
-                  <p className="hidden text-xs uppercase tracking-[0.32em] text-cyan-200/70 sm:block">
-                    Electronics Store
+                  <p className="truncate text-xl font-semibold tracking-tight text-white">
+                    SUtore
+                  </p>
+                  <p className="hidden text-xs font-medium text-slate-400 sm:block">
+                    Performance PC Retail
                   </p>
                 </div>
               </div>
             </Link>
           </div>
 
-          <div className="order-3 w-full md:order-none md:flex-1 md:px-6 lg:mx-auto lg:max-w-3xl lg:min-w-0 lg:px-10">
+          <div className="order-3 min-w-0 w-[calc(100vw-2rem)] md:order-none md:w-full md:flex-1 md:px-4 lg:px-8">
             <StorefrontLiveSearch
               placeholder="Search laptops, monitors, GPUs, storage..."
               syncWithSearchPage
+              variant="light"
             />
           </div>
 
-          <div className="ml-auto flex shrink-0 items-center gap-2 lg:min-w-[8rem] lg:justify-end">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             {user ? (
               <div className="relative" ref={profileMenuRef}>
                 <button
                   type="button"
                   onClick={() => setProfileMenuOpen((current) => !current)}
-                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10 sm:h-12 sm:gap-3 sm:rounded-2xl sm:px-4"
+                  className="inline-flex h-11 items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 text-slate-200 transition hover:border-cyan-300 hover:bg-white/10 hover:text-cyan-200"
                   aria-label="Profile"
                   aria-expanded={profileMenuOpen}
                 >
                   <User className="h-5 w-5 shrink-0" />
-                  <span className="hidden max-w-32 truncate text-sm font-medium text-white sm:inline">
+                  <span className="hidden max-w-36 truncate text-sm font-semibold sm:inline">
                     {displayName}
                   </span>
                   <ChevronDown
-                    className={`h-4 w-4 shrink-0 text-cyan-200 transition-transform ${
+                    className={`hidden h-4 w-4 shrink-0 transition-transform sm:block ${
                       profileMenuOpen ? "rotate-180" : ""
-                    } hidden sm:block`}
+                    }`}
                   />
                 </button>
 
                 {profileMenuOpen ? (
-                  <div className="absolute right-0 top-[calc(100%+0.75rem)] z-40 min-w-[13rem] overflow-hidden rounded-[1.4rem] border border-slate-200/80 bg-white/95 p-2 shadow-[0_24px_50px_rgba(7,17,31,0.18)] backdrop-blur-xl">
-                    <Link
+                  <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 min-w-[14rem] overflow-hidden rounded-lg border border-slate-200 bg-white p-2 shadow-lg">
+                    <ProfileMenuLink
                       to="/account/orders"
                       onClick={() => setProfileMenuOpen(false)}
-                      className="flex w-full items-center gap-3 rounded-[1rem] px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-brand-ink"
+                      icon={ReceiptText}
                     >
-                      <ReceiptText className="h-4 w-4 text-brand-accent" />
                       Orders
-                    </Link>
-                    <Link
+                    </ProfileMenuLink>
+                    <ProfileMenuLink
                       to="/account/wishlist"
                       onClick={() => setProfileMenuOpen(false)}
-                      className="flex w-full items-center gap-3 rounded-[1rem] px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-brand-ink"
+                      icon={Heart}
                     >
-                      <Heart className="h-4 w-4 text-brand-accent" />
                       Wishlist
-                    </Link>
-                    <Link
+                    </ProfileMenuLink>
+                    <ProfileMenuLink
                       to="/account/settings"
                       onClick={() => setProfileMenuOpen(false)}
-                      className="flex w-full items-center gap-3 rounded-[1rem] px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-brand-ink"
+                      icon={Settings}
                     >
-                      <Settings className="h-4 w-4 text-brand-accent" />
                       Account settings
-                    </Link>
+                    </ProfileMenuLink>
                     {user.role === "product_manager" ? (
-                      <Link
+                      <ProfileMenuLink
                         to="/manager/dashboard"
                         onClick={() => setProfileMenuOpen(false)}
-                        className="flex w-full items-center gap-3 rounded-[1rem] px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-brand-ink"
+                        icon={ShieldCheck}
                       >
-                        <ShieldCheck className="h-4 w-4 text-brand-accent" />
-                        Manager dashboard
-                      </Link>
+                        Product manager
+                      </ProfileMenuLink>
                     ) : null}
                     {user.role === "sales_manager" || user.role === "admin" ? (
-                      <Link
+                      <ProfileMenuLink
                         to="/admin/dashboard"
                         onClick={() => setProfileMenuOpen(false)}
-                        className="flex w-full items-center gap-3 rounded-[1rem] px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-brand-ink"
+                        icon={ShieldCheck}
                       >
-                        <ShieldCheck className="h-4 w-4 text-brand-accent" />
-                        Admin dashboard
-                      </Link>
+                        Sales dashboard
+                      </ProfileMenuLink>
                     ) : null}
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="flex w-full items-center gap-3 rounded-[1rem] px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-brand-ink"
+                      className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-950"
                     >
-                      <LogOut className="h-4 w-4 text-brand-accent" />
+                      <LogOut className="h-4 w-4 text-cyan-700" />
                       Logout
                     </button>
                   </div>
@@ -278,82 +278,82 @@ export function StorefrontShell({ children, mainClassName = "" }) {
             ) : (
               <Link
                 to="/login"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10 sm:h-12 sm:w-12 sm:rounded-2xl"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 text-sm font-semibold text-slate-200 transition hover:border-cyan-300 hover:bg-white/10 hover:text-cyan-200"
                 aria-label="Profile"
               >
                 <User className="h-5 w-5" />
+                <span className="hidden sm:inline">Sign in</span>
               </Link>
             )}
             <Link
               to="/cart"
-              className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10 sm:h-12 sm:w-12 sm:rounded-2xl"
+              className="relative inline-flex h-11 items-center justify-center gap-2 rounded-md bg-cyan-400 px-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
               aria-label="Cart"
             >
-              <CartItemCountBadge count={distinctItemCount} className="absolute -right-1.5 -top-1.5" />
+              <CartItemCountBadge
+                count={distinctItemCount}
+                className="absolute -right-1.5 -top-1.5 !bg-white !text-slate-950 !shadow-sm"
+              />
               <ShoppingCart className="h-5 w-5" />
+              <span className="hidden sm:inline">Cart</span>
             </Link>
           </div>
         </div>
       </header>
 
-      <div className={`relative ${menuOpen ? "z-[70]" : "z-10"}`}>
-        <div
-          aria-hidden={!menuOpen}
-          onClick={() => setMenuOpen(false)}
-          className={`fixed inset-0 z-50 bg-slate-950/30 backdrop-blur-[2px] transition-opacity duration-300 ${
-            menuOpen ? "opacity-100" : "pointer-events-none opacity-0"
-          }`}
-        />
-        <div
-          className={`fixed left-0 top-0 z-[60] h-dvh w-full transform-gpu transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] sm:max-w-sm ${
-            menuOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
-          style={{ willChange: "transform" }}
-        >
-          <div
-            className="pointer-events-auto h-full w-full overflow-y-auto border-r border-slate-200/80 bg-[linear-gradient(180deg,rgba(13,27,42,0.98),rgba(8,17,31,0.98))] px-6 py-6 text-white shadow-2xl shadow-cyan-950/20"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.32em] text-cyan-200/70">
-                  Store Menu
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold text-white">More departments</h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setMenuOpen(false)}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-white transition hover:bg-white/10"
-                aria-label="Close store menu"
-              >
-                <X className="h-5 w-5" />
-              </button>
+      <div
+        aria-hidden={!menuOpen}
+        onClick={() => setMenuOpen(false)}
+        className={`fixed inset-0 z-[70] bg-slate-950/30 backdrop-blur-sm transition-opacity ${
+          menuOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      />
+      <aside
+        className={`fixed left-0 top-0 z-[80] h-dvh w-full max-w-sm transform-gpu border-r border-slate-200 bg-white shadow-2xl transition-transform ${
+          menuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex h-full flex-col">
+          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">
+                Departments
+              </p>
+              <h2 className="mt-1 text-xl font-semibold text-slate-950">Shop by category</h2>
             </div>
-
-            <div className="mt-8 space-y-3">
-              {sidebarItems.map((cat) => (
-                <Link
-                  key={cat.category_id}
-                  to={`/category/${cat.slug}`}
-                  onClick={() => setMenuOpen(false)}
-                  className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-4 text-left text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10"
-                >
-                  <span>{cat.label}</span>
-                  <ChevronRight className="h-4 w-4 text-cyan-200" />
-                </Link>
-              ))}
-            </div>
+            <button
+              type="button"
+              onClick={() => setMenuOpen(false)}
+              className="rounded-md border border-slate-200 bg-white p-2 text-slate-500 transition hover:bg-slate-50 hover:text-slate-950"
+              aria-label="Close departments menu"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
-        </div>
 
-        <main
-          className={`mx-auto max-w-7xl px-4 py-8 transition duration-500 sm:px-6 lg:px-10 lg:py-10 xl:pl-14 xl:pr-8 ${
-            isLoggingOut ? "translate-y-3 opacity-0" : "translate-y-0 opacity-100"
-          } ${mainClassName}`}
-        >
-          {children}
-        </main>
-      </div>
+          <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+            {sidebarItems.map((cat) => (
+              <Link
+                key={cat.category_id}
+                to={`/category/${cat.slug}`}
+                onClick={() => setMenuOpen(false)}
+                className="flex w-full items-center justify-between rounded-md px-3 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-950"
+              >
+                <span>{cat.label}</span>
+                <ChevronRight className="h-4 w-4 text-cyan-700" />
+              </Link>
+            ))}
+          </nav>
+        </div>
+      </aside>
+
+      <main
+        className={`shopper-bottom-safe mx-auto w-full max-w-7xl px-4 py-6 transition duration-300 sm:px-6 lg:px-8 lg:py-8 ${
+          isLoggingOut ? "translate-y-2 opacity-0" : "translate-y-0 opacity-100"
+        } ${mainClassName}`}
+      >
+        {children}
+      </main>
     </div>
   );
 }

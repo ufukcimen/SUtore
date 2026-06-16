@@ -9,15 +9,15 @@ export function CheckoutField({
   ...props
 }) {
   const Component = as;
-  const fieldClassName = `w-full rounded-2xl border bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:ring-4 focus:ring-brand-glow/20 ${
+  const fieldClassName = `w-full rounded-md border bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:ring-4 ${
     error
-      ? "border-rose-300 focus:border-rose-400"
-      : "border-slate-200 focus:border-brand-accent"
+      ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
+      : "border-slate-300 focus:border-cyan-500 focus:ring-cyan-100"
   } ${className}`;
 
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-semibold text-brand-ink">{label}</span>
+      <span className="mb-2 block text-sm font-semibold text-slate-950">{label}</span>
       <Component id={id} className={fieldClassName} {...props}>
         {children}
       </Component>

@@ -113,7 +113,7 @@ export function ResetPasswordPage() {
       alternateLink={
         <p>
           Need another link?{" "}
-          <Link className="font-semibold text-brand-accent" to="/forgot-password">
+          <Link className="font-semibold text-cyan-700" to="/forgot-password">
             Request password reset
           </Link>
         </p>
@@ -138,10 +138,10 @@ export function ResetPasswordPage() {
           onChange={handleChange("confirmPassword")}
         />
 
-        <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50/90 p-4">
+        <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">
                 Password strength
               </p>
               <p className={`mt-1 text-sm font-semibold ${passwordState.textClass}`}>
@@ -164,7 +164,7 @@ export function ResetPasswordPage() {
             {passwordState.checks.map((rule) => (
               <div
                 key={rule.id}
-                className={`flex items-center gap-3 rounded-2xl px-3 py-2 text-sm transition ${
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition ${
                   rule.passed ? "bg-emerald-50 text-emerald-800" : "bg-white text-slate-500"
                 }`}
               >
@@ -184,14 +184,14 @@ export function ResetPasswordPage() {
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="w-full gap-2 bg-brand-ink text-white hover:bg-slate-900"
+          className="w-full gap-2 rounded-md bg-slate-950 text-white hover:bg-slate-800"
         >
           {isSubmitting ? "Saving password..." : "Reset password"}
           <ArrowRight className="h-4 w-4" />
         </Button>
 
         {submitState.message ? (
-          <div className={`flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm ${statusClassName}`}>
+          <div className={`flex items-start gap-3 rounded-md border px-4 py-3 text-sm ${statusClassName}`}>
             {submitState.kind === "error" ? (
               <KeyRound className="mt-0.5 h-4 w-4 shrink-0" />
             ) : (

@@ -1,64 +1,75 @@
-import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
-  ChevronDown,
+  ArrowRight,
+  BadgeCheck,
   ChevronRight,
   Cpu,
-  Heart,
-  Laptop,
-  LoaderCircle,
-  LogOut,
-  Menu,
+  Gauge,
   Monitor,
-  ReceiptText,
+  PackageSearch,
   RefreshCw,
-  Settings,
+  Search,
   ShieldCheck,
-  ShoppingCart,
-  Sparkles,
-  User,
-  X,
+  SlidersHorizontal,
+  Truck,
+  Zap,
 } from "lucide-react";
-import { clearStoredUser } from "../../../lib/authStorage";
-import { useStoredUser } from "../../../lib/useStoredUser";
-import { CartItemCountBadge } from "../../cart/components/CartItemCountBadge";
-import { useCart } from "../../cart/hooks/useCart";
-import { CategoryArtwork } from "../components/StorefrontArtwork";
-import { StorefrontLiveSearch } from "../components/StorefrontLiveSearch";
-import { ProductCard } from "../components/ProductCard";
-import { RecommendationCarousel } from "../components/RecommendationCarousel";
-import { useCategories } from "../context/CategoriesContext";
-import { resolveIcon } from "../data/iconMap";
 import { http } from "../../../lib/http";
+import { CategoryArtwork } from "../components/StorefrontArtwork";
+import { ProductCard } from "../components/ProductCard";
+import { StorefrontShell } from "../components/StorefrontShell";
+import {
+  EmptyState,
+  ProductImageFrame,
+  SectionHeader,
+  StockBadge,
+  TrustBadge,
+} from "../components/RetailPrimitives";
+import { useCategories } from "../context/CategoriesContext";
+import { getDisplayCategories } from "../data/categoryFallbacks";
+import { resolveIcon } from "../data/iconMap";
+import {
+  formatPrice,
+  getEffectivePrice,
+  getProductUrl,
+  getStockQuantity,
+} from "../utils/productPresentation";
 
-const WELCOME_STORAGE_KEY = "sutoreWelcomeUser";
-
-function getUserDisplayName(user) {
-  return user?.name?.trim() || user?.email?.split("@")[0] || "";
-}
+const quickLinks = [
+  { label: "Laptops", to: "/category/laptops", Icon: Monitor },
+  { label: "PC Components", to: "/category/pc-components", Icon: Cpu },
+  { label: "Monitors", to: "/category/monitors", Icon: Monitor },
+  { label: "Storage", to: "/category/storage-devices", Icon: Zap },
+];
 
 export function HomePage() {
-  const navigate = useNavigate();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const user = useStoredUser();
   const { categories } = useCategories();
-  const sidebarItems = categories.filter((c) => c.is_visible_in_sidebar);
-  const homepageCards = categories.filter((c) => c.is_visible_on_homepage);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [welcomeName, setWelcomeName] = useState("");
-  const profileMenuRef = useRef(null);
-  const logoutTimeoutRef = useRef(null);
-  const { distinctItemCount } = useCart();
-  const displayName = getUserDisplayName(user);
+  const homepageCards = getDisplayCategories(categories).filter((c) => c.is_visible_on_homepage);
   const [recommendations, setRecommendations] = useState([]);
   const [recsLoading, setRecsLoading] = useState(true);
+  const heroProduct =
+    recommendations.find((product) => (
+      product?.image_url
+      && !/demo/i.test(product?.name ?? "")
+      && getStockQuantity(product) > 0
+    ))
+    ?? recommendations.find((product) => product?.image_url && getStockQuantity(product) > 0)
+    ?? recommendations.find((product) => (
+      !/demo/i.test(product?.name ?? "")
+      && getStockQuantity(product) > 0
+    ))
+    ?? recommendations.find((product) => product?.image_url && !/demo/i.test(product?.name ?? ""))
+    ?? recommendations.find((product) => product?.image_url)
+    ?? recommendations.find((product) => !/demo/i.test(product?.name ?? ""))
+    ?? recommendations[0]
+    ?? null;
 
   function fetchRecommendations() {
     setRecsLoading(true);
     http
       .get("/products/random", { params: { count: 6 } })
-      .then((res) => setRecommendations(res.data))
+      .then((res) => setRecommendations(Array.isArray(res.data) ? res.data : []))
       .catch(() => setRecommendations([]))
       .finally(() => setRecsLoading(false));
   }
@@ -67,420 +78,196 @@ export function HomePage() {
     fetchRecommendations();
   }, []);
 
-  useEffect(() => {
-    try {
-      const storedWelcomeUser = sessionStorage.getItem(WELCOME_STORAGE_KEY);
-      if (!storedWelcomeUser) {
-        return;
-      }
-
-      const parsedUser = JSON.parse(storedWelcomeUser);
-      const nextWelcomeName = getUserDisplayName(parsedUser);
-      if (nextWelcomeName) {
-        setWelcomeName(nextWelcomeName);
-      }
-    } catch {
-      setWelcomeName("");
-    } finally {
-      sessionStorage.removeItem(WELCOME_STORAGE_KEY);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!profileMenuOpen) {
-      return undefined;
-    }
-
-    function handlePointerDown(event) {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
-        setProfileMenuOpen(false);
-      }
-    }
-
-    function handleEscape(event) {
-      if (event.key === "Escape") {
-        setProfileMenuOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("keydown", handleEscape);
-
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [profileMenuOpen]);
-
-  useEffect(() => {
-    return () => {
-      if (logoutTimeoutRef.current) {
-        window.clearTimeout(logoutTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  function handleLogout() {
-    setProfileMenuOpen(false);
-    setIsLoggingOut(true);
-
-    logoutTimeoutRef.current = window.setTimeout(() => {
-      clearStoredUser();
-      setWelcomeName("");
-      setIsLoggingOut(false);
-      navigate("/", { replace: true });
-    }, 700);
-  }
-
   return (
-    <div className="min-h-screen overflow-hidden text-slate-950">
-      <div className="pointer-events-none fixed inset-0 -z-10">
-        <div className="absolute inset-0 bg-grid bg-[size:28px_28px] opacity-25" />
-        <div className="absolute -left-20 top-16 h-72 w-72 rounded-full bg-brand-glow/30 blur-3xl" />
-        <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-brand-gold/20 blur-3xl" />
-        <div className="absolute bottom-20 left-1/3 h-72 w-72 rounded-full bg-cyan-200/30 blur-3xl" />
-      </div>
+    <StorefrontShell mainClassName="max-w-[90rem]">
+      <section className="sutore-home-hero relative w-full max-w-full overflow-hidden rounded-lg border border-slate-900 bg-slate-950 text-white shadow-[0_30px_90px_rgba(15,23,42,0.22)]">
+        <div className="absolute inset-0 bg-[linear-gradient(105deg,rgba(2,6,23,0.98)_0%,rgba(15,23,42,0.96)_46%,rgba(20,83,45,0.84)_100%)]" />
+        <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:34px_34px]" />
 
-      {isLoggingOut ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-md">
-          <div className="w-full max-w-sm rounded-[1.9rem] border border-white/60 bg-white/90 px-6 py-6 text-center shadow-[0_28px_80px_rgba(7,17,31,0.2)]">
-            <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-cyan-400/20 text-brand-accent">
-              <LoaderCircle className="h-6 w-6 animate-spin" />
+        <div className="relative grid min-w-0 gap-5 lg:min-h-[31rem] lg:grid-cols-[minmax(0,1fr)_24rem]">
+          <div className="sutore-home-hero-content min-w-0 max-w-4xl p-5 sm:p-8 lg:p-10">
+            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-cyan-200">
+              <BadgeCheck className="h-4 w-4" />
+              SUtore Performance Desk
             </div>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
-              Signing out
+            <h1 className="mt-5 max-w-full break-words text-3xl font-semibold leading-tight text-white sm:max-w-3xl sm:text-5xl lg:text-6xl">
+              Spec smarter. Build cleaner. Buy with confidence.
+            </h1>
+            <p className="mt-5 max-w-full break-words text-base leading-7 text-slate-300 sm:max-w-2xl sm:text-lg">
+              A curated PC retail floor for shoppers who care about parts, compatibility, and clear purchase decisions.
             </p>
-            <p className="mt-2 text-lg font-semibold text-brand-ink">
-              Closing your session.
-            </p>
-          </div>
-        </div>
-      ) : null}
 
-      {welcomeName ? (
-        <div className="fixed inset-x-4 top-24 z-40 flex justify-start sm:inset-x-6 lg:top-28 lg:px-10">
-          <div className="flex w-full max-w-sm items-start gap-4 rounded-[1.75rem] border border-cyan-200/70 bg-white/90 px-5 py-4 text-slate-900 shadow-[0_24px_60px_rgba(7,17,31,0.18)] backdrop-blur-xl">
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-cyan-400/20 text-brand-accent">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
-                Signed in
-              </p>
-              <p className="mt-1 text-base font-semibold text-brand-ink">
-                Hello, {welcomeName}.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setWelcomeName("")}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 transition hover:border-cyan-300/50 hover:text-brand-ink"
-              aria-label="Close welcome message"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      <header
-        className={`relative z-20 border-b border-white/10 bg-slate-950 transition duration-500 ${
-          isLoggingOut ? "scale-[0.99] opacity-0" : "opacity-100"
-        }`}
-      >
-        <div className="mx-auto flex max-w-[90rem] flex-wrap items-center gap-3 px-3 py-4 sm:gap-4 sm:px-4 lg:flex-nowrap lg:justify-between lg:px-5">
-          <div className="flex min-w-0 shrink-0 items-center gap-3 sm:gap-4 lg:min-w-[18rem]">
-            <button
-              type="button"
-              onClick={() => setMenuOpen((current) => !current)}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white transition hover:bg-white/10 sm:h-12 sm:w-12 sm:rounded-2xl"
-              aria-label="Open store menu"
-              aria-expanded={menuOpen}
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-
-            <Link to="/" className="min-w-0 shrink-0">
-              <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-                <div className="rounded-xl bg-[linear-gradient(135deg,#22d3ee,#2563eb)] px-2.5 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-slate-950 sm:rounded-2xl sm:px-3 sm:py-2 sm:text-sm sm:tracking-[0.3em]">
-                  SU
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-xl font-semibold tracking-tight text-white sm:text-2xl">SUtore</p>
-                  <p className="hidden text-xs uppercase tracking-[0.32em] text-cyan-200/70 sm:block">
-                    Electronics Store
-                  </p>
-                </div>
-              </div>
-            </Link>
-          </div>
-
-          <div className="order-3 w-full md:order-none md:flex-1 md:px-6 lg:mx-auto lg:max-w-3xl lg:min-w-0 lg:px-10">
-            <StorefrontLiveSearch placeholder="Search laptops, monitors, GPUs, storage..." />
-          </div>
-
-          <div className="ml-auto flex shrink-0 items-center gap-2 lg:min-w-[8rem] lg:justify-end">
-            {user ? (
-              <div className="relative" ref={profileMenuRef}>
-                <button
-                  type="button"
-                  onClick={() => setProfileMenuOpen((current) => !current)}
-                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10 sm:h-12 sm:gap-3 sm:rounded-2xl sm:px-4"
-                  aria-label="Profile"
-                  aria-expanded={profileMenuOpen}
-                >
-                  <User className="h-5 w-5 shrink-0" />
-                  <span className="hidden max-w-32 truncate text-sm font-medium text-white sm:inline">
-                    {displayName}
-                  </span>
-                  <ChevronDown
-                    className={`h-4 w-4 shrink-0 text-cyan-200 transition-transform ${
-                      profileMenuOpen ? "rotate-180" : ""
-                    } hidden sm:block`}
-                  />
-                </button>
-
-                {profileMenuOpen ? (
-                  <div className="absolute right-0 top-[calc(100%+0.75rem)] z-40 min-w-[13rem] overflow-hidden rounded-[1.4rem] border border-slate-200/80 bg-white/95 p-2 shadow-[0_24px_50px_rgba(7,17,31,0.18)] backdrop-blur-xl">
-                    <Link
-                      to="/account/orders"
-                      onClick={() => setProfileMenuOpen(false)}
-                      className="flex w-full items-center gap-3 rounded-[1rem] px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-brand-ink"
-                    >
-                      <ReceiptText className="h-4 w-4 text-brand-accent" />
-                      Orders
-                    </Link>
-                    <Link
-                      to="/account/wishlist"
-                      onClick={() => setProfileMenuOpen(false)}
-                      className="flex w-full items-center gap-3 rounded-[1rem] px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-brand-ink"
-                    >
-                      <Heart className="h-4 w-4 text-brand-accent" />
-                      Wishlist
-                    </Link>
-                    <Link
-                      to="/account/settings"
-                      onClick={() => setProfileMenuOpen(false)}
-                      className="flex w-full items-center gap-3 rounded-[1rem] px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-brand-ink"
-                    >
-                      <Settings className="h-4 w-4 text-brand-accent" />
-                      Account settings
-                    </Link>
-                    {user.role === "product_manager" ? (
-                      <Link
-                        to="/manager/dashboard"
-                        onClick={() => setProfileMenuOpen(false)}
-                        className="flex w-full items-center gap-3 rounded-[1rem] px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-brand-ink"
-                      >
-                        <ShieldCheck className="h-4 w-4 text-brand-accent" />
-                        Manager dashboard
-                      </Link>
-                    ) : null}
-                    {user.role === "sales_manager" || user.role === "admin" ? (
-                      <Link
-                        to="/admin/dashboard"
-                        onClick={() => setProfileMenuOpen(false)}
-                        className="flex w-full items-center gap-3 rounded-[1rem] px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-brand-ink"
-                      >
-                        <ShieldCheck className="h-4 w-4 text-brand-accent" />
-                        Admin dashboard
-                      </Link>
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="flex w-full items-center gap-3 rounded-[1rem] px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-brand-ink"
-                    >
-                      <LogOut className="h-4 w-4 text-brand-accent" />
-                      Logout
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            ) : (
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Link
-                to="/login"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10 sm:h-12 sm:w-12 sm:rounded-2xl"
-                aria-label="Profile"
+                to="/category/pc-components"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-cyan-400 px-5 text-sm font-bold text-slate-950 transition hover:bg-cyan-300"
               >
-                <User className="h-5 w-5" />
+                Shop components
+                <ArrowRight className="h-4 w-4" />
               </Link>
-            )}
-            <Link
-              to="/cart"
-              className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10 sm:h-12 sm:w-12 sm:rounded-2xl"
-              aria-label="Cart"
-            >
-              <CartItemCountBadge count={distinctItemCount} className="absolute -right-1.5 -top-1.5" />
-              <ShoppingCart className="h-5 w-5" />
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <div className={`relative ${menuOpen ? "z-[70]" : "z-10"}`}>
-        <div
-          aria-hidden={!menuOpen}
-          onClick={() => setMenuOpen(false)}
-          className={`fixed inset-0 z-50 bg-slate-950/30 backdrop-blur-[2px] transition-opacity duration-300 ${
-            menuOpen ? "opacity-100" : "pointer-events-none opacity-0"
-          }`}
-        />
-        <div
-          className={`fixed left-0 top-0 z-[60] h-dvh w-full transform-gpu transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] sm:max-w-sm ${
-            menuOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
-          style={{ willChange: "transform" }}
-        >
-          <div
-            className="pointer-events-auto h-full w-full overflow-y-auto border-r border-slate-200/80 bg-[linear-gradient(180deg,rgba(13,27,42,0.98),rgba(8,17,31,0.98))] px-6 py-6 text-white shadow-2xl shadow-cyan-950/20"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.32em] text-cyan-200/70">
-                  Store Menu
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold text-white">More departments</h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setMenuOpen(false)}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-white transition hover:bg-white/10"
-                aria-label="Close store menu"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="mt-8 space-y-3">
-              {sidebarItems.map((cat) => (
-                <Link
-                  key={cat.category_id}
-                  to={`/category/${cat.slug}`}
-                  onClick={() => setMenuOpen(false)}
-                  className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-4 text-left text-slate-100 transition hover:border-cyan-300/40 hover:bg-white/10"
-                >
-                  <span>{cat.label}</span>
-                  <ChevronRight className="h-4 w-4 text-cyan-200" />
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <main
-          className={`mx-auto max-w-7xl px-4 py-8 transition duration-500 sm:px-6 lg:px-10 lg:py-10 xl:pl-14 xl:pr-8 ${
-            isLoggingOut ? "translate-y-3 opacity-0" : "translate-y-0 opacity-100"
-          }`}
-        >
-          <section>
-          <div
-            id="custom-pc-creator"
-            className="rounded-[2rem] border border-slate-200/80 bg-white/95 p-6 shadow-[0_28px_80px_rgba(7,17,31,0.12)] sm:p-8"
-          >
-            <div className="mt-2 flex flex-wrap gap-3">
               <Link
                 to="/custom-pc-creator"
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md border border-white/15 bg-white/[0.08] px-5 text-sm font-semibold text-white transition hover:border-cyan-300/70 hover:bg-white/[0.14]"
               >
-                Custom PC Creator
+                Open build studio
                 <ChevronRight className="h-4 w-4" />
               </Link>
             </div>
 
-            <div className="mt-8 grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
-              <div className="rounded-[1.75rem] border border-cyan-200/70 bg-[linear-gradient(180deg,rgba(217,249,247,0.95),rgba(240,249,255,0.9))] p-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
-                  Builder spotlight
-                </p>
-                <h2 className="mt-4 text-3xl font-semibold leading-tight text-brand-ink sm:text-4xl">
-                  Build your own.
-                </h2>
-                <p className="mt-4 max-w-xl text-sm leading-7 text-slate-600 sm:text-base">
-                  Shape the system around your own performance target, visual style, and
-                  budget. Start with the parts that matter and assemble a cleaner custom
-                  rig path from the homepage.
-                </p>
+            <div className="mt-6 grid max-w-3xl grid-cols-1 gap-3 min-[520px]:grid-cols-2 xl:grid-cols-4">
+              {quickLinks.map(({ label, to, Icon }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  className="flex min-h-12 min-w-0 items-center justify-between rounded-lg border border-white/10 bg-white/[0.08] px-4 py-3 text-sm font-semibold text-slate-100 transition hover:border-cyan-300/70 hover:bg-white/[0.14] hover:text-white"
+                >
+                  <span className="inline-flex min-w-0 items-center gap-2">
+                    <Icon className="h-4 w-4 text-cyan-200" />
+                    <span className="truncate">{label}</span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0" />
+                </Link>
+              ))}
+            </div>
 
-                <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                  {[
-                    "Choose the CPU, GPU, cooling, and case you actually want",
-                    "Tune for gaming, creator workloads, or balanced everyday power",
-                  ].map((item) => (
-                    <div
-                      key={item}
-                      className="rounded-[1.25rem] border border-slate-200 bg-white/80 p-4 text-sm leading-6 text-slate-700"
-                    >
-                      {item}
-                    </div>
-                  ))}
+            <div className="mt-7 hidden max-w-3xl gap-3 sm:grid sm:grid-cols-3">
+              <div className="rounded-lg border border-white/10 bg-white/[0.08] p-3">
+                <p className="text-sm font-semibold text-white">Live catalog</p>
+                <p className="mt-1 text-xs leading-5 text-slate-400">Prices, stock, and specs from the current backend.</p>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-white/[0.08] p-3">
+                <p className="text-sm font-semibold text-white">Compare shortlist</p>
+                <p className="mt-1 text-xs leading-5 text-slate-400">Keep up to four products side by side.</p>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-white/[0.08] p-3">
+                <p className="text-sm font-semibold text-white">Builder ready</p>
+                <p className="mt-1 text-xs leading-5 text-slate-400">Move selected parts into cart together.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="hidden items-end p-5 sm:p-8 lg:flex lg:p-10">
+            {heroProduct ? (
+              <Link
+                to={getProductUrl(heroProduct)}
+                className="w-full rounded-lg border border-white/15 bg-white/95 p-4 text-slate-950 shadow-[0_24px_60px_rgba(0,0,0,0.26)] transition hover:-translate-y-0.5 hover:bg-white"
+              >
+                <ProductImageFrame
+                  src={heroProduct.image_url}
+                  alt={heroProduct.name}
+                  className="aspect-[16/10] bg-white p-3"
+                  imageClassName="drop-shadow-[0_14px_22px_rgba(15,23,42,0.14)]"
+                />
+                <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">
+                  Live inventory pick
+                </p>
+                <h2 className="mt-2 line-clamp-2 text-xl font-semibold leading-7">
+                  {heroProduct.name}
+                </h2>
+                <div className="mt-4 flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-2xl font-bold">
+                      {formatPrice(getEffectivePrice(heroProduct))}
+                    </p>
+                    <StockBadge product={heroProduct} className="mt-2" />
+                  </div>
+                  <span className="inline-flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white">
+                    View
+                  </span>
+                </div>
+              </Link>
+            ) : recsLoading ? (
+              <div className="w-full rounded-lg border border-white/15 bg-white/95 p-4 text-slate-950 shadow-[0_24px_60px_rgba(0,0,0,0.18)]">
+                <div className="aspect-[16/10] animate-pulse rounded-lg border border-slate-200 bg-slate-100" />
+                <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">
+                  Live inventory pick
+                </p>
+                <div className="mt-3 h-6 w-3/4 animate-pulse rounded bg-slate-200" />
+                <div className="mt-4 flex items-end justify-between gap-3">
+                  <div>
+                    <div className="h-7 w-24 animate-pulse rounded bg-slate-200" />
+                    <div className="mt-2 h-6 w-20 animate-pulse rounded-full bg-slate-100" />
+                  </div>
+                  <span className="inline-flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white">
+                    View
+                  </span>
                 </div>
               </div>
-
-              <div className="overflow-hidden rounded-[1.75rem] border border-slate-200/70 bg-[linear-gradient(180deg,rgba(13,27,42,0.98),rgba(8,17,31,0.98))] p-5">
-                <div className="relative h-full min-h-[18rem] overflow-hidden rounded-[1.35rem] border border-white/10 bg-slate-950/75 p-5">
-                  <div className="absolute -left-10 top-0 h-32 w-32 rounded-full bg-cyan-400/20 blur-3xl" />
-                  <div className="absolute -right-12 bottom-0 h-40 w-40 rounded-full bg-brand-gold/20 blur-3xl" />
-
-                  <div className="relative mx-auto flex h-full max-w-sm flex-col justify-between">
-                    <div className="rounded-[1.4rem] border border-white/10 bg-slate-900/80 p-4 shadow-lg shadow-cyan-950/20">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200/80">
-                          Custom loadout
-                        </span>
-                        <span className="rounded-full bg-cyan-400/15 px-3 py-1 text-xs font-semibold text-cyan-100">
-                          Live concept
-                        </span>
-                      </div>
-                      <div className="mt-4 grid grid-cols-[1fr_auto] gap-4">
-                        <div className="space-y-3">
-                          <div className="h-3 rounded-full bg-cyan-300/80" />
-                          <div className="h-3 w-5/6 rounded-full bg-slate-600" />
-                          <div className="h-3 w-4/6 rounded-full bg-slate-700" />
-                        </div>
-                        <div className="grid h-20 w-20 place-items-center rounded-2xl border border-cyan-300/30 bg-slate-950">
-                          <div className="grid h-12 w-12 place-items-center rounded-xl border border-cyan-300/30 bg-cyan-400/10">
-                            <Cpu className="h-6 w-6 text-cyan-200" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mx-auto mt-6 grid w-[15rem] grid-cols-[1fr_0.8fr] gap-4">
-                      <div className="rounded-[1.5rem] border border-white/10 bg-slate-900/80 p-4">
-                        <div className="mx-auto grid h-24 w-24 place-items-center rounded-[1.4rem] border border-cyan-300/30 bg-[radial-gradient(circle_at_30%_30%,rgba(34,211,238,0.22),transparent_35%),#0f172a]">
-                          <div className="grid h-14 w-14 place-items-center rounded-2xl border border-cyan-300/30 bg-slate-950">
-                            <Sparkles className="h-7 w-7 text-cyan-200" />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="space-y-3 self-center">
-                        <div className="h-9 rounded-xl border border-white/10 bg-slate-900/80" />
-                        <div className="h-9 rounded-xl border border-white/10 bg-slate-900/65" />
-                        <div className="h-9 rounded-xl border border-cyan-300/20 bg-cyan-400/10" />
-                      </div>
-                    </div>
-
-                    <p className="mt-6 text-center text-sm font-medium uppercase tracking-[0.24em] text-cyan-100/85">
-                      Pick parts. Tune power. Build your own.
+            ) : (
+              <div className="w-full rounded-lg border border-white/15 bg-white/95 p-5 text-slate-950 shadow-[0_24px_60px_rgba(0,0,0,0.18)]">
+                <div className="grid aspect-[16/10] place-items-center rounded-lg border border-dashed border-slate-300 bg-slate-50 text-center">
+                  <div>
+                    <PackageSearch className="mx-auto h-8 w-8 text-slate-400" />
+                    <p className="mt-3 text-sm font-semibold text-slate-700">
+                      Catalog ready
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Browse departments to see live inventory.
                     </p>
                   </div>
                 </div>
+                <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">
+                  Live inventory
+                </p>
+                <h2 className="mt-2 text-xl font-semibold leading-7">
+                  Real products, stock, and pricing from the backend.
+                </h2>
+                <Link
+                  to="/category/pc-components"
+                  className="mt-5 inline-flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white"
+                >
+                  Browse catalog
+                </Link>
               </div>
-            </div>
+            )}
           </div>
-          </section>
+        </div>
+      </section>
 
-          <section className="mt-8">
-          <div className="flex items-end justify-between gap-4">
+      <section className="mt-5 grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_24rem]">
+        <div className="grid items-start gap-3 md:grid-cols-3">
+          <TrustBadge icon={Truck} label="Fast shipping" detail="Clear shipping labels before checkout." />
+          <TrustBadge icon={ShieldCheck} label="Warranty visibility" detail="Coverage shown on product pages." tone="green" />
+          <TrustBadge icon={PackageSearch} label="Compare before buying" detail="Save up to four products for side-by-side review." />
+        </div>
+
+        <Link
+          to="/custom-pc-creator"
+          className="group rounded-lg border border-slate-200 bg-[#111827] p-5 text-white shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-300"
+        >
+          <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-3xl font-bold uppercase tracking-[0.16em] text-brand-ink sm:text-4xl">
-                Featured categories
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-300">
+                Build studio
               </p>
+              <h2 className="mt-2 text-2xl font-semibold">Custom PC Creator</h2>
+            </div>
+            <div className="grid h-11 w-11 place-items-center rounded-md bg-cyan-400 text-slate-950">
+              <SlidersHorizontal className="h-5 w-5" />
             </div>
           </div>
+          <p className="mt-3 text-sm leading-6 text-slate-300">
+            Choose CPU, GPU, memory, storage, cooling, case, and power with a live total.
+          </p>
+          <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-4 text-sm font-semibold">
+            <span className="inline-flex items-center gap-2 text-slate-200">
+              <Gauge className="h-4 w-4 text-cyan-300" />
+              Compatibility-first workflow
+            </span>
+            <ChevronRight className="h-4 w-4 transition group-hover:translate-x-1" />
+          </div>
+        </Link>
+      </section>
 
-          <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+      <section className="mt-10">
+        <SectionHeader
+          eyebrow="Departments"
+          title="Featured categories"
+          description="Start from the category that matches your build or setup."
+        />
+
+        {homepageCards.length > 0 ? (
+          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {homepageCards.map((cat) => {
               const Icon = resolveIcon(cat.icon);
 
@@ -488,76 +275,79 @@ export function HomePage() {
                 <Link
                   key={cat.category_id}
                   to={`/category/${cat.slug}`}
-                  className="group block overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/75 p-4 shadow-[0_18px_40px_rgba(7,17,31,0.08)] transition duration-200 hover:-translate-y-1 hover:border-cyan-300/40 hover:shadow-[0_26px_48px_rgba(7,17,31,0.12)]"
+                  className="group overflow-hidden rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:border-cyan-300 hover:shadow-md"
                   aria-label={`Open ${cat.label} category`}
                 >
-                  <div className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-slate-950/90">
+                  <div className="overflow-hidden rounded-md border border-slate-200 bg-slate-950">
                     <CategoryArtwork type={cat.name} />
                   </div>
-
                   <div className="mt-4 flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-xl font-semibold text-brand-ink">{cat.label}</h3>
-                      <p className="mt-2 text-sm leading-6 text-slate-600">
+                      <h3 className="text-lg font-semibold text-slate-950 group-hover:text-cyan-700">
+                        {cat.label}
+                      </h3>
+                      <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">
                         {cat.description || `Browse ${cat.label.toLowerCase()}.`}
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-cyan-100 bg-cyan-50 p-3 text-brand-accent">
+                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-cyan-50 text-cyan-700">
                       <Icon className="h-5 w-5" />
                     </div>
                   </div>
-
-                  <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-brand-accent transition group-hover:text-brand-ink">
-                    Explore category
-                    <ChevronRight className="h-4 w-4" />
-                  </span>
                 </Link>
               );
             })}
           </div>
-          </section>
+        ) : (
+          <EmptyState
+            title="Departments are unavailable."
+            description="The storefront can still render, but categories could not be loaded from the backend."
+          />
+        )}
+      </section>
 
-          <section className="mt-14">
-            <div className="flex items-end justify-between gap-4 px-1">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.32em] text-brand-accent/80">
-                  Picked for you
-                </p>
-                <p className="mt-2 text-3xl font-semibold tracking-tight text-brand-ink sm:text-4xl">
-                  Recommended
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={fetchRecommendations}
-                disabled={recsLoading}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200/60 bg-white/80 px-4 py-2 text-sm font-semibold text-brand-accent shadow-sm backdrop-blur-sm transition hover:border-cyan-300/40 hover:bg-white hover:shadow-md disabled:opacity-50"
-              >
-                <RefreshCw className={`h-4 w-4 ${recsLoading ? "animate-spin" : ""}`} />
-                Refresh
-              </button>
-            </div>
+      <section className="mt-10">
+        <SectionHeader
+          eyebrow="Recommended"
+          title="Products to start with"
+          description="A rotating sample from the live catalog."
+          actions={
+            <button
+              type="button"
+              onClick={fetchRecommendations}
+              disabled={recsLoading}
+              className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:text-cyan-700 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${recsLoading ? "animate-spin" : ""}`} />
+              Refresh
+            </button>
+          }
+        />
 
-            {recsLoading ? (
-              <div className="mt-8 flex justify-center">
-                <LoaderCircle className="h-8 w-8 animate-spin text-brand-accent" />
-              </div>
-            ) : recommendations.length > 0 ? (
-              <RecommendationCarousel>
-                {recommendations.map((product) => (
-                  <div key={product.product_id} className="w-[82vw] shrink-0 py-3 sm:w-[21rem]">
-                    <ProductCard product={product} compact floating />
-                  </div>
-                ))}
-              </RecommendationCarousel>
-            ) : (
-              <p className="mt-8 text-center text-sm text-slate-500">
-                No recommendations available right now.
-              </p>
-            )}
-          </section>
-        </main>
-      </div>
-    </div>
+        {recsLoading ? (
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div key={index} className="h-80 animate-pulse rounded-lg border border-slate-200 bg-white" />
+            ))}
+          </div>
+        ) : recommendations.length > 0 ? (
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {recommendations.map((product) => (
+              <ProductCard
+                key={product.product_id ?? product.id ?? product.name}
+                product={product}
+                variant="compact"
+              />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon={Search}
+            title="No recommendations available."
+            description="Recommendations will appear here when the backend catalog is available."
+          />
+        )}
+      </section>
+    </StorefrontShell>
   );
 }

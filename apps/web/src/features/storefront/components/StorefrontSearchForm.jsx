@@ -22,13 +22,13 @@ export function StorefrontSearchForm({
 }) {
   const labelClassName =
     variant === "light"
-      ? "flex h-14 items-center gap-3 rounded-[1.4rem] border border-slate-200 bg-slate-50 px-4 text-slate-700 shadow-sm"
-      : "flex h-14 items-center gap-3 rounded-[1.4rem] border border-white/10 bg-white/5 px-4 text-slate-300 shadow-lg shadow-cyan-950/20";
+      ? "flex h-12 min-w-0 items-center gap-3 rounded-lg border border-slate-300 bg-white px-4 text-slate-700 shadow-sm transition focus-within:border-cyan-500 focus-within:ring-4 focus-within:ring-cyan-100"
+      : "flex h-12 min-w-0 items-center gap-3 rounded-lg border border-slate-700 bg-slate-900 px-4 text-slate-200 shadow-sm transition focus-within:border-cyan-400 focus-within:ring-4 focus-within:ring-cyan-400/10";
 
   const inputClassName =
     variant === "light"
-      ? "h-full w-full bg-transparent text-base outline-none placeholder:text-slate-400 sm:text-sm"
-      : "h-full w-full bg-transparent text-base outline-none placeholder:text-slate-500 sm:text-sm";
+      ? "h-full min-w-0 w-full bg-transparent text-base outline-none placeholder:text-slate-400 sm:text-sm"
+      : "h-full min-w-0 w-full bg-transparent text-base outline-none placeholder:text-slate-500 sm:text-sm";
 
   function handleSubmit(event) {
     onSubmit(event);
@@ -42,9 +42,9 @@ export function StorefrontSearchForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className={className}>
+    <form onSubmit={handleSubmit} className={`min-w-0 ${className}`}>
       <label className={labelClassName}>
-        <Search className="h-5 w-5 text-cyan-200" />
+        <Search className={`h-5 w-5 shrink-0 ${variant === "light" ? "text-cyan-700" : "text-cyan-300"}`} />
         <input
           ref={inputRef}
           type="search"

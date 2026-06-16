@@ -17,6 +17,8 @@ import {
   getPaymentErrors,
 } from "../utils/payment";
 
+const CHECKOUT_STEPS = ["Cart", "Details", "Payment", "Review"];
+
 const INITIAL_FORM = {
   firstName: "",
   lastName: "",
@@ -271,13 +273,13 @@ export function CheckoutPage() {
   return (
     <StorefrontPageShell
       currentStep="checkout"
-      description="Enter billing and payment details with the same secure, polished flow shoppers expect from a production checkout."
+      description="Complete contact, billing, and card details before the final order review."
       eyebrow="Payment"
-      title="Billing and card details for a secure checkout."
+      title="Secure checkout."
     >
       {stockChanges.length > 0 ? (
         <div
-          className="mb-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+          className="mb-5 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
           role="status"
         >
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -303,18 +305,78 @@ export function CheckoutPage() {
       ) : null}
 
       {hasItems ? (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.9fr)]">
+        <>
+          <section className="mb-5 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="grid gap-3 sm:grid-cols-4">
+              {CHECKOUT_STEPS.map((step, index) => {
+                const isComplete = index === 0;
+                const isCurrent = index === 1 || index === 2;
+
+                return (
+                  <div
+                    key={step}
+                    className={`flex items-center gap-3 rounded-md border px-3 py-2.5 ${
+                      isComplete
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                        : isCurrent
+                          ? "border-cyan-200 bg-cyan-50 text-cyan-800"
+                          : "border-slate-200 bg-slate-50 text-slate-500"
+                    }`}
+                  >
+                    <span
+                      className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-bold ${
+                        isComplete
+                          ? "bg-emerald-600 text-white"
+                          : isCurrent
+                            ? "bg-cyan-600 text-white"
+                            : "bg-white text-slate-500"
+                      }`}
+                    >
+                      {isComplete ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
+                    </span>
+                    <span className="text-sm font-semibold">{step}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 grid gap-3 border-t border-slate-200 pt-4 sm:grid-cols-3">
+              <div className="flex items-start gap-3">
+                <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-cyan-700" />
+                <p className="text-sm text-slate-600">
+                  <span className="font-semibold text-slate-950">Encrypted card entry.</span>{" "}
+                  Payment details are validated before order creation.
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
+                <p className="text-sm text-slate-600">
+                  <span className="font-semibold text-slate-950">Warranty preserved.</span>{" "}
+                  Coverage follows every eligible product into checkout.
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <CreditCard className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
+                <p className="text-sm text-slate-600">
+                  <span className="font-semibold text-slate-950">Review before charge.</span>{" "}
+                  You place the order only after the form passes validation.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
           <form id="checkout-form" className="space-y-6" onSubmit={handleSubmit}>
-            <section className="rounded-[2rem] border border-slate-200/80 bg-white/92 p-6 shadow-[0_20px_60px_rgba(7,17,31,0.1)]">
+            <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <div className="flex items-start gap-4">
-                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-cyan-400/15 text-brand-accent">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-cyan-50 text-cyan-700">
                   <ShieldCheck className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">
                     Billing contact
                   </p>
-                  <h2 className="mt-2 text-2xl font-semibold text-brand-ink">
+                  <h2 className="mt-2 text-2xl font-semibold text-slate-950">
                     Who should receive the order updates?
                   </h2>
                 </div>
@@ -362,16 +424,16 @@ export function CheckoutPage() {
               </div>
             </section>
 
-            <section className="rounded-[2rem] border border-slate-200/80 bg-white/92 p-6 shadow-[0_20px_60px_rgba(7,17,31,0.1)]">
+            <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <div className="flex items-start gap-4">
-                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-brand-gold/15 text-amber-700">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-amber-50 text-amber-700">
                   <LockKeyhole className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">
                     Billing address
                   </p>
-                  <h2 className="mt-2 text-2xl font-semibold text-brand-ink">
+                  <h2 className="mt-2 text-2xl font-semibold text-slate-950">
                     Use the address tied to your payment method.
                   </h2>
                 </div>
@@ -445,17 +507,17 @@ export function CheckoutPage() {
               </div>
             </section>
 
-            <section className="rounded-[2rem] border border-slate-200/80 bg-white/92 p-6 shadow-[0_20px_60px_rgba(7,17,31,0.1)]">
+            <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex items-start gap-4">
-                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-400/15 text-emerald-700">
+                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-emerald-50 text-emerald-700">
                     <CreditCard className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">
                       Payment method
                     </p>
-                    <h2 className="mt-2 text-2xl font-semibold text-brand-ink">
+                    <h2 className="mt-2 text-2xl font-semibold text-slate-950">
                       Card details
                     </h2>
                   </div>
@@ -473,7 +535,7 @@ export function CheckoutPage() {
                 </div>
               </div>
 
-              <div className="mt-6 rounded-[1.75rem] border border-slate-200 bg-[linear-gradient(135deg,#0f172a,#082f49)] p-5 text-white shadow-[0_18px_50px_rgba(7,17,31,0.18)]">
+              <div className="mt-6 rounded-lg border border-slate-800 bg-slate-950 p-5 text-white shadow-sm">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-200/75">
@@ -550,11 +612,11 @@ export function CheckoutPage() {
               </div>
             </section>
 
-            <section className="rounded-[2rem] border border-slate-200/80 bg-white/92 p-6 shadow-[0_20px_60px_rgba(7,17,31,0.1)]">
+            <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <label className="flex items-start gap-3">
                 <input
                   checked={form.acceptTerms}
-                  className="mt-1 h-4 w-4 rounded border-slate-300 text-brand-accent"
+                  className="mt-1 h-4 w-4 rounded border-slate-300 text-cyan-600"
                   id="checkout-terms"
                   onBlur={handleBlur("acceptTerms")}
                   onChange={handleChange("acceptTerms")}
@@ -573,7 +635,7 @@ export function CheckoutPage() {
 
               {submitState.message ? (
                 <div
-                  className={`mt-6 flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm ${
+                  className={`mt-6 flex items-start gap-3 rounded-md border px-4 py-3 text-sm ${
                     submitState.kind === "success"
                       ? "border-emerald-200 bg-emerald-50 text-emerald-900"
                       : "border-rose-200 bg-rose-50 text-rose-900"
@@ -595,7 +657,7 @@ export function CheckoutPage() {
             action={
               <Button
                 disabled={isSubmitting}
-                className="w-full gap-2 bg-brand-ink text-white hover:bg-slate-900"
+                className="w-full gap-2 bg-slate-950 text-white hover:bg-slate-800"
                 form="checkout-form"
                 type="submit"
               >
@@ -603,13 +665,14 @@ export function CheckoutPage() {
               </Button>
             }
           />
-        </div>
+          </div>
+        </>
       ) : (
-        <section className="rounded-[2rem] border border-dashed border-slate-300 bg-white/88 px-6 py-10 text-center shadow-[0_20px_60px_rgba(7,17,31,0.08)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
+        <section className="rounded-lg border border-dashed border-slate-300 bg-white px-6 py-10 text-center shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">
             No products selected
           </p>
-          <h2 className="mt-4 text-3xl font-semibold text-brand-ink">
+          <h2 className="mt-4 text-3xl font-semibold text-slate-950">
             Add items to your cart before payment.
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
@@ -620,13 +683,13 @@ export function CheckoutPage() {
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               to="/cart"
-              className="inline-flex items-center justify-center rounded-2xl bg-slate-200 px-5 py-3 text-sm font-semibold text-brand-ink transition hover:bg-slate-300"
+              className="inline-flex items-center justify-center rounded-md bg-slate-200 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-300"
             >
               Return to cart
             </Link>
             <Link
               to="/"
-              className="inline-flex items-center justify-center rounded-2xl bg-brand-accent px-5 py-3 text-sm font-semibold text-brand-ink transition hover:bg-brand-glow"
+              className="inline-flex items-center justify-center rounded-md bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               Continue shopping
             </Link>

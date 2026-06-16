@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { http } from "../../../lib/http";
 import { addProductToCart, formatCurrency } from "../../cart/data/cartStorage";
+import { ProductImageFrame } from "../components/RetailPrimitives";
 import { StorefrontShell } from "../components/StorefrontShell";
 import { useCategories } from "../context/CategoriesContext";
 
@@ -371,15 +372,15 @@ function ComponentTypeButton({ count, isActive, isSelected, onClick, slot }) {
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-h-[5rem] min-w-0 items-center gap-3 rounded-[1.25rem] border p-3 text-left transition ${
+      className={`flex min-h-[5rem] min-w-0 items-center gap-3 rounded-lg border p-3 text-left transition ${
         isActive
-          ? "border-cyan-300 bg-cyan-50 text-brand-ink shadow-[0_14px_34px_rgba(8,145,178,0.12)]"
-          : "border-slate-200 bg-white/85 text-slate-700 hover:border-cyan-300/50 hover:bg-white"
+          ? "border-cyan-300 bg-cyan-50 text-slate-950 shadow-sm"
+          : "border-slate-200 bg-white text-slate-700 hover:border-cyan-300 hover:bg-slate-50"
       }`}
     >
       <span
-        className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${
-          isActive ? "bg-cyan-100 text-brand-accent" : "bg-slate-50 text-slate-500"
+        className={`grid h-11 w-11 shrink-0 place-items-center rounded-md ${
+          isActive ? "bg-cyan-100 text-cyan-700" : "bg-slate-50 text-slate-500"
         }`}
       >
         <Icon className="h-5 w-5" />
@@ -394,7 +395,7 @@ function ComponentTypeButton({ count, isActive, isSelected, onClick, slot }) {
           ) : null}
         </span>
         <span className="mt-1 block truncate text-xs text-slate-500">{slot.label}</span>
-        <span className="mt-1 block text-xs font-semibold text-brand-accent">
+        <span className="mt-1 block text-xs font-semibold text-cyan-700">
           {count} {count === 1 ? "product" : "products"}
         </span>
       </span>
@@ -412,25 +413,12 @@ function ComponentProductCard({ isSelected, onSelect, product, slot }) {
 
   return (
     <article
-      className={`overflow-hidden rounded-[1.75rem] border bg-white/85 shadow-[0_18px_45px_rgba(7,17,31,0.08)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_24px_55px_rgba(7,17,31,0.12)] ${
-        isSelected ? "border-cyan-300 ring-2 ring-cyan-200/70" : "border-slate-200/80"
+      className={`flex h-full flex-col overflow-hidden rounded-lg border bg-white shadow-sm transition hover:border-cyan-300 hover:shadow-md ${
+        isSelected ? "border-cyan-300 ring-2 ring-cyan-100" : "border-slate-200"
       }`}
     >
-      <Link to={productUrl} className="relative block">
-        <div className="aspect-[4/3] overflow-hidden bg-[linear-gradient(135deg,#e0f2fe_0%,#f8fafc_48%,#fff7ed_100%)]">
-          {product.image_url ? (
-            <img
-              src={product.image_url}
-              alt={product.name}
-              className="h-full w-full object-cover"
-              loading="lazy"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center px-6 text-center text-sm font-medium text-slate-500">
-              Image unavailable
-            </div>
-          )}
-        </div>
+      <Link to={productUrl} className="relative block p-3 pb-0">
+        <ProductImageFrame src={product.image_url} alt={product.name} className="p-4" />
 
         {hasDiscount ? (
           <span className="absolute left-3 top-3 rounded-full bg-rose-600 px-2.5 py-1 text-xs font-bold text-white shadow-sm">
@@ -446,37 +434,37 @@ function ComponentProductCard({ isSelected, onSelect, product, slot }) {
         ) : null}
       </Link>
 
-      <div className="space-y-4 p-4 sm:p-5">
+      <div className="flex flex-1 flex-col space-y-4 p-4">
         <div className="flex flex-col items-start justify-between gap-3 min-[420px]:flex-row min-[420px]:gap-4">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-cyan-700">
               {slot.label}
             </p>
             <Link to={productUrl} className="block">
-              <h2 className="mt-2 break-words text-lg font-semibold text-brand-ink transition hover:text-brand-accent sm:text-xl">
+              <h2 className="mt-2 line-clamp-2 min-h-[3rem] break-words text-lg font-semibold text-slate-950 transition hover:text-cyan-700">
                 {product.name}
               </h2>
             </Link>
           </div>
-          <div className="shrink-0 rounded-2xl bg-cyan-50 px-3 py-2 text-left min-[420px]:text-right">
+          <div className="shrink-0 rounded-md bg-cyan-50 px-3 py-2 text-left min-[420px]:text-right">
             {hasDiscount ? (
               <>
                 <p className="text-xs text-slate-400 line-through">
                   {formatCurrency(originalPrice)}
                 </p>
-                <p className="text-sm font-semibold text-brand-accent">
+                <p className="text-sm font-semibold text-cyan-700">
                   {formatCurrency(effectivePrice)}
                 </p>
               </>
             ) : (
-              <p className="text-sm font-semibold text-brand-accent">
+              <p className="text-sm font-semibold text-cyan-700">
                 {formatCurrency(originalPrice)}
               </p>
             )}
           </div>
         </div>
 
-        <p className="line-clamp-4 text-sm leading-6 text-slate-600">
+        <p className="line-clamp-2 text-sm leading-6 text-slate-600">
           {product.description || "Description not available."}
         </p>
 
@@ -497,12 +485,12 @@ function ComponentProductCard({ isSelected, onSelect, product, slot }) {
           type="button"
           onClick={onSelect}
           disabled={outOfStock}
-          className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition sm:w-auto ${
+          className={`mt-auto inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold transition ${
             outOfStock
               ? "cursor-not-allowed bg-slate-200 text-slate-500"
               : isSelected
                 ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
-                : "bg-brand-accent text-brand-ink hover:bg-brand-glow"
+                : "bg-slate-950 text-white hover:bg-slate-800"
           }`}
         >
           {outOfStock ? (
@@ -555,10 +543,10 @@ function CompatibilityPanel({ selectedBySlot }) {
   ];
 
   return (
-    <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-4">
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
       <div className="flex items-center gap-2">
-        <Sparkles className="h-4 w-4 text-brand-accent" />
-        <p className="text-sm font-semibold text-brand-ink">Compatibility</p>
+        <Sparkles className="h-4 w-4 text-cyan-700" />
+        <p className="text-sm font-semibold text-slate-950">Compatibility</p>
       </div>
 
       <div className="mt-4 space-y-3">
@@ -572,7 +560,7 @@ function CompatibilityPanel({ selectedBySlot }) {
               {check.ok ? <Check className="h-3.5 w-3.5" /> : <Zap className="h-3.5 w-3.5" />}
             </span>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-brand-ink">{check.label}</p>
+              <p className="text-sm font-semibold text-slate-950">{check.label}</p>
               <p className="mt-0.5 text-xs leading-5 text-slate-500">{check.detail}</p>
             </div>
           </div>
@@ -720,50 +708,50 @@ export function CustomPcCreatorPage() {
 
   return (
     <StorefrontShell mainClassName="max-w-[90rem]">
-      <header className="rounded-[2rem] border border-slate-200/80 bg-white/95 p-6 shadow-[0_28px_80px_rgba(7,17,31,0.08)] sm:p-8">
+      <header className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-300/50 hover:text-brand-ink"
+          className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:text-cyan-700"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to main page
+          Back to store
         </Link>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_0.75fr] lg:items-end">
+        <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_0.75fr] lg:items-end">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full bg-cyan-50 px-4 py-2 text-sm font-semibold text-brand-accent">
+            <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">
               <Cpu className="h-4 w-4" />
               Custom PC Creator
             </div>
-            <h1 className="mt-4 break-words text-3xl font-semibold tracking-tight text-brand-ink sm:text-4xl">
+            <h1 className="mt-2 break-words text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
               Build a custom PC from live catalog components.
             </h1>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
               Pick one part for each build category, review the total, and move the selected
               components into your cart together.
             </p>
           </div>
 
-          <div className="grid gap-3 rounded-[1.5rem] border border-cyan-100 bg-cyan-50/70 p-4 sm:grid-cols-3">
+          <div className="grid gap-3 rounded-lg border border-cyan-100 bg-cyan-50 p-3 sm:grid-cols-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-accent">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-cyan-700">
                 Required
               </p>
-              <p className="mt-1 text-2xl font-semibold text-brand-ink">
+              <p className="mt-1 text-xl font-semibold text-slate-950">
                 {selectedRequiredCount}/{requiredSlots.length}
               </p>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-accent">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-cyan-700">
                 Parts
               </p>
-              <p className="mt-1 text-2xl font-semibold text-brand-ink">{selectedProducts.length}</p>
+              <p className="mt-1 text-xl font-semibold text-slate-950">{selectedProducts.length}</p>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-accent">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-cyan-700">
                 Total
               </p>
-              <p className="mt-1 text-2xl font-semibold text-brand-ink">
+              <p className="mt-1 text-xl font-semibold text-slate-950">
                 {formatCurrency(subtotal)}
               </p>
             </div>
@@ -771,20 +759,20 @@ export function CustomPcCreatorPage() {
         </div>
       </header>
 
-      <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-start">
+      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-start">
         <div className="min-w-0 space-y-5">
           {isLoading ? (
-            <div className="rounded-[2rem] border border-slate-200/80 bg-white/85 px-6 py-12 text-center shadow-[0_18px_45px_rgba(7,17,31,0.08)]">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-cyan-50 text-brand-accent">
+            <div className="rounded-lg border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg bg-cyan-50 text-cyan-700">
                 <RefreshCcw className="h-6 w-6 animate-spin" />
               </div>
-              <p className="mt-4 text-lg font-semibold text-brand-ink">Loading build components...</p>
+              <p className="mt-4 text-lg font-semibold text-slate-950">Loading build components...</p>
               <p className="mt-2 text-sm text-slate-600">Fetching available parts from the catalog.</p>
             </div>
           ) : null}
 
           {!isLoading && errorMessage ? (
-            <div className="rounded-[2rem] border border-rose-200 bg-rose-50 px-6 py-10 text-center text-rose-900 shadow-[0_18px_45px_rgba(7,17,31,0.08)]">
+            <div className="rounded-lg border border-rose-200 bg-rose-50 px-6 py-10 text-center text-rose-900 shadow-sm">
               <p className="text-lg font-semibold">We could not load custom PC parts.</p>
               <p className="mt-2 text-sm">{errorMessage}</p>
             </div>
@@ -793,21 +781,21 @@ export function CustomPcCreatorPage() {
           {!isLoading && !errorMessage ? (
             <>
               {products.length === 0 ? (
-                <div className="rounded-[2rem] border border-slate-200/80 bg-white/85 px-6 py-10 text-center shadow-[0_18px_45px_rgba(7,17,31,0.08)]">
-                  <p className="text-lg font-semibold text-brand-ink">No build components found.</p>
+                <div className="rounded-lg border border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
+                  <p className="text-lg font-semibold text-slate-950">No build components found.</p>
                   <p className="mt-2 text-sm text-slate-600">
                     The catalog loaded successfully but did not return products that match PC build slots.
                   </p>
                 </div>
               ) : (
                 <>
-                  <section className="rounded-[2rem] border border-slate-200/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(7,17,31,0.06)] sm:p-6">
+                  <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">
                           Component type
                         </p>
-                        <h2 className="mt-2 text-2xl font-semibold text-brand-ink">
+                        <h2 className="mt-2 text-2xl font-semibold text-slate-950">
                           Choose a category to browse parts.
                         </h2>
                       </div>
@@ -830,19 +818,19 @@ export function CustomPcCreatorPage() {
                     </div>
                   </section>
 
-                  <section className="rounded-[2rem] border border-slate-200/80 bg-white/80 p-5 shadow-[0_18px_45px_rgba(7,17,31,0.06)] sm:p-6">
+                  <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                       <div className="flex min-w-0 items-start gap-3">
-                        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-cyan-50 text-brand-accent">
+                        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-md bg-cyan-50 text-cyan-700">
                           <activeSlot.Icon className="h-5 w-5" />
                         </div>
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h2 className="break-words text-2xl font-semibold text-brand-ink">
+                            <h2 className="break-words text-2xl font-semibold text-slate-950">
                               {activeSlot.label}
                             </h2>
                             {activeSlot.required ? (
-                              <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-brand-accent">
+                              <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-cyan-700">
                                 Required
                               </span>
                             ) : (
@@ -858,15 +846,15 @@ export function CustomPcCreatorPage() {
                       </div>
 
                       {selectedBySlot[activeSlot.id] ? (
-                        <div className="rounded-2xl border border-cyan-100 bg-cyan-50 px-4 py-3 text-sm text-slate-700">
-                          <span className="font-semibold text-brand-ink">Selected:</span>{" "}
+                        <div className="rounded-md border border-cyan-100 bg-cyan-50 px-4 py-3 text-sm text-slate-700">
+                          <span className="font-semibold text-slate-950">Selected:</span>{" "}
                           {selectedBySlot[activeSlot.id].name}
                         </div>
                       ) : null}
                     </div>
 
                     {activeProducts.length > 0 ? (
-                      <div className="mt-6 grid gap-6 sm:grid-cols-2 2xl:grid-cols-3">
+                      <div className="mt-6 grid auto-rows-fr gap-4 sm:grid-cols-2 2xl:grid-cols-3">
                         {activeProducts.map((product) => {
                           const id = String(getProductId(product));
 
@@ -882,8 +870,8 @@ export function CustomPcCreatorPage() {
                         })}
                       </div>
                     ) : (
-                      <div className="mt-6 rounded-[2rem] border border-slate-200 bg-white/85 px-6 py-10 text-center">
-                        <p className="text-lg font-semibold text-brand-ink">
+                      <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 px-6 py-10 text-center">
+                        <p className="text-lg font-semibold text-slate-950">
                           No {activeSlot.label.toLowerCase()} products found.
                         </p>
                         <p className="mt-2 text-sm text-slate-600">
@@ -898,13 +886,13 @@ export function CustomPcCreatorPage() {
           ) : null}
         </div>
 
-        <aside className="rounded-[2rem] border border-slate-200/80 bg-white/95 p-5 shadow-[0_28px_80px_rgba(7,17,31,0.08)] xl:sticky xl:top-24">
+        <aside className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm xl:sticky xl:top-24">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">
                 Build summary
               </p>
-              <h2 className="mt-2 text-2xl font-semibold text-brand-ink">
+              <h2 className="mt-2 text-2xl font-semibold text-slate-950">
                 {formatCurrency(subtotal)}
               </h2>
             </div>
@@ -912,7 +900,7 @@ export function CustomPcCreatorPage() {
               type="button"
               onClick={handleClearBuild}
               disabled={selectedProducts.length === 0}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Clear build"
               title="Clear build"
             >
@@ -928,22 +916,22 @@ export function CustomPcCreatorPage() {
               return (
                 <div
                   key={slot.id}
-                  className={`flex items-start gap-3 rounded-[1.25rem] border p-3 ${
+                  className={`flex items-start gap-3 rounded-md border p-3 ${
                     selectedProduct
                       ? "border-cyan-100 bg-cyan-50/50"
                       : "border-slate-200 bg-slate-50/70"
                   }`}
                 >
                   <div
-                    className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${
-                      selectedProduct ? "bg-cyan-100 text-brand-accent" : "bg-white text-slate-400"
+                    className={`grid h-9 w-9 shrink-0 place-items-center rounded-md ${
+                      selectedProduct ? "bg-cyan-100 text-cyan-700" : "bg-white text-slate-400"
                     }`}
                   >
                     <Icon className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-brand-ink">{slot.shortLabel}</p>
+                      <p className="text-sm font-semibold text-slate-950">{slot.shortLabel}</p>
                       {slot.required ? (
                         <span className="text-xs font-semibold text-slate-400">required</span>
                       ) : null}
@@ -953,7 +941,7 @@ export function CustomPcCreatorPage() {
                     </p>
                   </div>
                   {selectedProduct ? (
-                    <p className="shrink-0 text-sm font-semibold text-brand-accent">
+                    <p className="shrink-0 text-sm font-semibold text-cyan-700">
                       {formatCurrency(getEffectivePrice(selectedProduct))}
                     </p>
                   ) : null}
@@ -968,13 +956,13 @@ export function CustomPcCreatorPage() {
 
           <div className="mt-5 space-y-3 border-t border-slate-200 pt-5">
             {!isBuildComplete ? (
-              <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <p className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                 Select the required parts to complete the build.
               </p>
             ) : null}
 
             {hasUnavailableSelection ? (
-              <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              <p className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
                 Replace out-of-stock parts before adding this build to the cart.
               </p>
             ) : null}
@@ -982,7 +970,7 @@ export function CustomPcCreatorPage() {
             {isAdded ? (
               <Link
                 to="/cart"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-100 px-5 py-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-200"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-emerald-100 px-5 py-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-200"
               >
                 <Check className="h-4 w-4" />
                 Review cart
@@ -992,7 +980,7 @@ export function CustomPcCreatorPage() {
                 type="button"
                 onClick={handleAddBuildToCart}
                 disabled={!isBuildComplete || hasUnavailableSelection}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-accent px-5 py-3 text-sm font-semibold text-brand-ink transition hover:bg-brand-glow disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
               >
                 <ShoppingCart className="h-4 w-4" />
                 Add build to cart

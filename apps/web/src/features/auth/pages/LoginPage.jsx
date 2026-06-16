@@ -90,7 +90,7 @@ export function LoginPage() {
       alternateLink={
         <p>
           New to SUtore?{" "}
-          <Link className="font-semibold text-brand-accent" to="/signup" state={{ from: location.state?.from }}>
+          <Link className="font-semibold text-cyan-700" to="/signup" state={{ from: location.state?.from }}>
             Create an account
           </Link>
         </p>
@@ -116,13 +116,13 @@ export function LoginPage() {
           onChange={handleChange("password")}
         />
 
-        <div className="flex flex-col gap-3 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
           <label className="flex items-center gap-3">
-            <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-brand-accent" />
+            <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-200" />
             Keep me signed in on this device
           </label>
           <Link
-            className="text-left font-semibold text-brand-accent"
+            className="text-left font-semibold text-cyan-700"
             to="/forgot-password"
             state={{ email: form.email, from: location.state?.from }}
           >
@@ -133,7 +133,7 @@ export function LoginPage() {
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="w-full gap-2 bg-brand-ink text-white hover:bg-slate-900"
+          className="w-full gap-2 rounded-md bg-slate-950 text-white hover:bg-slate-800"
         >
           {isSubmitting ? "Signing in..." : "Sign in"}
           <ArrowRight className="h-4 w-4" />
@@ -141,13 +141,13 @@ export function LoginPage() {
 
         {submitState.message ? (
           <div
-            className={`flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm ${statusClassName}`}
+            className={`flex items-start gap-3 rounded-md border px-4 py-3 text-sm ${statusClassName}`}
           >
             <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0" />
             <p>{submitState.message}</p>
           </div>
         ) : (
-          <div className="flex items-start gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+          <div className="flex items-start gap-3 rounded-md border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
             <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0" />
             <p>Secure sign-in gives you access to orders, saved products, and account details.</p>
           </div>

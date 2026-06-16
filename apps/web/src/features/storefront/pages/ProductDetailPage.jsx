@@ -18,8 +18,17 @@ import {
 import { http } from "../../../lib/http";
 import { useStoredUser } from "../../../lib/useStoredUser";
 import { addProductToCart } from "../../cart/data/cartStorage";
+import { CompareToggle } from "../context/CompareContext";
+import { RecentlyViewedRail, useRecentlyViewed } from "../context/RecentlyViewedContext";
+import {
+  PriceBlock,
+  ProductImageFrame,
+  StockBadge,
+  TrustBadge,
+} from "../components/RetailPrimitives";
 import { StorefrontShell } from "../components/StorefrontShell";
 import { useCategories } from "../context/CategoriesContext";
+import { formatItemTypeLabel, getProductImageTreatment } from "../utils/productPresentation";
 
 function formatPrice(price) {
   const numericPrice = Number(price);
@@ -130,6 +139,7 @@ export function ProductDetailPage() {
   const [editReviewComment, setEditReviewComment] = useState("");
   const [reviewUpdating, setReviewUpdating] = useState(false);
   const [reviewUpdateState, setReviewUpdateState] = useState({ kind: "idle", message: "" });
+  const { recordProduct } = useRecentlyViewed();
 
   async function fetchReviewData() {
     const [reviewsRes, summaryRes] = await Promise.all([
@@ -206,6 +216,12 @@ export function ProductDetailPage() {
       isActive = false;
     };
   }, [productId]);
+
+  useEffect(() => {
+    if (product) {
+      recordProduct(product);
+    }
+  }, [product, recordProduct]);
 
   useEffect(() => {
     if (!productId) {
@@ -306,10 +322,6 @@ export function ProductDetailPage() {
     ? Math.max(Math.floor(stockQuantity), 0)
     : 0;
   const isOutOfStock = !product || remainingStock <= 0;
-  const discount = product ? (Number(product.discount_percent) || 0) : 0;
-  const hasDiscount = discount > 0;
-  const originalPrice = product ? (Number(product.price) || 0) : 0;
-  const discountedPrice = product ? getDiscountedPrice(product) : 0;
   const currentVariant =
     variants.find((variant) => String(variant.product_id) === String(product?.product_id)) ??
     product;
@@ -328,30 +340,6 @@ export function ProductDetailPage() {
     "ram_capacity",
   );
   const hasVariantChoices = ramOptions.length > 1 || storageOptions.length > 1;
-
-  function getStockLabel() {
-    if (isOutOfStock) {
-      return "Out of stock";
-    }
-
-    if (remainingStock === 1) {
-      return "1 unit remaining";
-    }
-
-    return `${remainingStock} units remaining`;
-  }
-
-  function getStockClassName() {
-    if (isOutOfStock) {
-      return "border-rose-200 bg-rose-50 text-rose-700";
-    }
-
-    if (remainingStock <= 5) {
-      return "border-amber-200 bg-amber-50 text-amber-800";
-    }
-
-    return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  }
 
   function handleAddToCart() {
     if (isOutOfStock || !product) {
@@ -566,8 +554,9 @@ export function ProductDetailPage() {
       );
       if (match) return typeof match === "string" ? match : match.label;
     }
-    return product.item_type;
+    return formatItemTypeLabel(product.item_type);
   })();
+  const imageTreatment = product ? getProductImageTreatment(product) : { frameClassName: "", imageClassName: "" };
 
   const userAlreadyReviewed = Boolean(myReview);
   const publicReviews = myReview
@@ -601,32 +590,32 @@ export function ProductDetailPage() {
       <div className="mb-6">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-300/50 hover:text-brand-ink"
+          className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:text-cyan-700"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to main page
+          Back to store
         </Link>
       </div>
 
       {isLoading ? (
-        <div className="rounded-[2rem] border border-slate-200/80 bg-white/85 px-6 py-12 text-center shadow-[0_18px_45px_rgba(7,17,31,0.08)]">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-cyan-50 text-brand-accent">
+        <div className="rounded-lg border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg bg-cyan-50 text-cyan-700">
             <RefreshCcw className="h-6 w-6 animate-spin" />
           </div>
-          <p className="mt-4 text-lg font-semibold text-brand-ink">Loading product...</p>
+          <p className="mt-4 text-lg font-semibold text-slate-950">Loading product...</p>
         </div>
       ) : null}
 
       {!isLoading && errorMessage ? (
-        <div className="rounded-[2rem] border border-rose-200 bg-rose-50 px-6 py-10 text-center text-rose-900 shadow-[0_18px_45px_rgba(7,17,31,0.08)]">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-6 py-10 text-center text-rose-900 shadow-sm">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg bg-rose-100 text-rose-600">
             <XCircle className="h-6 w-6" />
           </div>
           <p className="mt-4 text-lg font-semibold">Product not found</p>
           <p className="mt-2 text-sm">{errorMessage}</p>
           <Link
             to="/"
-            className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-brand-accent px-5 py-3 text-sm font-semibold text-brand-ink transition hover:bg-brand-glow"
+            className="mt-6 inline-flex items-center gap-2 rounded-md bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
           >
             Continue shopping
           </Link>
@@ -635,39 +624,33 @@ export function ProductDetailPage() {
 
       {!isLoading && !errorMessage && product ? (
         <>
-          <div className="grid gap-8 lg:grid-cols-2">
-            <div className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/85 shadow-[0_28px_80px_rgba(7,17,31,0.08)]">
-              <div className="aspect-[4/3] overflow-hidden bg-[linear-gradient(135deg,#e0f2fe_0%,#f8fafc_48%,#fff7ed_100%)]">
-                {product.image_url ? (
-                  <img
-                    src={product.image_url}
-                    alt={product.name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center px-6 text-center text-sm font-medium text-slate-500">
-                    Image unavailable
-                  </div>
-                )}
-              </div>
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(24rem,0.95fr)] lg:items-start">
+            <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-[0_18px_45px_rgba(15,23,42,0.08)] lg:sticky lg:top-24">
+              <ProductImageFrame
+                src={product.image_url}
+                alt={product.name}
+                loading="eager"
+                className={`aspect-[4/3] ${imageTreatment.frameClassName || "bg-slate-50 p-5 sm:p-8"}`}
+                imageClassName={`${imageTreatment.imageClassName} drop-shadow-[0_20px_32px_rgba(15,23,42,0.16)]`}
+              />
             </div>
 
-            <div className="space-y-6">
-              <div className="rounded-[2rem] border border-slate-200/80 bg-white/85 p-6 shadow-[0_28px_80px_rgba(7,17,31,0.08)] sm:p-8">
+            <div className="space-y-4">
+              <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)] sm:p-6">
                 <div className="flex flex-wrap items-center gap-2">
                   {product.category ? (
-                    <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-brand-accent">
+                    <span className="text-xs font-semibold uppercase tracking-[0.12em] text-cyan-700">
                       {product.category}
                     </span>
                   ) : null}
                   {itemTypeLabel ? (
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
                       {itemTypeLabel}
                     </span>
                   ) : null}
                 </div>
 
-                <h1 className="mt-4 break-words text-3xl font-semibold tracking-tight text-brand-ink sm:text-4xl">
+                <h1 className="mt-3 break-words text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
                   {product.name}
                 </h1>
 
@@ -687,30 +670,15 @@ export function ProductDetailPage() {
                   </div>
                 ) : null}
 
-                <div className="mt-6">
-                  {hasDiscount ? (
-                    <div className="flex flex-col gap-3 min-[420px]:flex-row min-[420px]:items-center">
-                      <p className="text-3xl font-semibold text-brand-ink sm:text-4xl">
-                        {formatPrice(discountedPrice)}
-                      </p>
-                      <div>
-                        <p className="text-lg text-slate-400 line-through">{formatPrice(originalPrice)}</p>
-                        <span className="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700">
-                          {discount}% OFF
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-3xl font-semibold text-brand-ink sm:text-4xl">
-                      {formatPrice(originalPrice)}
-                    </p>
-                  )}
+                <div className="mt-6 flex flex-wrap items-end justify-between gap-4 border-t border-slate-200 pt-5">
+                  <PriceBlock product={product} size="lg" />
+                  <StockBadge product={product} />
                 </div>
 
                 {hasVariantChoices ? (
-                  <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-slate-50/80 p-4">
+                  <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-4">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-semibold text-brand-ink">Configuration</p>
+                      <p className="text-sm font-semibold text-slate-950">Configuration</p>
                       {variantsLoading ? (
                         <span className="text-xs font-semibold text-slate-400">Updating</span>
                       ) : null}
@@ -722,25 +690,17 @@ export function ProductDetailPage() {
                   </div>
                 ) : null}
 
-                <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <span
-                    className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] ${getStockClassName()}`}
-                  >
-                    {getStockLabel()}
-                  </span>
-                </div>
-
                 <div className="mt-6 flex flex-col gap-3 min-[420px]:flex-row min-[420px]:flex-wrap min-[420px]:items-center">
                   <button
                     type="button"
                     onClick={handleAddToCart}
                     disabled={isOutOfStock}
-                    className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-4 text-sm font-semibold transition min-[420px]:w-auto ${
+                    className={`inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-md px-6 text-sm font-semibold transition ${
                       isOutOfStock
                         ? "cursor-not-allowed bg-slate-200 text-slate-500"
                         : isAdded
                           ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
-                          : "bg-brand-accent text-brand-ink hover:bg-brand-glow"
+                          : "bg-slate-950 text-white hover:bg-slate-800"
                     }`}
                   >
                     <ShoppingCart className="h-4 w-4" />
@@ -755,10 +715,10 @@ export function ProductDetailPage() {
                     type="button"
                     onClick={handleToggleWishlist}
                     disabled={wishlistLoading}
-                    className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl border px-5 py-4 text-sm font-semibold transition min-[420px]:w-auto ${
+                    className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-md border px-5 text-sm font-semibold transition ${
                       isWishlisted
                         ? "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-cyan-300/50 hover:text-brand-ink"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-cyan-300 hover:text-cyan-700"
                     }`}
                   >
                     <Heart
@@ -766,11 +726,18 @@ export function ProductDetailPage() {
                     />
                     {isWishlisted ? "Saved" : "Save for later"}
                   </button>
+                  <CompareToggle product={product} />
+                </div>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  <TrustBadge label="Shipping" detail="Free over $1,200" icon={Truck} />
+                  <TrustBadge label="Warranty" detail={product.warranty_status ? "Covered" : "Not covered"} icon={ShieldCheck} tone="green" />
+                  <TrustBadge label="Returns" detail="Review before checkout" icon={RefreshCcw} tone="amber" />
                 </div>
               </div>
 
-              <div className="rounded-[2rem] border border-slate-200/80 bg-white/85 p-6 shadow-[0_18px_45px_rgba(7,17,31,0.06)] sm:p-8">
-                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
+              <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">
                   Product details
                 </p>
 
@@ -780,38 +747,38 @@ export function ProductDetailPage() {
 
                 <div className="mt-6 grid gap-4 sm:grid-cols-2">
                   {product.distributor ? (
-                    <div className="flex items-start gap-3 rounded-[1.25rem] border border-slate-200 bg-slate-50/80 p-4">
-                      <Box className="mt-0.5 h-4 w-4 shrink-0 text-brand-accent" />
+                    <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                      <Box className="mt-0.5 h-4 w-4 shrink-0 text-cyan-700" />
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Brand / Distributor</p>
-                        <p className="mt-1 text-sm font-semibold text-brand-ink">{product.distributor}</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Brand / Distributor</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-950">{product.distributor}</p>
                       </div>
                     </div>
                   ) : null}
 
                   {product.serial_number ? (
-                    <div className="flex items-start gap-3 rounded-[1.25rem] border border-slate-200 bg-slate-50/80 p-4">
-                      <Tag className="mt-0.5 h-4 w-4 shrink-0 text-brand-accent" />
+                    <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                      <Tag className="mt-0.5 h-4 w-4 shrink-0 text-cyan-700" />
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Serial number</p>
-                        <p className="mt-1 text-sm font-semibold text-brand-ink">{product.serial_number}</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Serial number</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-950">{product.serial_number}</p>
                       </div>
                     </div>
                   ) : null}
 
-                  <div className="flex items-start gap-3 rounded-[1.25rem] border border-slate-200 bg-slate-50/80 p-4">
-                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-accent" />
+                  <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-cyan-700" />
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Warranty</p>
-                      <p className="mt-1 text-sm font-semibold text-brand-ink">{product.warranty_status ? "Covered" : "Not covered"}</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Warranty</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-950">{product.warranty_status ? "Covered" : "Not covered"}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-3 rounded-[1.25rem] border border-slate-200 bg-slate-50/80 p-4">
-                    <Truck className="mt-0.5 h-4 w-4 shrink-0 text-brand-accent" />
+                  <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <Truck className="mt-0.5 h-4 w-4 shrink-0 text-cyan-700" />
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Shipping</p>
-                      <p className="mt-1 text-sm font-semibold text-brand-ink">Free over $1,200</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Shipping</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-950">Free over $1,200</p>
                     </div>
                   </div>
                 </div>
@@ -820,10 +787,10 @@ export function ProductDetailPage() {
           </div>
 
           {/* ── Reviews section ── */}
-          <div className="mt-10 rounded-[2rem] border border-slate-200/80 bg-white/85 p-6 shadow-[0_28px_80px_rgba(7,17,31,0.08)] sm:p-8">
+          <div className="mt-8 rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <div className="flex items-center gap-3">
-              <MessageSquare className="h-5 w-5 text-brand-accent" />
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
+              <MessageSquare className="h-5 w-5 text-cyan-700" />
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">
                 Customer reviews
               </p>
             </div>
@@ -832,7 +799,7 @@ export function ProductDetailPage() {
               <div className="mt-4 flex flex-col gap-3 min-[420px]:flex-row min-[420px]:items-center min-[420px]:gap-4">
                 <div className="flex items-center gap-2">
                   <StarRating rating={Math.round(reviewSummary.average_rating ?? 0)} size="h-6 w-6" />
-                  <span className="text-2xl font-semibold text-brand-ink">
+                  <span className="text-2xl font-semibold text-slate-950">
                     {reviewSummary.average_rating}
                   </span>
                 </div>
@@ -845,12 +812,12 @@ export function ProductDetailPage() {
             )}
 
             {myReview ? (
-              <div className="mt-6 rounded-[1.5rem] border border-cyan-200 bg-cyan-50/60 p-5">
+              <div className="mt-6 rounded-lg border border-cyan-200 bg-cyan-50/60 p-5">
                 <div className="flex flex-col gap-3 min-[420px]:flex-row min-[420px]:items-start min-[420px]:justify-between">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-3">
                       <StarRating rating={myReview.rating} size="h-4 w-4" />
-                      <span className="text-sm font-semibold text-brand-ink">
+                      <span className="text-sm font-semibold text-slate-950">
                         Your review
                       </span>
                       <span
@@ -868,7 +835,7 @@ export function ProductDetailPage() {
                     <button
                       type="button"
                       onClick={() => handleEditReview(myReview)}
-                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-200 bg-white text-brand-accent transition hover:border-cyan-300 hover:bg-cyan-50"
+                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-cyan-200 bg-white text-cyan-700 transition hover:border-cyan-300 hover:bg-cyan-50"
                       aria-label="Edit your review"
                       title="Edit your review"
                     >
@@ -902,7 +869,7 @@ export function ProductDetailPage() {
                         placeholder="Update your written review, or leave this blank to keep a rating only."
                         rows={4}
                         maxLength={2000}
-                        className="w-full rounded-[1.25rem] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-cyan-300"
+                        className="w-full rounded-md border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
                       />
                       <p className="mt-1.5 text-xs text-slate-500">
                         Updating a written comment sends it back to product manager approval.
@@ -910,7 +877,7 @@ export function ProductDetailPage() {
                     </div>
 
                     {reviewUpdateState.kind === "error" ? (
-                      <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                      <p className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
                         {reviewUpdateState.message}
                       </p>
                     ) : null}
@@ -920,14 +887,14 @@ export function ProductDetailPage() {
                         type="button"
                         onClick={handleCancelEditReview}
                         disabled={reviewUpdating}
-                        className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-cyan-300/50 hover:text-brand-ink disabled:opacity-50"
+                        className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-cyan-300 hover:text-cyan-700 disabled:opacity-50"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
                         disabled={reviewUpdating}
-                        className="inline-flex items-center justify-center rounded-2xl bg-brand-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-900 disabled:opacity-50"
+                        className="inline-flex items-center justify-center rounded-md bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
                       >
                         {reviewUpdating ? "Updating..." : "Update"}
                       </button>
@@ -946,7 +913,7 @@ export function ProductDetailPage() {
                 )}
 
                 {reviewUpdateState.kind === "success" && editingReviewId !== myReview.review_id ? (
-                  <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                  <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                     {reviewUpdateState.message}
                   </div>
                 ) : null}
@@ -959,12 +926,12 @@ export function ProductDetailPage() {
                 {publicReviews.map((review) => (
                   <div
                     key={review.review_id}
-                    className="rounded-[1.5rem] border border-slate-200 bg-slate-50/60 p-5"
+                    className="rounded-lg border border-slate-200 bg-slate-50 p-5"
                   >
                     <div className="flex flex-col gap-3 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
                       <div className="flex items-center gap-3">
                         <StarRating rating={review.rating} size="h-4 w-4" />
-                        <span className="text-sm font-semibold text-brand-ink">
+                        <span className="text-sm font-semibold text-slate-950">
                           {review.user_name || "Anonymous"}
                         </span>
                       </div>
@@ -982,7 +949,7 @@ export function ProductDetailPage() {
 
             {/* Submit review form */}
             <div className="mt-8 border-t border-slate-200 pt-6">
-              <p className="text-sm font-semibold text-brand-ink">
+              <p className="text-sm font-semibold text-slate-950">
                 {userAlreadyReviewed
                   ? "You have already reviewed this product."
                   : "Write a review"}
@@ -1013,7 +980,7 @@ export function ProductDetailPage() {
                       placeholder="Share your experience with this product, or leave this blank to submit a star rating only."
                       rows={4}
                       maxLength={2000}
-                      className="w-full rounded-[1.25rem] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-cyan-300"
+                      className="w-full rounded-md border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
                     />
                     <p className="mt-1.5 text-xs text-slate-400">
                       Leave the comment blank to skip moderation and have your rating count immediately.
@@ -1021,7 +988,7 @@ export function ProductDetailPage() {
                   </div>
 
                   {reviewSubmitState.kind === "error" ? (
-                    <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                    <p className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
                       {reviewSubmitState.message}
                     </p>
                   ) : null}
@@ -1029,7 +996,7 @@ export function ProductDetailPage() {
                   <button
                     type="submit"
                     disabled={reviewSubmitting}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-brand-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-900 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-md bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
                   >
                     <Send className="h-4 w-4" />
                     {reviewSubmitting ? "Submitting..." : "Submit review"}
@@ -1038,12 +1005,17 @@ export function ProductDetailPage() {
               ) : null}
 
               {reviewSubmitState.kind === "success" ? (
-                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                   {reviewSubmitState.message}
                 </div>
               ) : null}
             </div>
           </div>
+
+          <RecentlyViewedRail
+            excludeId={product.product_id ?? product.id}
+            className="mt-10"
+          />
         </>
       ) : null}
     </StorefrontShell>

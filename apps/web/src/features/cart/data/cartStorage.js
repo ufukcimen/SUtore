@@ -236,14 +236,27 @@ function clearLegacyCartStorage() {
   });
 }
 
-function persistCartItems(items) {
+function dispatchCartUpdated(detail) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (detail && typeof window.CustomEvent === "function") {
+    window.dispatchEvent(new CustomEvent(CART_UPDATED_EVENT, { detail }));
+    return;
+  }
+
+  window.dispatchEvent(new Event(CART_UPDATED_EVENT));
+}
+
+function persistCartItems(items, detail) {
   if (!canUseStorage()) {
     return;
   }
 
   clearLegacyCartStorage();
   window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
-  window.dispatchEvent(new Event(CART_UPDATED_EVENT));
+  dispatchCartUpdated(detail);
 }
 
 export function readCartItems() {
@@ -291,25 +304,27 @@ export function addProductToCart(product) {
   const existingItem = existingItems.find((item) => item.id === cartItemId);
 
   if (existingItem) {
+    let nextCartItem = null;
     const nextItems = existingItems.map((item) =>
       item.id === cartItemId
-        ? buildCartItem(
-            product,
-            productIdentifier,
-            clampQuantity(item.quantity + 1, product?.stock_quantity),
-          )
+        ? (nextCartItem = buildCartItem(
+          product,
+          productIdentifier,
+          clampQuantity(item.quantity + 1, product?.stock_quantity),
+        ))
         : item,
     );
-    persistCartItems(nextItems);
+    persistCartItems(nextItems, { type: "add", item: nextCartItem });
     return nextItems;
   }
 
+  const nextCartItem = buildCartItem(product, productIdentifier, 1);
   const nextItems = [
     ...existingItems,
-    buildCartItem(product, productIdentifier, 1),
+    nextCartItem,
   ];
 
-  persistCartItems(nextItems);
+  persistCartItems(nextItems, { type: "add", item: nextCartItem });
   return nextItems;
 }
 

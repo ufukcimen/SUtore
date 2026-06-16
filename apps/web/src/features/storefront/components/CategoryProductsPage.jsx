@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, ChevronDown, Filter, RefreshCcw, X } from "lucide-react";
 import { http } from "../../../lib/http";
 import { ProductCard } from "./ProductCard";
+import { EmptyState, PageHeader } from "./RetailPrimitives";
 import { StorefrontShell } from "./StorefrontShell";
 import {
   PRICE_RANGES,
@@ -95,16 +96,16 @@ function FilterSection({
   }
 
   return (
-    <div className="border-t border-slate-200 py-4 first:border-t-0 first:pt-0">
+    <div className="border-t border-slate-200 py-3 first:border-t-0 first:pt-0">
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={isOpen}
-        className="flex w-full items-center gap-2 text-left text-sm font-semibold text-brand-ink transition hover:text-brand-accent"
+        className="flex w-full items-center gap-2 text-left text-sm font-semibold text-slate-950 transition hover:text-cyan-700"
       >
         <span className="min-w-0 flex-1">{title}</span>
         {selectedCount > 0 ? (
-          <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-xs font-semibold text-brand-accent">
+          <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-xs font-semibold text-cyan-700">
             {selectedCount}
           </span>
         ) : null}
@@ -114,19 +115,19 @@ function FilterSection({
           }`}
         />
       </button>
-      {isOpen ? <div className="mt-3 space-y-2">{children}</div> : null}
+      {isOpen ? <div className="mt-2 space-y-1">{children}</div> : null}
     </div>
   );
 }
 
 function CheckboxOption({ checked, label, count, onChange }) {
   return (
-    <label className="flex cursor-pointer items-start gap-2 rounded-lg px-1 py-1.5 text-sm text-slate-700 transition hover:bg-slate-50">
+    <label className="flex cursor-pointer items-start gap-2 rounded-md px-1.5 py-1.5 text-sm text-slate-700 transition hover:bg-slate-50">
       <input
         type="checkbox"
         checked={checked}
         onChange={onChange}
-        className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-brand-accent focus:ring-cyan-200"
+        className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-cyan-600 focus:ring-cyan-200"
       />
       <span className="min-w-0 flex-1 break-words leading-5">{label}</span>
       {typeof count === "number" ? (
@@ -162,6 +163,7 @@ export function CategoryProductsPage({
   const [selectedStorageCapacities, setSelectedStorageCapacities] = useState([]);
   const [discountedOnly, setDiscountedOnly] = useState(false);
   const [openFilterSections, setOpenFilterSections] = useState(DEFAULT_OPEN_FILTER_SECTIONS);
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
   const itemTypeOptions = itemTypes;
   const hasTypeFilters = itemTypeOptions.length > 0;
@@ -329,6 +331,17 @@ export function CategoryProductsPage({
     setDiscountedOnly(false);
   }
 
+  const activeFilterChips = [
+    selectedItemType ? { key: "type", label: selectedItemType, onRemove: () => setSelectedItemType("") } : null,
+    selectedPriceRange ? { key: "price", label: PRICE_RANGES.find((range) => range.value === selectedPriceRange)?.label ?? selectedPriceRange, onRemove: () => setSelectedPriceRange("") } : null,
+    discountedOnly ? { key: "discounted", label: "Discounted", onRemove: () => setDiscountedOnly(false) } : null,
+    ...selectedBrands.map((value) => ({ key: `brand-${value}`, label: value, onRemove: () => setSelectedBrands((current) => current.filter((item) => item !== value)) })),
+    ...selectedCpus.map((value) => ({ key: `cpu-${value}`, label: value, onRemove: () => setSelectedCpus((current) => current.filter((item) => item !== value)) })),
+    ...selectedGpus.map((value) => ({ key: `gpu-${value}`, label: value, onRemove: () => setSelectedGpus((current) => current.filter((item) => item !== value)) })),
+    ...selectedRamCapacities.map((value) => ({ key: `ram-${value}`, label: `${value}GB RAM`, onRemove: () => setSelectedRamCapacities((current) => current.filter((item) => item !== value)) })),
+    ...selectedStorageCapacities.map((value) => ({ key: `storage-${value}`, label: `${value}GB storage`, onRemove: () => setSelectedStorageCapacities((current) => current.filter((item) => item !== value)) })),
+  ].filter(Boolean);
+
   function toggleFilterSection(section) {
     setOpenFilterSections((current) => ({
       ...current,
@@ -360,202 +373,239 @@ export function CategoryProductsPage({
     ));
   }
 
+  function renderFilterPanelContent() {
+    return (
+      <>
+      <div className="flex items-center gap-3">
+        <Filter className="h-4 w-4 text-cyan-700" />
+        <p className="text-sm font-semibold text-slate-950">Filters</p>
+        {isFiltersLoading ? (
+          <RefreshCcw className="ml-auto h-3.5 w-3.5 animate-spin text-slate-400" />
+        ) : null}
+        {hasActiveFilters ? (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+          >
+            <X className="h-3 w-3" />
+            Clear all
+          </button>
+        ) : null}
+      </div>
+
+      <div className="mt-4 space-y-2">
+        <FilterSection
+          title="Type"
+          isVisible={hasTypeFilters}
+          isOpen={openFilterSections.type}
+          onToggle={() => toggleFilterSection("type")}
+          selectedCount={selectedItemType ? 1 : 0}
+        >
+          {itemTypeOptions.map((typeObj) => {
+            const typeValue = typeof typeObj === "string" ? typeObj : typeObj.value;
+            const typeLabel = typeof typeObj === "string" ? typeObj : typeObj.label;
+            const isActive = selectedItemType === typeValue;
+
+            return (
+              <CheckboxOption
+                key={typeValue}
+                label={typeLabel}
+                checked={isActive}
+                onChange={() => setSelectedItemType(isActive ? "" : typeValue)}
+              />
+            );
+          })}
+        </FilterSection>
+
+        <FilterSection
+          title="Price"
+          isOpen={openFilterSections.price}
+          onToggle={() => toggleFilterSection("price")}
+          selectedCount={selectedPriceRange ? 1 : 0}
+        >
+          <div className="relative">
+            <select
+              value={selectedPriceRange}
+              onChange={(event) => setSelectedPriceRange(event.target.value)}
+              className="w-full appearance-none rounded-md border border-slate-300 bg-white px-3 py-2.5 pr-8 text-sm font-semibold text-slate-950 shadow-sm transition hover:border-cyan-300 focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-100"
+            >
+              {PRICE_RANGES.map((range) => (
+                <option key={range.value} value={range.value}>
+                  {range.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+          </div>
+        </FilterSection>
+
+        <FilterSection
+          title="Discounted"
+          isVisible={filterOptions.discounted_count > 0}
+          isOpen={openFilterSections.discounted}
+          onToggle={() => toggleFilterSection("discounted")}
+          selectedCount={discountedOnly ? 1 : 0}
+        >
+          <CheckboxOption
+            label="Discounted products"
+            count={filterOptions.discounted_count}
+            checked={discountedOnly}
+            onChange={() => setDiscountedOnly((current) => !current)}
+          />
+        </FilterSection>
+
+        <FilterSection
+          title="Brand"
+          isVisible={filterOptions.brands.length > 0}
+          isOpen={openFilterSections.brand}
+          onToggle={() => toggleFilterSection("brand")}
+          selectedCount={selectedBrands.length}
+        >
+          {renderOptionGroup(filterOptions.brands, selectedBrands, setSelectedBrands)}
+        </FilterSection>
+
+        <FilterSection
+          title="CPU"
+          isVisible={filterOptions.cpus.length > 0}
+          isOpen={openFilterSections.cpu}
+          onToggle={() => toggleFilterSection("cpu")}
+          selectedCount={selectedCpus.length}
+        >
+          {renderOptionGroup(filterOptions.cpus, selectedCpus, setSelectedCpus)}
+        </FilterSection>
+
+        <FilterSection
+          title="RAM"
+          isVisible={filterOptions.ram_capacities.length > 0}
+          isOpen={openFilterSections.ram}
+          onToggle={() => toggleFilterSection("ram")}
+          selectedCount={selectedRamCapacities.length}
+        >
+          {renderNumericOptionGroup(
+            filterOptions.ram_capacities,
+            selectedRamCapacities,
+            setSelectedRamCapacities,
+          )}
+        </FilterSection>
+
+        <FilterSection
+          title="GPU"
+          isVisible={filterOptions.gpus.length > 0}
+          isOpen={openFilterSections.gpu}
+          onToggle={() => toggleFilterSection("gpu")}
+          selectedCount={selectedGpus.length}
+        >
+          {renderOptionGroup(filterOptions.gpus, selectedGpus, setSelectedGpus)}
+        </FilterSection>
+
+        <FilterSection
+          title="Storage"
+          isVisible={filterOptions.storage_capacities.length > 0}
+          isOpen={openFilterSections.storage}
+          onToggle={() => toggleFilterSection("storage")}
+          selectedCount={selectedStorageCapacities.length}
+        >
+          {renderNumericOptionGroup(
+            filterOptions.storage_capacities,
+            selectedStorageCapacities,
+            setSelectedStorageCapacities,
+          )}
+        </FilterSection>
+
+        {!hasTypeFilters && !hasAdvancedFilterOptions ? (
+          <p className="border-t border-slate-200 pt-4 text-sm text-slate-500">
+            No filters available.
+          </p>
+        ) : null}
+      </div>
+      </>
+    );
+  }
+
   return (
     <StorefrontShell>
-      <header className="rounded-[2rem] border border-slate-200/80 bg-white/95 p-6 shadow-[0_28px_80px_rgba(7,17,31,0.08)] sm:p-8">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-300/50 hover:text-brand-ink"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to main page
-        </Link>
+      <PageHeader
+        eyebrow={badgeLabel}
+        title={heading}
+        icon={Icon}
+        compact
+        actions={
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:text-cyan-700"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to store
+          </Link>
+        }
+      />
 
-        <div className="mt-6 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 rounded-full bg-cyan-50 px-4 py-2 text-sm font-semibold text-brand-accent">
-              <Icon className="h-4 w-4" />
-              {badgeLabel}
-            </div>
-            <h1 className="mt-4 break-words text-3xl font-semibold tracking-tight text-brand-ink sm:text-4xl">
-              {heading}
-            </h1>
-          </div>
-
-          {!isLoading && !errorMessage ? (
-            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
-              <div className="rounded-[1.5rem] border border-cyan-100 bg-cyan-50 px-5 py-4 text-sm text-slate-700">
-                <p className="font-semibold text-brand-ink">{products.length} products found</p>
-              </div>
-              <div className="relative w-full sm:w-auto">
-                <select
-                  value={sortValue}
-                  onChange={(event) => setSortValue(event.target.value)}
-                  className="w-full appearance-none rounded-[1.5rem] border border-slate-200 bg-white px-5 py-4 pr-10 text-sm font-semibold text-brand-ink shadow-sm transition hover:border-cyan-300/50 focus:border-cyan-300 focus:outline-none"
-                >
-                  {SORT_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              </div>
-            </div>
-          ) : null}
-        </div>
-      </header>
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <aside className="h-fit rounded-[1.5rem] border border-slate-200/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(7,17,31,0.06)] lg:sticky lg:top-24">
-          <div className="flex items-center gap-3">
-            <Filter className="h-4 w-4 text-brand-accent" />
-            <p className="text-sm font-semibold text-brand-ink">Filters</p>
-            {isFiltersLoading ? (
-              <RefreshCcw className="ml-auto h-3.5 w-3.5 animate-spin text-slate-400" />
-            ) : null}
+      {!isLoading && !errorMessage ? (
+        <div className="mt-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-semibold text-slate-950">{products.length} products</span>
+            {activeFilterChips.map((chip) => (
+              <button
+                key={chip.key}
+                type="button"
+                onClick={chip.onRemove}
+                className="inline-flex items-center gap-1 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-800 transition hover:border-cyan-300"
+              >
+                {chip.label}
+                <X className="h-3 w-3" />
+              </button>
+            ))}
             {hasActiveFilters ? (
               <button
                 type="button"
                 onClick={clearFilters}
-                className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                className="text-xs font-semibold text-slate-500 transition hover:text-rose-700"
               >
-                <X className="h-3 w-3" />
                 Clear all
               </button>
             ) : null}
           </div>
-
-          <div className="mt-5 space-y-4">
-            <FilterSection
-              title="Type"
-              isVisible={hasTypeFilters}
-              isOpen={openFilterSections.type}
-              onToggle={() => toggleFilterSection("type")}
-              selectedCount={selectedItemType ? 1 : 0}
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end lg:w-auto">
+            <button
+              type="button"
+              onClick={() => setIsMobileFiltersOpen(true)}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-cyan-300 hover:text-cyan-700 lg:hidden"
             >
-              {itemTypeOptions.map((typeObj) => {
-                const typeValue = typeof typeObj === "string" ? typeObj : typeObj.value;
-                const typeLabel = typeof typeObj === "string" ? typeObj : typeObj.label;
-                const isActive = selectedItemType === typeValue;
-
-                return (
-                  <CheckboxOption
-                    key={typeValue}
-                    label={typeLabel}
-                    checked={isActive}
-                    onChange={() => setSelectedItemType(isActive ? "" : typeValue)}
-                  />
-                );
-              })}
-            </FilterSection>
-
-            <FilterSection
-              title="Price"
-              isOpen={openFilterSections.price}
-              onToggle={() => toggleFilterSection("price")}
-              selectedCount={selectedPriceRange ? 1 : 0}
-            >
-              <div className="relative">
-                <select
-                  value={selectedPriceRange}
-                  onChange={(event) => setSelectedPriceRange(event.target.value)}
-                  className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 pr-8 text-sm font-semibold text-brand-ink shadow-sm transition hover:border-cyan-300/50 focus:border-cyan-300 focus:outline-none"
-                >
-                  {PRICE_RANGES.map((range) => (
-                    <option key={range.value} value={range.value}>
-                      {range.label}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-              </div>
-            </FilterSection>
-
-            <FilterSection
-              title="Discounted"
-              isVisible={filterOptions.discounted_count > 0}
-              isOpen={openFilterSections.discounted}
-              onToggle={() => toggleFilterSection("discounted")}
-              selectedCount={discountedOnly ? 1 : 0}
-            >
-              <CheckboxOption
-                label="Discounted products"
-                count={filterOptions.discounted_count}
-                checked={discountedOnly}
-                onChange={() => setDiscountedOnly((current) => !current)}
-              />
-            </FilterSection>
-
-            <FilterSection
-              title="Brand"
-              isVisible={filterOptions.brands.length > 0}
-              isOpen={openFilterSections.brand}
-              onToggle={() => toggleFilterSection("brand")}
-              selectedCount={selectedBrands.length}
-            >
-              {renderOptionGroup(filterOptions.brands, selectedBrands, setSelectedBrands)}
-            </FilterSection>
-
-            <FilterSection
-              title="CPU"
-              isVisible={filterOptions.cpus.length > 0}
-              isOpen={openFilterSections.cpu}
-              onToggle={() => toggleFilterSection("cpu")}
-              selectedCount={selectedCpus.length}
-            >
-              {renderOptionGroup(filterOptions.cpus, selectedCpus, setSelectedCpus)}
-            </FilterSection>
-
-            <FilterSection
-              title="RAM"
-              isVisible={filterOptions.ram_capacities.length > 0}
-              isOpen={openFilterSections.ram}
-              onToggle={() => toggleFilterSection("ram")}
-              selectedCount={selectedRamCapacities.length}
-            >
-              {renderNumericOptionGroup(
-                filterOptions.ram_capacities,
-                selectedRamCapacities,
-                setSelectedRamCapacities,
-              )}
-            </FilterSection>
-
-            <FilterSection
-              title="GPU"
-              isVisible={filterOptions.gpus.length > 0}
-              isOpen={openFilterSections.gpu}
-              onToggle={() => toggleFilterSection("gpu")}
-              selectedCount={selectedGpus.length}
-            >
-              {renderOptionGroup(filterOptions.gpus, selectedGpus, setSelectedGpus)}
-            </FilterSection>
-
-            <FilterSection
-              title="Storage"
-              isVisible={filterOptions.storage_capacities.length > 0}
-              isOpen={openFilterSections.storage}
-              onToggle={() => toggleFilterSection("storage")}
-              selectedCount={selectedStorageCapacities.length}
-            >
-              {renderNumericOptionGroup(
-                filterOptions.storage_capacities,
-                selectedStorageCapacities,
-                setSelectedStorageCapacities,
-              )}
-            </FilterSection>
-
-            {!hasTypeFilters && !hasAdvancedFilterOptions ? (
-              <p className="border-t border-slate-200 pt-4 text-sm text-slate-500">
-                No filters available.
-              </p>
-            ) : null}
+              <Filter className="h-4 w-4" />
+              Filters
+              {activeFilterChips.length > 0 ? (
+                <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-xs text-cyan-700">
+                  {activeFilterChips.length}
+                </span>
+              ) : null}
+            </button>
+            <div className="relative w-full sm:w-64">
+              <select
+                value={sortValue}
+                onChange={(event) => setSortValue(event.target.value)}
+                className="h-11 w-full appearance-none rounded-md border border-slate-300 bg-white px-3 pr-9 text-sm font-semibold text-slate-950 shadow-sm transition hover:border-cyan-300 focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-100"
+              >
+                {SORT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            </div>
           </div>
+        </div>
+      ) : null}
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-[17rem_minmax(0,1fr)]">
+        <aside className="hidden h-fit rounded-lg border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-24 lg:block">
+          {renderFilterPanelContent()}
         </aside>
 
         <section className="min-w-0">
           {isLoading ? (
-            <div className="rounded-[2rem] border border-slate-200/80 bg-white/85 px-6 py-12 text-center shadow-[0_18px_45px_rgba(7,17,31,0.08)]">
+            <div className="rounded-lg border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-cyan-50 text-brand-accent">
                 <RefreshCcw className="h-6 w-6 animate-spin" />
               </div>
@@ -567,7 +617,7 @@ export function CategoryProductsPage({
           ) : null}
 
           {!isLoading && errorMessage ? (
-            <div className="rounded-[2rem] border border-rose-200 bg-rose-50 px-6 py-10 text-center text-rose-900 shadow-[0_18px_45px_rgba(7,17,31,0.08)]">
+            <div className="rounded-lg border border-rose-200 bg-rose-50 px-6 py-10 text-center text-rose-900 shadow-sm">
               <p className="text-lg font-semibold">{errorLabel}</p>
               <p className="mt-2 text-sm">{errorMessage}</p>
             </div>
@@ -575,7 +625,7 @@ export function CategoryProductsPage({
 
           {!isLoading && !errorMessage ? (
             sortedProducts.length > 0 ? (
-              <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid auto-rows-fr gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {sortedProducts.map((product) => (
                   <ProductCard
                     key={product.id ?? product.product_id ?? product.name}
@@ -584,29 +634,72 @@ export function CategoryProductsPage({
                 ))}
               </div>
             ) : (
-              <div className="rounded-[2rem] border border-slate-200/80 bg-white/85 px-6 py-10 text-center shadow-[0_18px_45px_rgba(7,17,31,0.08)]">
-                <p className="text-lg font-semibold text-brand-ink">
-                  {hasActiveFilters ? "No products match your filters." : emptyLabel}
-                </p>
-                <p className="mt-2 text-sm text-slate-600">
-                  {hasActiveFilters
+              <EmptyState
+                title={hasActiveFilters ? "No products match your filters." : emptyLabel}
+                description={
+                  hasActiveFilters
                     ? "Try adjusting your filters or clearing them to see all products."
-                    : "The backend request completed successfully but returned no matching products right now."}
-                </p>
-                {hasActiveFilters ? (
-                  <button
-                    type="button"
-                    onClick={clearFilters}
-                    className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-brand-ink transition hover:border-cyan-300/50"
-                  >
-                    Clear filters
-                  </button>
-                ) : null}
-              </div>
+                    : "The backend request completed successfully but returned no matching products right now."
+                }
+                action={
+                  hasActiveFilters ? (
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:border-cyan-300"
+                    >
+                      Clear filters
+                    </button>
+                  ) : null
+                }
+              />
             )
           ) : null}
         </section>
       </div>
+
+      {isMobileFiltersOpen ? (
+        <div className="fixed inset-0 z-[80] lg:hidden">
+          <button
+            type="button"
+            className="absolute inset-0 h-full w-full bg-slate-950/35 backdrop-blur-sm"
+            onClick={() => setIsMobileFiltersOpen(false)}
+            aria-label="Close filters"
+          />
+          <aside className="absolute right-0 top-0 flex h-full w-full max-w-sm flex-col border-l border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">
+                  Product filters
+                </p>
+                <h2 className="mt-1 text-lg font-semibold text-slate-950">
+                  Refine results
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMobileFiltersOpen(false)}
+                className="rounded-md border border-slate-200 bg-white p-2 text-slate-500 transition hover:bg-slate-50 hover:text-slate-950"
+                aria-label="Close filters"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {renderFilterPanelContent()}
+            </div>
+            <div className="border-t border-slate-200 p-4">
+              <button
+                type="button"
+                onClick={() => setIsMobileFiltersOpen(false)}
+                className="inline-flex h-11 w-full items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                Show {products.length} products
+              </button>
+            </div>
+          </aside>
+        </div>
+      ) : null}
     </StorefrontShell>
   );
 }

@@ -54,16 +54,16 @@ function formatDate(value) {
 
 function DetailCard({ icon: Icon, label, value }) {
   return (
-    <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/90 p-4">
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
       <div className="flex items-start gap-3">
-        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-cyan-400/15 text-brand-accent">
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-cyan-50 text-cyan-700">
           <Icon className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
             {label}
           </p>
-          <p className="mt-2 break-words text-sm font-semibold text-brand-ink">{value}</p>
+          <p className="mt-2 break-words text-sm font-semibold text-slate-950">{value}</p>
         </div>
       </div>
     </div>
@@ -135,7 +135,7 @@ export function AccountSettingsPage() {
         eyebrow="Account settings"
         title="You need to be signed in to access account settings."
       >
-        <section className="rounded-[2rem] border border-dashed border-slate-300 bg-white/88 px-6 py-10 text-center shadow-[0_20px_60px_rgba(7,17,31,0.08)]">
+        <section className="rounded-lg border border-dashed border-slate-300 bg-white px-6 py-10 text-center shadow-sm">
           <p className="text-sm leading-7 text-slate-600">
             This page is reserved for signed-in shoppers. Return to the storefront or log
             in to manage account details.
@@ -143,13 +143,13 @@ export function AccountSettingsPage() {
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               to="/login"
-              className="inline-flex items-center justify-center rounded-2xl bg-brand-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-900"
+              className="inline-flex items-center justify-center rounded-md bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               Sign in
             </Link>
             <Link
               to="/"
-              className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-cyan-300/60 hover:text-brand-ink"
+              className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-cyan-300/60 hover:text-slate-950"
             >
               Back to home
             </Link>
@@ -266,17 +266,17 @@ export function AccountSettingsPage() {
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)]">
         <section className="space-y-6">
-          <article className="rounded-[2rem] border border-slate-200/80 bg-white/92 p-6 shadow-[0_18px_50px_rgba(7,17,31,0.08)]">
+          <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex items-start gap-3">
-                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-cyan-400/15 text-brand-accent">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-cyan-50 text-cyan-700">
                   <Bell className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">
                     Notifications
                   </p>
-                  <h2 className="mt-2 text-2xl font-semibold text-brand-ink">
+                  <h2 className="mt-2 text-2xl font-semibold text-slate-950">
                     Updates from sales and support
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -290,7 +290,7 @@ export function AccountSettingsPage() {
                 type="button"
                 disabled={notifications.length === 0 || unreadNotificationCount === 0 || isMarkingAllNotifications}
                 onClick={handleMarkAllNotificationsRead}
-                className="gap-2 bg-brand-ink text-white hover:bg-slate-900 disabled:opacity-50"
+                className="gap-2 rounded-md bg-slate-950 text-white hover:bg-slate-800 disabled:opacity-50"
               >
                 <CheckCircle2 className="h-4 w-4" />
                 {isMarkingAllNotifications ? "Updating..." : "Mark all read"}
@@ -304,15 +304,15 @@ export function AccountSettingsPage() {
             ) : null}
 
             {isLoadingNotifications ? (
-              <div className="mt-6 flex items-center justify-center py-6 text-brand-accent">
-                <LoaderCircle className="h-6 w-6 animate-spin" />
+              <div className="mt-6 flex items-center justify-center py-6 text-cyan-700">
+                <LoaderCircle className="h-6 w-6 animate-spin text-cyan-700" />
               </div>
             ) : (
               <div className="mt-6 space-y-3">
                 {notifications.map((notification) => (
                   <div
                     key={notification.notification_id}
-                    className={`rounded-[1.5rem] border p-4 ${
+                    className={`rounded-lg border p-4 ${
                       notification.is_read
                         ? "border-slate-200 bg-slate-50/80"
                         : "border-cyan-200 bg-cyan-50/80"
@@ -321,9 +321,9 @@ export function AccountSettingsPage() {
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-sm font-semibold text-brand-ink">{notification.title}</p>
+                          <p className="text-sm font-semibold text-slate-950">{notification.title}</p>
                           {!notification.is_read ? (
-                            <span className="rounded-full bg-brand-accent px-2 py-0.5 text-xs font-semibold text-brand-ink">
+                            <span className="rounded-full bg-cyan-100 px-2 py-0.5 text-xs font-semibold text-cyan-800">
                               New
                             </span>
                           ) : null}
@@ -338,7 +338,7 @@ export function AccountSettingsPage() {
                           type="button"
                           disabled={notificationActionId === notification.notification_id}
                           onClick={() => handleMarkNotificationRead(notification.notification_id)}
-                          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-cyan-200 hover:text-brand-ink disabled:opacity-50"
+                          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-cyan-200 hover:text-slate-950 disabled:opacity-50"
                         >
                           <CheckCircle2 className="h-3.5 w-3.5" />
                           {notificationActionId === notification.notification_id ? "Updating..." : "Mark read"}
@@ -348,7 +348,7 @@ export function AccountSettingsPage() {
                   </div>
                 ))}
                 {notifications.length === 0 ? (
-                  <p className="rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50/80 px-4 py-6 text-center text-sm text-slate-500">
+                  <p className="rounded-md border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
                     No notifications yet.
                   </p>
                 ) : null}
@@ -356,13 +356,13 @@ export function AccountSettingsPage() {
             )}
           </article>
 
-          <article className="rounded-[2rem] border border-slate-200/80 bg-white/92 p-6 shadow-[0_18px_50px_rgba(7,17,31,0.08)]">
+          <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">
                   Profile overview
                 </p>
-                <h2 className="mt-3 text-2xl font-semibold text-brand-ink">
+                <h2 className="mt-3 text-2xl font-semibold text-slate-950">
                   Account details used across the storefront
                 </h2>
               </div>
@@ -387,17 +387,17 @@ export function AccountSettingsPage() {
             </div>
           </article>
 
-          <article className="rounded-[2rem] border border-slate-200/80 bg-white/92 p-6 shadow-[0_18px_50px_rgba(7,17,31,0.08)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
+          <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">
               Store access
             </p>
-            <div className="mt-4 flex flex-col gap-4 rounded-[1.6rem] border border-slate-200 bg-slate-50/90 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-4 flex flex-col gap-4 rounded-lg border border-slate-200 bg-slate-50 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-3">
-                <div className="grid h-11 w-11 place-items-center rounded-2xl bg-cyan-400/15 text-brand-accent">
+                <div className="grid h-11 w-11 place-items-center rounded-md bg-cyan-50 text-cyan-700">
                   <ShieldCheck className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-brand-ink">Account is active</h3>
+                  <h3 className="text-lg font-semibold text-slate-950">Account is active</h3>
                   <p className="mt-1 text-sm leading-6 text-slate-600">
                     You can rename the profile shown in the storefront or remove the account
                     entirely from here.
@@ -414,18 +414,18 @@ export function AccountSettingsPage() {
 
         <section className="space-y-6">
           <form
-            className="rounded-[2rem] border border-slate-200/80 bg-white/92 p-6 shadow-[0_18px_50px_rgba(7,17,31,0.08)]"
+            className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
             onSubmit={handleProfileSubmit}
           >
             <div className="flex items-start gap-3">
-              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-cyan-400/15 text-brand-accent">
+              <div className="grid h-11 w-11 place-items-center rounded-md bg-cyan-50 text-cyan-700">
                 <PencilLine className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">
                   Change username
                 </p>
-                <h2 className="mt-2 text-xl font-semibold text-brand-ink">
+                <h2 className="mt-2 text-xl font-semibold text-slate-950">
                   Update the shopper name shown in your account
                 </h2>
               </div>
@@ -437,7 +437,7 @@ export function AccountSettingsPage() {
                 type="text"
                 value={draftName}
                 onChange={(event) => setDraftName(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-accent focus:ring-4 focus:ring-brand-glow/20"
+                className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
                 placeholder="Choose a storefront name"
               />
             </label>
@@ -445,14 +445,14 @@ export function AccountSettingsPage() {
             <Button
               type="submit"
               disabled={isSaving}
-              className="mt-5 w-full gap-2 bg-brand-ink text-white hover:bg-slate-900"
+              className="mt-5 w-full gap-2 rounded-md bg-slate-950 text-white hover:bg-slate-800"
             >
               {isSaving ? "Saving..." : "Save username"}
             </Button>
 
             {profileState.message ? (
               <div
-                className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${getStatusClassName(profileState.kind)}`}
+                className={`mt-4 rounded-md border px-4 py-3 text-sm ${getStatusClassName(profileState.kind)}`}
               >
                 {profileState.message}
               </div>
@@ -460,24 +460,24 @@ export function AccountSettingsPage() {
           </form>
 
           <form
-            className="rounded-[2rem] border border-rose-200/80 bg-white/92 p-6 shadow-[0_18px_50px_rgba(7,17,31,0.08)]"
+            className="rounded-lg border border-rose-200 bg-white p-6 shadow-sm"
             onSubmit={handleDeleteAccount}
           >
             <div className="flex items-start gap-3">
-              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-rose-100 text-rose-700">
+              <div className="grid h-11 w-11 place-items-center rounded-md bg-rose-100 text-rose-700">
                 <Trash2 className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-rose-700">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-rose-700">
                   Delete account
                 </p>
-                <h2 className="mt-2 text-xl font-semibold text-brand-ink">
+                <h2 className="mt-2 text-xl font-semibold text-slate-950">
                   Permanently remove this shopper account
                 </h2>
               </div>
             </div>
 
-            <div className="mt-5 rounded-[1.6rem] border border-rose-200 bg-rose-50/80 p-4 text-sm text-rose-900">
+            <div className="mt-5 rounded-md border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 <p>
@@ -492,7 +492,7 @@ export function AccountSettingsPage() {
                 type="text"
                 value={deleteConfirmation}
                 onChange={(event) => setDeleteConfirmation(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm uppercase tracking-[0.18em] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-rose-300 focus:ring-4 focus:ring-rose-100"
+                className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-sm uppercase tracking-[0.14em] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-rose-300 focus:ring-4 focus:ring-rose-100"
                 placeholder="Type DELETE"
               />
             </label>
@@ -500,14 +500,14 @@ export function AccountSettingsPage() {
             <Button
               type="submit"
               disabled={isDeleting}
-              className="mt-5 w-full gap-2 bg-rose-600 text-white hover:bg-rose-700"
+              className="mt-5 w-full gap-2 rounded-md bg-rose-600 text-white hover:bg-rose-700"
             >
               {isDeleting ? "Deleting account..." : "Delete account"}
             </Button>
 
             {deleteState.message ? (
               <div
-                className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${getStatusClassName(deleteState.kind)}`}
+                className={`mt-4 rounded-md border px-4 py-3 text-sm ${getStatusClassName(deleteState.kind)}`}
               >
                 {deleteState.message}
               </div>

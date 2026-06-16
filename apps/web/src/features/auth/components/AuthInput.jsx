@@ -16,10 +16,9 @@ export function AuthInput({
         placeholder={placeholder}
         value={value}
         onChange={onChange}
-        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-accent focus:ring-4 focus:ring-brand-glow/20"
+        className="w-full rounded-md border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
       />
       {hint ? <span className="text-xs text-slate-500">{hint}</span> : null}
     </label>
   );
 }
-

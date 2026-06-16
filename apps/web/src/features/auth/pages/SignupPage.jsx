@@ -201,7 +201,7 @@ export function SignupPage() {
       alternateLink={
         <p>
           Already have an account?{" "}
-          <Link className="font-semibold text-brand-accent" to="/login" state={{ from: location.state?.from }}>
+          <Link className="font-semibold text-cyan-700" to="/login" state={{ from: location.state?.from }}>
             Log in here
           </Link>
         </p>
@@ -244,10 +244,10 @@ export function SignupPage() {
           onChange={handleChange("password")}
         />
 
-        <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50/90 p-4">
+        <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-accent">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">
                 Password strength
               </p>
               <p className={`mt-1 text-sm font-semibold ${passwordState.textClass}`}>
@@ -272,7 +272,7 @@ export function SignupPage() {
             {passwordState.checks.map((rule) => (
               <div
                 key={rule.id}
-                className={`flex items-center gap-3 rounded-2xl px-3 py-2 text-sm transition ${
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition ${
                   rule.passed
                     ? "bg-emerald-50 text-emerald-800"
                     : "bg-white text-slate-500"
@@ -297,9 +297,9 @@ export function SignupPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+        <div className="rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
           <label className="flex items-start gap-3">
-            <input type="checkbox" className="mt-1 h-4 w-4 rounded border-slate-300 text-brand-accent" />
+            <input type="checkbox" className="mt-1 h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-200" />
             <span>
               I agree to the terms, privacy policy, and account security practices for
               future purchases and invoices.
@@ -310,7 +310,7 @@ export function SignupPage() {
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="w-full gap-2 bg-brand-accent text-brand-ink hover:bg-brand-glow"
+          className="w-full gap-2 rounded-md bg-slate-950 text-white hover:bg-slate-800"
         >
           {isSubmitting ? "Creating account..." : "Create account"}
           <ArrowRight className="h-4 w-4" />
@@ -318,13 +318,13 @@ export function SignupPage() {
 
         {submitState.message ? (
           <div
-            className={`flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm ${statusClassName}`}
+            className={`flex items-start gap-3 rounded-md border px-4 py-3 text-sm ${statusClassName}`}
           >
             <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
             <p>{submitState.message}</p>
           </div>
         ) : (
-          <div className="flex items-start gap-3 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div className="flex items-start gap-3 rounded-md border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
             <p>Create your account to start shopping, save products, and track every order from one dashboard.</p>
           </div>

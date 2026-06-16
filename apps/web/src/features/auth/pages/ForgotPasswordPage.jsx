@@ -57,7 +57,7 @@ export function ForgotPasswordPage() {
       alternateLink={
         <p>
           Remember your password?{" "}
-          <Link className="font-semibold text-brand-accent" to="/login" state={{ from: location.state?.from }}>
+          <Link className="font-semibold text-cyan-700" to="/login" state={{ from: location.state?.from }}>
             Back to sign in
           </Link>
         </p>
@@ -76,14 +76,14 @@ export function ForgotPasswordPage() {
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="w-full gap-2 bg-brand-ink text-white hover:bg-slate-900"
+          className="w-full gap-2 rounded-md bg-slate-950 text-white hover:bg-slate-800"
         >
           {isSubmitting ? "Sending link..." : "Send reset link"}
           <ArrowRight className="h-4 w-4" />
         </Button>
 
         {submitState.message ? (
-          <div className={`flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm ${statusClassName}`}>
+          <div className={`flex items-start gap-3 rounded-md border px-4 py-3 text-sm ${statusClassName}`}>
             {submitState.kind === "error" ? (
               <Mail className="mt-0.5 h-4 w-4 shrink-0" />
             ) : (
@@ -92,7 +92,7 @@ export function ForgotPasswordPage() {
             <p>{submitState.message}</p>
           </div>
         ) : (
-          <div className="flex items-start gap-3 rounded-2xl border border-cyan-100 bg-cyan-50 px-4 py-3 text-sm text-cyan-900">
+          <div className="flex items-start gap-3 rounded-md border border-cyan-100 bg-cyan-50 px-4 py-3 text-sm text-cyan-900">
             <Mail className="mt-0.5 h-4 w-4 shrink-0" />
             <p>The link expires after a short time and can only be used once.</p>
           </div>

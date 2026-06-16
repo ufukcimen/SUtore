@@ -85,6 +85,52 @@ const TABS = [
   { id: "refunds", label: "Refunds", Icon: RotateCcw },
 ];
 
+function getDashboardTabClassName(isActive) {
+  return `inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm font-semibold transition ${
+    isActive
+      ? "border-slate-950 bg-slate-950 text-white"
+      : "border-transparent bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+  }`;
+}
+
+const SALES_SUMMARY_ITEMS = [
+  {
+    title: "Pricing controls",
+    body: "Adjust active product prices and campaign discounts from the sales workspace.",
+    Icon: DollarSign,
+  },
+  {
+    title: "Invoice center",
+    body: "Filter invoices by date range and export individual or grouped PDFs.",
+    Icon: ReceiptText,
+  },
+  {
+    title: "Revenue review",
+    body: "Track net revenue, refund impact, and estimated profit by period.",
+    Icon: BarChart3,
+  },
+];
+
+function DashboardSummaryStrip({ items }) {
+  return (
+    <section className="mb-4 grid gap-3 md:grid-cols-3">
+      {items.map(({ body, Icon, title }) => (
+        <div key={title} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-cyan-50 text-cyan-700">
+              <Icon className="h-4 w-4" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-slate-950">{title}</p>
+              <p className="mt-1 text-xs leading-5 text-slate-500">{body}</p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
 export function AdminDashboardPage() {
   const navigate = useNavigate();
   const user = useStoredUser();
@@ -100,29 +146,27 @@ export function AdminDashboardPage() {
 
   if (!isAdminUser(user)) {
     return (
-      <StorefrontPageShell currentStep="" description="" eyebrow="Access denied" title="This area is for sales administrators.">
-        <section className="rounded-[2rem] border border-rose-200 bg-rose-50 px-6 py-10 text-center text-rose-900">
+      <StorefrontPageShell contextLabel="Sales workspace" currentStep="" description="" eyebrow="Access denied" title="This area is for sales managers.">
+        <section className="rounded-lg border border-rose-200 bg-rose-50 px-6 py-10 text-center text-rose-900">
           <ShieldAlert className="mx-auto h-8 w-8" />
           <p className="mt-4 text-lg font-semibold">Insufficient permissions</p>
-          <Link to="/" className="mt-6 inline-flex items-center rounded-2xl bg-brand-accent px-5 py-3 text-sm font-semibold text-brand-ink transition hover:bg-brand-glow">Back to store</Link>
+          <Link to="/" className="mt-6 inline-flex items-center rounded-md bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">Back to store</Link>
         </section>
       </StorefrontPageShell>
     );
   }
 
   return (
-    <StorefrontPageShell currentStep="" description="Manage pricing, discount campaigns, invoices, revenue, and refunds." eyebrow="Admin" title="Sales Admin Dashboard">
-      <nav className="flex flex-wrap gap-2">
+    <StorefrontPageShell contextLabel="Sales workspace" currentStep="" description="Manage pricing, discount campaigns, invoices, revenue, and refunds." eyebrow="Sales" title="Sales Manager Dashboard">
+      <DashboardSummaryStrip items={SALES_SUMMARY_ITEMS} />
+
+      <nav className="flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
         {TABS.map(({ id, label, Icon }) => (
           <button
             key={id}
             type="button"
             onClick={() => setActiveTab(id)}
-            className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-semibold transition ${
-              activeTab === id
-                ? "border-cyan-300 bg-cyan-50 text-brand-accent"
-                : "border-slate-200 bg-white text-slate-600 hover:border-cyan-200 hover:text-brand-ink"
-            }`}
+            className={getDashboardTabClassName(activeTab === id)}
           >
             <Icon className="h-4 w-4" />
             {label}
@@ -186,25 +230,25 @@ function PricingTab({ user }) {
     }
   }
 
-  if (isLoading) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-brand-accent" />;
+  if (isLoading) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-cyan-700" />;
 
   return (
     <div>
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm font-semibold text-slate-600">{products.length} products available for pricing</p>
-        <button type="button" onClick={loadProducts} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-cyan-200 hover:text-brand-ink">
+        <button type="button" onClick={loadProducts} className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-cyan-200 hover:text-slate-950">
           <RotateCcw className="h-4 w-4" /> Refresh
         </button>
       </div>
 
-      {error ? <p className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</p> : null}
+      {error ? <p className="mb-4 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</p> : null}
 
       <div className="space-y-3">
         {products.map((product) => (
-          <div key={product.product_id} className={`flex flex-col gap-3 rounded-[1.5rem] border p-4 sm:flex-row sm:items-center sm:justify-between ${product.is_active ? "border-slate-200 bg-white/90" : "border-slate-200/50 bg-slate-50/50 opacity-60"}`}>
+          <div key={product.product_id} className={`flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between ${product.is_active ? "border-slate-200 bg-white" : "border-slate-200 bg-slate-50 opacity-60"}`}>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-semibold text-brand-ink">{product.name || "Unnamed product"}</span>
+                <span className="text-sm font-semibold text-slate-950">{product.name || "Unnamed product"}</span>
                 {!product.is_active ? <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">Inactive</span> : null}
               </div>
               <p className="mt-1 text-xs text-slate-500">ID: {product.product_id} &middot; {product.category || "Uncategorized"} &middot; Stock: {product.stock_quantity ?? 0}</p>
@@ -212,16 +256,16 @@ function PricingTab({ user }) {
             <div className="flex shrink-0 flex-wrap items-center gap-2">
               {editingId === product.product_id ? (
                 <>
-                  <input type="number" min="0" step="0.01" value={editingPrice} onChange={(e) => setEditingPrice(e.target.value)} className="w-28 rounded-xl border border-cyan-300 bg-white px-3 py-2 text-sm outline-none" />
-                  <button type="button" disabled={savingId === product.product_id} onClick={() => savePrice(product.product_id)} className="inline-flex items-center gap-1.5 rounded-xl bg-brand-ink px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-900 disabled:opacity-50">
+                  <input type="number" min="0" step="0.01" value={editingPrice} onChange={(e) => setEditingPrice(e.target.value)} className="w-28 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm outline-none" />
+                  <button type="button" disabled={savingId === product.product_id} onClick={() => savePrice(product.product_id)} className="inline-flex items-center gap-1.5 rounded-md bg-slate-950 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50">
                     <Save className="h-3 w-3" /> Save
                   </button>
-                  <button type="button" onClick={() => setEditingId(null)} className="text-xs font-semibold text-slate-500 hover:text-brand-ink">Cancel</button>
+                  <button type="button" onClick={() => setEditingId(null)} className="text-xs font-semibold text-slate-500 hover:text-slate-950">Cancel</button>
                 </>
               ) : (
                 <>
-                  <span className="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-sm font-semibold text-brand-accent">{formatCurrency(product.price)}</span>
-                  <button type="button" onClick={() => { setEditingId(product.product_id); setEditingPrice(product.price ?? "0"); }} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-cyan-200 hover:text-brand-ink">
+                  <span className="rounded-md border border-cyan-200 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-700">{formatCurrency(product.price)}</span>
+                  <button type="button" onClick={() => { setEditingId(product.product_id); setEditingPrice(product.price ?? "0"); }} className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-cyan-200 hover:text-slate-950">
                     <Edit className="h-3 w-3" /> Edit price
                   </button>
                 </>
@@ -304,30 +348,39 @@ function DiscountsTab({ user }) {
     }
   }
 
-  if (isLoading) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-brand-accent" />;
+  if (isLoading) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-cyan-700" />;
 
   return (
     <div>
-      <form onSubmit={applyDiscount} className="mb-6 rounded-[1.5rem] border border-cyan-200 bg-cyan-50/30 p-5">
+      <form onSubmit={applyDiscount} className="mb-6 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">Campaign editor</p>
+            <p className="mt-1 text-sm font-semibold text-slate-950">Apply discount to selected products</p>
+          </div>
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-500">
+            {selectedIds.length} selected
+          </span>
+        </div>
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_10rem_auto] lg:items-end">
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Find products</label>
-            <input value={query} onChange={(e) => setQuery(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-300" placeholder="Search name, model, or category" />
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Find products</label>
+            <input value={query} onChange={(e) => setQuery(e.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100" placeholder="Search name, model, or category" />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Discount</label>
-            <input type="number" min="1" max="99" step="0.01" value={discountRate} onChange={(e) => setDiscountRate(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-300" />
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Discount</label>
+            <input type="number" min="1" max="99" step="0.01" value={discountRate} onChange={(e) => setDiscountRate(e.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100" />
           </div>
-          <button type="submit" disabled={isApplying || selectedIds.length === 0} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-accent px-4 py-2.5 text-sm font-semibold text-brand-ink transition hover:bg-brand-glow disabled:opacity-50">
+          <button type="submit" disabled={isApplying || selectedIds.length === 0} className="inline-flex items-center justify-center gap-2 rounded-md bg-cyan-400 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50">
             <Tags className="h-4 w-4" /> Apply to {selectedIds.length}
           </button>
         </div>
       </form>
 
-      {error ? <p className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</p> : null}
+      {error ? <p className="mb-4 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</p> : null}
 
       {result ? (
-        <div className="mb-4 rounded-[1.5rem] border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
+        <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
           <div className="flex items-start gap-3">
             <Bell className="mt-0.5 h-4 w-4" />
             <div>
@@ -349,15 +402,15 @@ function DiscountsTab({ user }) {
         {filteredProducts.map((product) => {
           const checked = selectedIds.includes(product.product_id);
           return (
-            <label key={product.product_id} className={`flex cursor-pointer flex-col gap-3 rounded-[1.5rem] border p-4 transition sm:flex-row sm:items-center sm:justify-between ${checked ? "border-cyan-300 bg-cyan-50" : "border-slate-200 bg-white/90 hover:border-cyan-200"}`}>
+            <label key={product.product_id} className={`flex cursor-pointer flex-col gap-3 rounded-lg border p-4 transition sm:flex-row sm:items-center sm:justify-between ${checked ? "border-cyan-300 bg-cyan-50" : "border-slate-200 bg-white hover:border-cyan-200"}`}>
               <div className="flex min-w-0 items-start gap-3">
                 <input type="checkbox" checked={checked} onChange={() => toggleProduct(product.product_id)} className="mt-1 h-4 w-4" />
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-brand-ink">{product.name || "Unnamed product"}</p>
+                  <p className="text-sm font-semibold text-slate-950">{product.name || "Unnamed product"}</p>
                   <p className="mt-1 text-xs text-slate-500">ID: {product.product_id} &middot; {product.category || "Uncategorized"}</p>
                 </div>
               </div>
-              <span className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-brand-ink">{formatCurrency(product.price)}</span>
+              <span className="shrink-0 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-950">{formatCurrency(product.price)}</span>
             </label>
           );
         })}
@@ -370,14 +423,14 @@ function DateRangeControls({ endDate, onEndDateChange, onLoad, onStartDateChange
   return (
     <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
       <div>
-        <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Start date</label>
-        <input type="date" value={startDate} onChange={(e) => onStartDateChange(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-cyan-300" />
+        <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Start date</label>
+        <input type="date" value={startDate} onChange={(e) => onStartDateChange(e.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100" />
       </div>
       <div>
-        <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">End date</label>
-        <input type="date" value={endDate} onChange={(e) => onEndDateChange(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-cyan-300" />
+        <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">End date</label>
+        <input type="date" value={endDate} onChange={(e) => onEndDateChange(e.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100" />
       </div>
-      <button type="button" onClick={onLoad} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-900">
+      <button type="button" onClick={onLoad} className="inline-flex items-center justify-center gap-2 rounded-md bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">
         <CalendarDays className="h-4 w-4" /> Load
       </button>
     </div>
@@ -452,7 +505,7 @@ function InvoicesTab({ user }) {
     }
   }
 
-  if (isLoading) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-brand-accent" />;
+  if (isLoading) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-cyan-700" />;
 
   return (
     <div>
@@ -461,29 +514,29 @@ function InvoicesTab({ user }) {
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm font-semibold text-slate-600">{invoices.length} invoices in range</p>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <button type="button" disabled={invoices.length === 0 || isDownloadingRange} onClick={handleDownloadRange} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-cyan-200 hover:text-brand-ink disabled:opacity-50">
+          <button type="button" disabled={invoices.length === 0 || isDownloadingRange} onClick={handleDownloadRange} className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-cyan-200 hover:text-slate-950 disabled:opacity-50">
             <Download className="h-4 w-4" /> {isDownloadingRange ? "Preparing..." : "Download range PDF"}
           </button>
-          <button type="button" disabled={invoices.length === 0 || isDownloadingSeparate} onClick={handleDownloadSeparate} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-cyan-200 hover:text-brand-ink disabled:opacity-50">
+          <button type="button" disabled={invoices.length === 0 || isDownloadingSeparate} onClick={handleDownloadSeparate} className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-cyan-200 hover:text-slate-950 disabled:opacity-50">
             <Download className="h-4 w-4" /> {isDownloadingSeparate ? "Downloading..." : "Download separate PDFs"}
           </button>
         </div>
       </div>
 
-      {error ? <p className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</p> : null}
+      {error ? <p className="mb-4 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</p> : null}
 
       <div className="space-y-3">
         {invoices.map((invoice) => (
-          <div key={invoice.order_id} className="rounded-[1.5rem] border border-slate-200 bg-white/90 p-4">
+          <div key={invoice.order_id} className="rounded-lg border border-slate-200 bg-white p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-semibold text-brand-ink">{invoice.order_number}</p>
+                <p className="text-sm font-semibold text-slate-950">{invoice.order_number}</p>
                 <p className="mt-1 text-xs text-slate-500">{formatDate(invoice.created_at)} &middot; {invoice.billing_name} &middot; {invoice.billing_email}</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-sm font-semibold text-brand-accent">{formatCurrency(invoice.total)}</span>
-                <button type="button" onClick={() => setExpandedId(expandedId === invoice.order_id ? null : invoice.order_id)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:border-cyan-200 hover:text-brand-ink">Details</button>
-                <button type="button" disabled={downloadingInvoiceId === invoice.order_id} onClick={() => handleDownloadInvoice(invoice)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:border-cyan-200 hover:text-brand-ink disabled:opacity-50">
+                <span className="rounded-md border border-cyan-200 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-700">{formatCurrency(invoice.total)}</span>
+                <button type="button" onClick={() => setExpandedId(expandedId === invoice.order_id ? null : invoice.order_id)} className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:border-cyan-200 hover:text-slate-950">Details</button>
+                <button type="button" disabled={downloadingInvoiceId === invoice.order_id} onClick={() => handleDownloadInvoice(invoice)} className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:border-cyan-200 hover:text-slate-950 disabled:opacity-50">
                   <Download className="h-3 w-3" /> {downloadingInvoiceId === invoice.order_id ? "Downloading..." : "PDF"}
                 </button>
               </div>
@@ -557,29 +610,29 @@ function AnalyticsTab({ user }) {
     );
   }, [summary]);
 
-  if (isLoading) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-brand-accent" />;
+  if (isLoading) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-cyan-700" />;
 
   return (
     <div>
       <div className="mb-4 grid gap-3 lg:grid-cols-[1fr_1fr_10rem_auto] lg:items-end">
         <div>
-          <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Start date</label>
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-cyan-300" />
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Start date</label>
+          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100" />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">End date</label>
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-cyan-300" />
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">End date</label>
+          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100" />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Cost rate</label>
-          <input type="number" min="0" max="1" step="0.01" value={costRate} onChange={(e) => setCostRate(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-cyan-300" />
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Cost rate</label>
+          <input type="number" min="0" max="1" step="0.01" value={costRate} onChange={(e) => setCostRate(e.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100" />
         </div>
-        <button type="button" onClick={loadSummary} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-900">
+        <button type="button" onClick={loadSummary} className="inline-flex items-center justify-center gap-2 rounded-md bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">
           <BarChart3 className="h-4 w-4" /> Calculate
         </button>
       </div>
 
-      {error ? <p className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</p> : null}
+      {error ? <p className="mb-4 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</p> : null}
 
       {summary ? (
         <>
@@ -590,7 +643,7 @@ function AnalyticsTab({ user }) {
             <Metric label="Estimated profit" value={formatCurrency(summary.estimated_profit)} tone={Number(summary.estimated_profit) >= 0 ? "emerald" : "rose"} />
           </div>
 
-          <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-white/90 p-4">
+          <div className="mt-6 rounded-lg border border-slate-200 bg-white p-4">
             <div className="mb-4 flex flex-wrap items-center gap-3">
               <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-700"><span className="h-2.5 w-2.5 rounded-full bg-cyan-400" /> Revenue</span>
               <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700"><span className="h-2.5 w-2.5 rounded-full bg-emerald-400" /> Profit</span>
@@ -603,9 +656,9 @@ function AnalyticsTab({ user }) {
                 const profitWidth = `${Math.max(4, (Math.abs(profit) / maxValue) * 100)}%`;
                 const lossWidth = `${Math.max(4, (Math.abs(Number(day.refunded_loss) || 0) / maxValue) * 100)}%`;
                 return (
-                  <div key={day.day} className="grid gap-2 rounded-2xl border border-slate-100 bg-slate-50/80 p-3 lg:grid-cols-[9rem_1fr] lg:items-center">
+                  <div key={day.day} className="grid gap-2 rounded-md border border-slate-100 bg-slate-50 p-3 lg:grid-cols-[9rem_1fr] lg:items-center">
                     <div>
-                      <p className="text-xs font-semibold text-brand-ink">{day.day}</p>
+                      <p className="text-xs font-semibold text-slate-950">{day.day}</p>
                       <p className="mt-1 text-xs text-slate-500">{day.order_count} orders</p>
                     </div>
                     <div className="grid gap-1.5">
@@ -627,13 +680,13 @@ function AnalyticsTab({ user }) {
 
 function Metric({ label, tone, value }) {
   const toneMap = {
-    cyan: "border-cyan-200 bg-cyan-50 text-brand-accent",
+    cyan: "border-cyan-200 bg-cyan-50 text-cyan-700",
     emerald: "border-emerald-200 bg-emerald-50 text-emerald-700",
     rose: "border-rose-200 bg-rose-50 text-rose-700",
   };
   return (
-    <div className={`rounded-[1.5rem] border px-4 py-4 ${toneMap[tone] || toneMap.cyan}`}>
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] opacity-80">{label}</p>
+    <div className={`rounded-lg border px-4 py-4 ${toneMap[tone] || toneMap.cyan}`}>
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] opacity-80">{label}</p>
       <p className="mt-2 text-xl font-semibold">{value}</p>
     </div>
   );
@@ -683,7 +736,7 @@ function RefundsTab({ user }) {
     }
   }
 
-  if (isLoading) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-brand-accent" />;
+  if (isLoading) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-cyan-700" />;
 
   return (
     <div>
@@ -692,22 +745,22 @@ function RefundsTab({ user }) {
           <input type="checkbox" checked={includeResolved} onChange={(e) => setIncludeResolved(e.target.checked)} />
           Include resolved refunds
         </label>
-        <button type="button" onClick={loadRefunds} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-cyan-200 hover:text-brand-ink">
+        <button type="button" onClick={loadRefunds} className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-cyan-200 hover:text-slate-950">
           <RotateCcw className="h-4 w-4" /> Refresh
         </button>
       </div>
 
-      {error ? <p className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</p> : null}
+      {error ? <p className="mb-4 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</p> : null}
 
       <div className="space-y-3">
         {orders.map((order) => {
           const pending = order.status === "refund_requested";
           return (
-            <div key={order.order_id} className="rounded-[1.5rem] border border-slate-200 bg-white/90 p-4">
+            <div key={order.order_id} className="rounded-lg border border-slate-200 bg-white p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-semibold text-brand-ink">{order.order_number}</p>
+                    <p className="text-sm font-semibold text-slate-950">{order.order_number}</p>
                     <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${pending ? "border-amber-200 bg-amber-50 text-amber-700" : order.status === "refunded" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-rose-200 bg-rose-50 text-rose-700"}`}>
                       {order.status.replace(/_/g, " ")}
                     </span>
@@ -721,10 +774,10 @@ function RefundsTab({ user }) {
                 </div>
                 {pending ? (
                   <div className="flex shrink-0 flex-wrap items-center gap-2">
-                    <button type="button" disabled={actionId === order.order_id} onClick={() => handleRefund(order.order_id, "approve")} className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50">
+                    <button type="button" disabled={actionId === order.order_id} onClick={() => handleRefund(order.order_id, "approve")} className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50">
                       <CheckCircle2 className="h-3 w-3" /> Approve
                     </button>
-                    <button type="button" disabled={actionId === order.order_id} onClick={() => handleRefund(order.order_id, "reject")} className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50">
+                    <button type="button" disabled={actionId === order.order_id} onClick={() => handleRefund(order.order_id, "reject")} className="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50">
                       <XCircle className="h-3 w-3" /> Reject
                     </button>
                   </div>

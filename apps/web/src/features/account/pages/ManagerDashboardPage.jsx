@@ -82,7 +82,7 @@ function getDeliveryStatusClass(status) {
     return "border-rose-200 bg-rose-50 text-rose-700";
   }
 
-  return "border-cyan-200 bg-cyan-50 text-brand-accent";
+  return "border-cyan-200 bg-cyan-50 text-cyan-700";
 }
 
 function getManagerRequestErrorMessage(error, fallback) {
@@ -150,6 +150,81 @@ const TABS = [
   { id: "comments", label: "Comments", Icon: MessageSquare },
 ];
 
+const DELIVERY_PAGE_SIZE = 25;
+const DELIVERY_CACHE_TTL_MS = 30_000;
+const deliveryCache = new Map();
+
+function getDashboardTabClassName(isActive) {
+  return `inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm font-semibold transition ${
+    isActive
+      ? "border-slate-950 bg-slate-950 text-white"
+      : "border-transparent bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+  }`;
+}
+
+const MANAGER_SUMMARY_ITEMS = [
+  {
+    title: "Catalog controls",
+    body: "Edit products, categories, item filters, stock, and visibility from one workspace.",
+    Icon: Package,
+  },
+  {
+    title: "Fulfillment queue",
+    body: "Deliveries use fast cached pages with explicit refresh and load-more actions.",
+    Icon: Truck,
+  },
+  {
+    title: "Review moderation",
+    body: "Approve or reject pending product comments before they appear in the store.",
+    Icon: MessageSquare,
+  },
+];
+
+function DashboardSummaryStrip({ items }) {
+  return (
+    <section className="mb-4 grid gap-3 md:grid-cols-3">
+      {items.map(({ body, Icon, title }) => (
+        <div key={title} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-cyan-50 text-cyan-700">
+              <Icon className="h-4 w-4" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-slate-950">{title}</p>
+              <p className="mt-1 text-xs leading-5 text-slate-500">{body}</p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function getDeliveryCacheKey(managerUserId, includeCompleted) {
+  return managerUserId ? `${managerUserId}:${includeCompleted ? "completed" : "pending"}` : "";
+}
+
+function readDeliveryCache(managerUserId, includeCompleted) {
+  return deliveryCache.get(getDeliveryCacheKey(managerUserId, includeCompleted));
+}
+
+function writeDeliveryCache(cacheKey, deliveries, hasMore) {
+  if (!cacheKey) return;
+  deliveryCache.set(cacheKey, {
+    deliveries,
+    hasMore,
+    loadedAt: Date.now(),
+  });
+}
+
+function mergeDeliveryPages(currentDeliveries, nextDeliveries) {
+  const byId = new Map();
+  [...currentDeliveries, ...nextDeliveries].forEach((delivery) => {
+    byId.set(delivery.delivery_id, delivery);
+  });
+  return Array.from(byId.values()).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+}
+
 // ── Main component ──────────────────────────────────────────────────
 
 export function ManagerDashboardPage() {
@@ -168,29 +243,27 @@ export function ManagerDashboardPage() {
 
   if (!isManager) {
     return (
-      <StorefrontPageShell currentStep="" description="" eyebrow="Access denied" title="This area is for product managers.">
-        <section className="rounded-[2rem] border border-rose-200 bg-rose-50 px-6 py-10 text-center text-rose-900">
+      <StorefrontPageShell contextLabel="Product workspace" currentStep="" description="" eyebrow="Access denied" title="This area is for product managers.">
+        <section className="rounded-lg border border-rose-200 bg-rose-50 px-6 py-10 text-center text-rose-900">
           <ShieldAlert className="mx-auto h-8 w-8" />
           <p className="mt-4 text-lg font-semibold">Insufficient permissions</p>
-          <Link to="/" className="mt-6 inline-flex items-center rounded-2xl bg-brand-accent px-5 py-3 text-sm font-semibold text-brand-ink transition hover:bg-brand-glow">Back to store</Link>
+          <Link to="/" className="mt-6 inline-flex items-center rounded-md bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">Back to store</Link>
         </section>
       </StorefrontPageShell>
     );
   }
 
   return (
-    <StorefrontPageShell currentStep="" description="Manage products, categories, stock, invoices, deliveries, and reviews." eyebrow="Manager" title="Product Manager Dashboard">
-      <nav className="flex flex-wrap gap-2">
+    <StorefrontPageShell contextLabel="Product workspace" currentStep="" description="Manage products, categories, stock, invoices, deliveries, and reviews." eyebrow="Manager" title="Product Manager Dashboard">
+      <DashboardSummaryStrip items={MANAGER_SUMMARY_ITEMS} />
+
+      <nav className="flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
         {TABS.map(({ id, label, Icon }) => (
           <button
             key={id}
             type="button"
             onClick={() => setActiveTab(id)}
-            className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-semibold transition ${
-              activeTab === id
-                ? "border-cyan-300 bg-cyan-50 text-brand-accent"
-                : "border-slate-200 bg-white text-slate-600 hover:border-cyan-200 hover:text-brand-ink"
-            }`}
+            className={getDashboardTabClassName(activeTab === id)}
           >
             <Icon className="h-4 w-4" />
             {label}
@@ -262,46 +335,71 @@ function ProductsTab({ user }) {
     loadProducts();
   }
 
-  if (isLoading) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-brand-accent" />;
+  if (isLoading) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-cyan-700" />;
 
   return (
     <div>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm font-semibold text-slate-600">{products.length} products total</p>
-        <button type="button" onClick={() => { setEditingProduct(null); setShowForm(true); }} className="inline-flex items-center gap-2 rounded-2xl bg-brand-accent px-4 py-2.5 text-sm font-semibold text-brand-ink transition hover:bg-brand-glow">
+        <button type="button" onClick={() => { setEditingProduct(null); setShowForm(true); }} className="inline-flex items-center gap-2 rounded-md bg-cyan-400 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300">
           <Plus className="h-4 w-4" /> Add product
         </button>
       </div>
 
-      {showForm ? <ProductForm user={user} product={editingProduct} onDone={handleFormDone} onCancel={() => { setShowForm(false); setEditingProduct(null); }} /> : null}
+      {showForm && !editingProduct ? (
+        <ProductForm
+          key="new-product"
+          user={user}
+          onDone={handleFormDone}
+          onCancel={() => {
+            setShowForm(false);
+            setEditingProduct(null);
+          }}
+        />
+      ) : null}
 
       <div className="space-y-3">
         {products.map((p) => (
-          <div key={p.product_id} className={`flex flex-col gap-3 rounded-[1.5rem] border p-4 sm:flex-row sm:items-center sm:justify-between ${p.is_active ? "border-slate-200 bg-white/90" : "border-slate-200/50 bg-slate-50/50 opacity-60"}`}>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-brand-ink">{p.name}</span>
-                {!p.is_active ? <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">Inactive</span> : null}
+          <div key={p.product_id} className="space-y-3">
+            <div className={`flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between ${p.is_active ? "border-slate-200 bg-white" : "border-slate-200 bg-slate-50 opacity-60"}`}>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-slate-950">{p.name}</span>
+                  {!p.is_active ? <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">Inactive</span> : null}
+                </div>
+                <p className="mt-1 text-xs text-slate-500">ID: {p.product_id} &middot; {p.category} &middot; {formatCurrency(p.price)}{p.discount_percent > 0 ? ` (−${p.discount_percent}%)` : ""} &middot; Stock: {p.stock_quantity ?? 0}</p>
               </div>
-              <p className="mt-1 text-xs text-slate-500">ID: {p.product_id} &middot; {p.category} &middot; {formatCurrency(p.price)}{p.discount_percent > 0 ? ` (−${p.discount_percent}%)` : ""} &middot; Stock: {p.stock_quantity ?? 0}</p>
-            </div>
-            <div className="flex shrink-0 flex-wrap items-center gap-2">
-              <button type="button" onClick={() => handleEdit(p)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-cyan-200 hover:text-brand-ink">
-                <Edit className="h-3 w-3" /> Edit
-              </button>
-              {p.is_active ? (
-                <button type="button" onClick={() => handleDeactivate(p.product_id)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-amber-200 hover:text-amber-700">
-                  <XCircle className="h-3 w-3" /> Deactivate
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                <button type="button" onClick={() => handleEdit(p)} className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-cyan-200 hover:text-slate-950">
+                  <Edit className="h-3 w-3" /> Edit
                 </button>
-              ) : (
-                <button type="button" onClick={() => handleActivate(p.product_id)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-emerald-200 hover:text-emerald-700">
-                  <CheckCircle2 className="h-3 w-3" /> Activate
+                {p.is_active ? (
+                  <button type="button" onClick={() => handleDeactivate(p.product_id)} className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-amber-200 hover:text-amber-700">
+                    <XCircle className="h-3 w-3" /> Deactivate
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => handleActivate(p.product_id)} className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-emerald-200 hover:text-emerald-700">
+                    <CheckCircle2 className="h-3 w-3" /> Activate
+                  </button>
+                )}
+                <button type="button" onClick={() => handleDelete(p.product_id)} className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-rose-200 hover:text-rose-700">
+                  <Trash2 className="h-3 w-3" /> Delete
                 </button>
-              )}
-              <button type="button" onClick={() => handleDelete(p.product_id)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-rose-200 hover:text-rose-700">
-                <Trash2 className="h-3 w-3" /> Delete
-              </button>
+              </div>
             </div>
+            {showForm && editingProduct?.product_id === p.product_id ? (
+              <ProductForm
+                key={`edit-product-${p.product_id}`}
+                user={user}
+                product={editingProduct}
+                className="mb-2"
+                onDone={handleFormDone}
+                onCancel={() => {
+                  setShowForm(false);
+                  setEditingProduct(null);
+                }}
+              />
+            ) : null}
           </div>
         ))}
       </div>
@@ -309,7 +407,7 @@ function ProductsTab({ user }) {
   );
 }
 
-function ProductForm({ user, product, onDone, onCancel }) {
+function ProductForm({ user, product, onDone, onCancel, className = "mb-6" }) {
   const isEdit = Boolean(product);
   const [categories, setCategories] = useState([]);
   const [form, setForm] = useState({
@@ -382,12 +480,24 @@ function ProductForm({ user, product, onDone, onCancel }) {
     } finally { setSaving(false); }
   }
 
-  const inputCls = "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-300";
-  const labelCls = "mb-1 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500";
+  const inputCls = "w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100";
+  const labelCls = "mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500";
 
   return (
-    <form onSubmit={handleSubmit} className="mb-6 rounded-[1.5rem] border border-cyan-200 bg-cyan-50/30 p-5">
-      <p className="text-sm font-semibold text-brand-ink">{isEdit ? "Edit product" : "Add new product"}</p>
+    <form onSubmit={handleSubmit} className={`rounded-lg border border-slate-200 bg-white p-5 shadow-sm ${className}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">
+            Product editor
+          </p>
+          <p className="mt-1 text-sm font-semibold text-slate-950">
+            {isEdit ? `Editing ${product.name}` : "Add new product"}
+          </p>
+        </div>
+        <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-500">
+          {isEdit ? `ID ${product.product_id}` : "New SKU"}
+        </span>
+      </div>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <div><label className={labelCls}>Name</label><input value={form.name} onChange={handleChange("name")} className={inputCls} required /></div>
         <div><label className={labelCls}>Model</label><input value={form.model} onChange={handleChange("model")} className={inputCls} /></div>
@@ -414,9 +524,9 @@ function ProductForm({ user, product, onDone, onCancel }) {
         <div><label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={form.warranty_status} onChange={handleChange("warranty_status")} /> Warranty included</label></div>
       </div>
       {error ? <p className="mt-3 text-sm text-rose-700">{error}</p> : null}
-      <div className="mt-4 flex items-center gap-3">
-        <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-2xl bg-brand-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-900 disabled:opacity-50">{saving ? "Saving..." : isEdit ? "Save changes" : "Create product"}</button>
-        <button type="button" onClick={onCancel} className="text-sm font-semibold text-slate-500 hover:text-brand-ink">Cancel</button>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-md bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50">{saving ? "Saving..." : isEdit ? "Save changes" : "Create product"}</button>
+        <button type="button" onClick={onCancel} className="text-sm font-semibold text-slate-500 hover:text-slate-950">Cancel</button>
       </div>
     </form>
   );
@@ -496,15 +606,21 @@ function CategoriesTab({ user }) {
     } catch (err) { setError(err.response?.data?.detail || "Could not delete category."); }
   }
 
-  if (isLoading) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-brand-accent" />;
+  if (isLoading) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-cyan-700" />;
 
-  const inputCls = "rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-cyan-300";
-  const lblCls = "mb-1 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500";
+  const inputCls = "rounded-md border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100";
+  const lblCls = "mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500";
 
   return (
     <div>
-      <form onSubmit={handleAdd} className="mb-6 rounded-[1.5rem] border border-cyan-200 bg-cyan-50/30 p-4">
-        <p className="text-sm font-semibold text-brand-ink">Add new category</p>
+      <form onSubmit={handleAdd} className="mb-6 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">Department editor</p>
+            <p className="mt-1 text-sm font-semibold text-slate-950">Add new category</p>
+          </div>
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-500">Store navigation</span>
+        </div>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div><label className={lblCls}>Name (key)</label><input value={addForm.name} onChange={handleAddChange("name")} placeholder="e.g. laptop" required className={inputCls + " w-full"} /></div>
           <div><label className={lblCls}>Label</label><input value={addForm.label} onChange={handleAddChange("label")} placeholder="e.g. Laptops" required className={inputCls + " w-full"} /></div>
@@ -516,7 +632,7 @@ function CategoriesTab({ user }) {
         <div className="mt-3 flex flex-wrap items-center gap-4">
           <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={addForm.is_visible_in_sidebar} onChange={handleAddChange("is_visible_in_sidebar")} /> Sidebar</label>
           <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={addForm.is_visible_on_homepage} onChange={handleAddChange("is_visible_on_homepage")} /> Homepage</label>
-          <button type="submit" className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-accent px-4 py-2 text-sm font-semibold text-brand-ink hover:bg-brand-glow sm:ml-auto sm:w-auto"><Plus className="h-4 w-4" /> Add category</button>
+          <button type="submit" className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-cyan-300 sm:ml-auto sm:w-auto"><Plus className="h-4 w-4" /> Add category</button>
         </div>
       </form>
 
@@ -524,9 +640,9 @@ function CategoriesTab({ user }) {
 
       <div className="space-y-3">
         {categories.map((c) => (
-          <div key={c.category_id} className="rounded-[1.5rem] border border-slate-200 bg-white/90 overflow-hidden">
+          <div key={c.category_id} className="rounded-lg border border-slate-200 bg-white overflow-hidden">
             {editingId === c.category_id ? (
-              <div className="p-4 space-y-3 bg-cyan-50/20">
+              <div className="space-y-3 bg-slate-50 p-4">
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   <div><label className={lblCls}>Label</label><input value={editForm.label} onChange={handleEditChange("label")} className={inputCls + " w-full"} /></div>
                   <div><label className={lblCls}>Slug</label><input value={editForm.slug} onChange={handleEditChange("slug")} className={inputCls + " w-full"} /></div>
@@ -538,8 +654,8 @@ function CategoriesTab({ user }) {
                   <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={editForm.is_visible_in_sidebar} onChange={handleEditChange("is_visible_in_sidebar")} /> Sidebar</label>
                   <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={editForm.is_visible_on_homepage} onChange={handleEditChange("is_visible_on_homepage")} /> Homepage</label>
                   <div className="ml-auto flex gap-2">
-                    <button type="button" onClick={() => saveEdit(c.category_id)} className="rounded-xl bg-brand-ink px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-900">Save</button>
-                    <button type="button" onClick={() => setEditingId(null)} className="text-xs font-semibold text-slate-500 hover:text-brand-ink">Cancel</button>
+                    <button type="button" onClick={() => saveEdit(c.category_id)} className="rounded-md bg-slate-950 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800">Save</button>
+                    <button type="button" onClick={() => setEditingId(null)} className="text-xs font-semibold text-slate-500 hover:text-slate-950">Cancel</button>
                   </div>
                 </div>
               </div>
@@ -547,29 +663,29 @@ function CategoriesTab({ user }) {
               <div className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-brand-ink">{c.label}</span>
+                    <span className="text-sm font-semibold text-slate-950">{c.label}</span>
                     <span className="text-xs text-slate-400">({c.name})</span>
                     <span className="text-xs text-slate-400">/{c.slug}</span>
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
                     <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${c.is_visible_in_sidebar ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-50 text-slate-400"}`}>Sidebar {c.is_visible_in_sidebar ? "ON" : "OFF"}</span>
-                    <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${c.is_visible_on_homepage ? "border-cyan-200 bg-cyan-50 text-brand-accent" : "border-slate-200 bg-slate-50 text-slate-400"}`}>Homepage {c.is_visible_on_homepage ? "ON" : "OFF"}</span>
+                    <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${c.is_visible_on_homepage ? "border-cyan-200 bg-cyan-50 text-cyan-700" : "border-slate-200 bg-slate-50 text-slate-400"}`}>Homepage {c.is_visible_on_homepage ? "ON" : "OFF"}</span>
                     {c.icon ? <span className="text-xs text-slate-400">icon: {c.icon}</span> : null}
                     <span className="text-xs text-slate-400">order: {c.sort_order}</span>
                   </div>
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
-                  <button type="button" onClick={() => setExpandedId(expandedId === c.category_id ? null : c.category_id)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:border-cyan-200 hover:text-brand-ink">
+                  <button type="button" onClick={() => setExpandedId(expandedId === c.category_id ? null : c.category_id)} className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:border-cyan-200 hover:text-slate-950">
                     <ChevronDown className={`h-3 w-3 transition ${expandedId === c.category_id ? "rotate-180" : ""}`} /> Filters
                   </button>
-                  <button type="button" onClick={() => startEdit(c)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:border-cyan-200 hover:text-brand-ink"><Edit className="h-3 w-3" /> Edit</button>
-                  <button type="button" onClick={() => handleDelete(c.category_id)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:border-rose-200 hover:text-rose-700"><Trash2 className="h-3 w-3" /> Delete</button>
+                  <button type="button" onClick={() => startEdit(c)} className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:border-cyan-200 hover:text-slate-950"><Edit className="h-3 w-3" /> Edit</button>
+                  <button type="button" onClick={() => handleDelete(c.category_id)} className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:border-rose-200 hover:text-rose-700"><Trash2 className="h-3 w-3" /> Delete</button>
                 </div>
               </div>
             )}
 
             {expandedId === c.category_id ? (
-              <div className="border-t border-slate-200 bg-slate-50/50 p-4">
+              <div className="border-t border-slate-200 bg-slate-50 p-4">
                 <ItemTypeManager user={user} categoryId={c.category_id} categoryLabel={c.label} />
               </div>
             ) : null}
@@ -633,19 +749,19 @@ function ItemTypeManager({ user, categoryId, categoryLabel }) {
     } catch (err) { setError(err.response?.data?.detail || "Could not delete item type."); }
   }
 
-  const inputCls = "rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-cyan-300";
+  const inputCls = "rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none transition focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100";
 
-  if (isLoading) return <LoaderCircle className="mx-auto h-5 w-5 animate-spin text-brand-accent" />;
+  if (isLoading) return <LoaderCircle className="mx-auto h-5 w-5 animate-spin text-cyan-700" />;
 
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-accent">Item type filters for {categoryLabel}</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-700">Item type filters for {categoryLabel}</p>
 
       <form onSubmit={handleAdd} className="mt-3 flex flex-wrap items-end gap-2">
         <div><label className="mb-1 block text-xs text-slate-500">Value</label><input value={addValue} onChange={(e) => setAddValue(e.target.value)} placeholder="e.g. gpu" required className={inputCls} /></div>
         <div><label className="mb-1 block text-xs text-slate-500">Label</label><input value={addLabel} onChange={(e) => setAddLabel(e.target.value)} placeholder="e.g. Graphics Card" required className={inputCls} /></div>
         <div><label className="mb-1 block text-xs text-slate-500">Order</label><input type="number" value={addSort} onChange={(e) => setAddSort(e.target.value)} className={inputCls + " w-16"} /></div>
-        <button type="submit" className="inline-flex items-center gap-1.5 rounded-lg bg-brand-accent px-3 py-1.5 text-xs font-semibold text-brand-ink hover:bg-brand-glow"><Plus className="h-3 w-3" /> Add</button>
+        <button type="submit" className="inline-flex items-center gap-1.5 rounded-md bg-cyan-400 px-3 py-1.5 text-xs font-semibold text-slate-950 hover:bg-cyan-300"><Plus className="h-3 w-3" /> Add</button>
       </form>
 
       {error ? <p className="mt-2 text-xs text-rose-700">{error}</p> : null}
@@ -653,21 +769,21 @@ function ItemTypeManager({ user, categoryId, categoryLabel }) {
       {types.length > 0 ? (
         <div className="mt-3 space-y-2">
           {types.map((t) => (
-            <div key={t.item_type_id} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+            <div key={t.item_type_id} className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2">
               {editingId === t.item_type_id ? (
                 <>
                   <input value={editForm.value} onChange={(e) => setEditForm((p) => ({ ...p, value: e.target.value }))} className={inputCls + " w-24"} />
                   <input value={editForm.label} onChange={(e) => setEditForm((p) => ({ ...p, label: e.target.value }))} className={inputCls + " flex-1"} />
                   <input type="number" value={editForm.sort_order} onChange={(e) => setEditForm((p) => ({ ...p, sort_order: e.target.value }))} className={inputCls + " w-14"} />
-                  <button type="button" onClick={() => saveEdit(t.item_type_id)} className="rounded-lg bg-brand-ink px-2 py-1 text-xs font-semibold text-white">Save</button>
+                  <button type="button" onClick={() => saveEdit(t.item_type_id)} className="rounded-md bg-slate-950 px-2 py-1 text-xs font-semibold text-white">Save</button>
                   <button type="button" onClick={() => setEditingId(null)} className="text-xs text-slate-500">Cancel</button>
                 </>
               ) : (
                 <>
                   <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-mono text-slate-600">{t.value}</span>
-                  <span className="flex-1 text-sm font-semibold text-brand-ink">{t.label}</span>
+                  <span className="flex-1 text-sm font-semibold text-slate-950">{t.label}</span>
                   <span className="text-xs text-slate-400">#{t.sort_order}</span>
-                  <button type="button" onClick={() => startEdit(t)} className="text-xs font-semibold text-slate-500 hover:text-brand-ink">Edit</button>
+                  <button type="button" onClick={() => startEdit(t)} className="text-xs font-semibold text-slate-500 hover:text-slate-950">Edit</button>
                   <button type="button" onClick={() => handleDeleteType(t.item_type_id)} className="text-xs font-semibold text-slate-500 hover:text-rose-700">Delete</button>
                 </>
               )}
@@ -709,7 +825,7 @@ function StockTab({ user }) {
     } catch { /* silent */ }
   }
 
-  if (isLoading) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-brand-accent" />;
+  if (isLoading) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-cyan-700" />;
 
   return (
     <div className="space-y-3">
@@ -718,9 +834,9 @@ function StockTab({ user }) {
         const isLow = stock > 0 && stock <= 5;
         const isOut = stock <= 0;
         return (
-          <div key={p.product_id} className="flex flex-col gap-3 rounded-[1.5rem] border border-slate-200 bg-white/90 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div key={p.product_id} className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-brand-ink">{p.name}</p>
+              <p className="text-sm font-semibold text-slate-950">{p.name}</p>
               <div className="mt-1 flex items-center gap-2">
                 <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${isOut ? "border-rose-200 bg-rose-50 text-rose-700" : isLow ? "border-amber-200 bg-amber-50 text-amber-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>
                   {isOut ? "Out of stock" : `${stock} in stock`}
@@ -731,12 +847,12 @@ function StockTab({ user }) {
             <div className="flex shrink-0 flex-wrap items-center gap-2">
               {editingId === p.product_id ? (
                 <>
-                  <input type="number" min="0" value={editingQty} onChange={(e) => setEditingQty(e.target.value)} className="w-20 rounded-xl border border-cyan-300 bg-white px-2 py-1.5 text-sm outline-none" />
-                  <button type="button" onClick={() => handleSaveStock(p.product_id)} className="rounded-xl bg-brand-accent px-3 py-1.5 text-xs font-semibold text-brand-ink hover:bg-brand-glow">Save</button>
-                  <button type="button" onClick={() => setEditingId(null)} className="text-xs text-slate-500 hover:text-brand-ink">Cancel</button>
+                  <input type="number" min="0" value={editingQty} onChange={(e) => setEditingQty(e.target.value)} className="w-20 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm outline-none" />
+                  <button type="button" onClick={() => handleSaveStock(p.product_id)} className="rounded-md bg-cyan-400 px-3 py-1.5 text-xs font-semibold text-slate-950 hover:bg-cyan-300">Save</button>
+                  <button type="button" onClick={() => setEditingId(null)} className="text-xs text-slate-500 hover:text-slate-950">Cancel</button>
                 </>
               ) : (
-                <button type="button" onClick={() => { setEditingId(p.product_id); setEditingQty(String(stock)); }} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:border-cyan-200 hover:text-brand-ink">
+                <button type="button" onClick={() => { setEditingId(p.product_id); setEditingQty(String(stock)); }} className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:border-cyan-200 hover:text-slate-950">
                   <Edit className="h-3 w-3" /> Update stock
                 </button>
               )}
@@ -785,24 +901,24 @@ function InvoicesTab({ user }) {
     }
   }
 
-  if (isLoading) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-brand-accent" />;
+  if (isLoading) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-cyan-700" />;
 
   return (
     <div className="space-y-3">
-      {error ? <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</p> : null}
+      {error ? <p className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</p> : null}
       {invoices.map((inv) => (
-        <div key={inv.order_id} className="rounded-[1.5rem] border border-slate-200 bg-white/90 p-4">
+        <div key={inv.order_id} className="rounded-lg border border-slate-200 bg-white p-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-semibold text-brand-ink">{inv.order_number}</p>
+              <p className="text-sm font-semibold text-slate-950">{inv.order_number}</p>
               <p className="mt-1 text-xs text-slate-500">{formatDate(inv.created_at)} &middot; {inv.billing_name} &middot; {inv.billing_email}</p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <span className="text-sm font-semibold text-brand-accent">{formatCurrency(inv.total)}</span>
-              <button type="button" onClick={() => setExpandedId(expandedId === inv.order_id ? null : inv.order_id)} className="inline-flex items-center gap-1 text-xs font-semibold text-brand-accent hover:underline">
+              <span className="text-sm font-semibold text-cyan-700">{formatCurrency(inv.total)}</span>
+              <button type="button" onClick={() => setExpandedId(expandedId === inv.order_id ? null : inv.order_id)} className="inline-flex items-center gap-1 text-xs font-semibold text-cyan-700 hover:underline">
                 <ChevronDown className={`h-3 w-3 transition ${expandedId === inv.order_id ? "rotate-180" : ""}`} /> Details
               </button>
-              <button type="button" disabled={downloadingInvoiceId === inv.order_id} onClick={() => handleDownloadInvoice(inv)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:border-cyan-200 hover:text-brand-ink disabled:opacity-50">
+              <button type="button" disabled={downloadingInvoiceId === inv.order_id} onClick={() => handleDownloadInvoice(inv)} className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:border-cyan-200 hover:text-slate-950 disabled:opacity-50">
                 <Download className="h-3 w-3" /> {downloadingInvoiceId === inv.order_id ? "Downloading..." : "PDF"}
               </button>
             </div>
@@ -834,25 +950,65 @@ function InvoicesTab({ user }) {
 function DeliveriesTab({ user }) {
   const [deliveries, setDeliveries] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState("");
   const latestLoadId = useRef(0);
   const managerUserId = user?.user_id;
 
   useEffect(() => {
+    if (!managerUserId) {
+      setError("Sign out and sign in again with a product manager account.");
+      setIsLoading(false);
+      return undefined;
+    }
+
+    const cached = readDeliveryCache(managerUserId, showCompleted);
+    if (cached) {
+      setDeliveries(cached.deliveries);
+      setHasMore(cached.hasMore);
+      setError("");
+      setIsLoading(false);
+    } else {
+      setDeliveries([]);
+      setHasMore(false);
+    }
+
+    if (cached && Date.now() - cached.loadedAt < DELIVERY_CACHE_TTL_MS) {
+      return undefined;
+    }
+
     const controller = new AbortController();
-    loadDeliveries({ includeCompleted: showCompleted, signal: controller.signal });
+    loadDeliveries({
+      includeCompleted: showCompleted,
+      signal: controller.signal,
+      maxAttempts: cached ? 1 : 3,
+    });
     return () => controller.abort();
   }, [showCompleted, managerUserId]);
 
-  async function loadDeliveries({ includeCompleted = showCompleted, signal, maxAttempts = 3 } = {}) {
+  async function loadDeliveries({
+    append = false,
+    includeCompleted = showCompleted,
+    offset = 0,
+    signal,
+    maxAttempts = 1,
+  } = {}) {
     const loadId = latestLoadId.current + 1;
     latestLoadId.current = loadId;
-    setIsLoading(true);
+    const cacheKey = getDeliveryCacheKey(managerUserId, includeCompleted);
+    const requestLimit = DELIVERY_PAGE_SIZE + 1;
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+    }
     setError("");
     if (!managerUserId) {
       setError("Sign out and sign in again with a product manager account.");
       setIsLoading(false);
+      setIsLoadingMore(false);
       return;
     }
 
@@ -861,14 +1017,28 @@ function DeliveriesTab({ user }) {
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         try {
           const res = await http.get("/manager/deliveries", {
-            params: { manager_user_id: managerUserId, show_completed: includeCompleted },
+            params: {
+              manager_user_id: managerUserId,
+              show_completed: includeCompleted,
+              limit: requestLimit,
+              offset,
+            },
             signal,
           });
           if (loadId !== latestLoadId.current || signal?.aborted) return;
           if (!Array.isArray(res.data)) {
             throw new Error("Delivery response was not a list.");
           }
-          setDeliveries(res.data);
+          const nextPage = res.data.slice(0, DELIVERY_PAGE_SIZE);
+          const nextHasMore = res.data.length > DELIVERY_PAGE_SIZE;
+          setDeliveries((currentDeliveries) => {
+            const nextDeliveries = append
+              ? mergeDeliveryPages(currentDeliveries, nextPage)
+              : nextPage;
+            writeDeliveryCache(cacheKey, nextDeliveries, nextHasMore);
+            return nextDeliveries;
+          });
+          setHasMore(nextHasMore);
           setError("");
           return;
         } catch (err) {
@@ -886,10 +1056,11 @@ function DeliveriesTab({ user }) {
       }
 
       if (loadId === latestLoadId.current && !signal?.aborted) {
+        const cached = deliveryCache.get(cacheKey);
         setError(
           getManagerRequestErrorMessage(
             lastError,
-            deliveries.length > 0
+            cached?.deliveries?.length > 0 || deliveries.length > 0
               ? "Could not refresh deliveries. Showing the last loaded list."
               : "Could not load deliveries.",
           ),
@@ -898,6 +1069,7 @@ function DeliveriesTab({ user }) {
     } finally {
       if (loadId === latestLoadId.current && !signal?.aborted) {
         setIsLoading(false);
+        setIsLoadingMore(false);
       }
     }
   }
@@ -906,7 +1078,11 @@ function DeliveriesTab({ user }) {
     setError("");
     try {
       const res = await http.patch(`/manager/deliveries/${id}/in-transit`, null, { params: { manager_user_id: managerUserId } });
-      setDeliveries((prev) => prev.map((d) => d.delivery_id === id ? res.data : d));
+      setDeliveries((prev) => {
+        const next = prev.map((d) => d.delivery_id === id ? res.data : d);
+        writeDeliveryCache(getDeliveryCacheKey(managerUserId, showCompleted), next, hasMore);
+        return next;
+      });
     } catch (err) {
       setError(getManagerRequestErrorMessage(err, "Could not update this delivery."));
     }
@@ -916,17 +1092,39 @@ function DeliveriesTab({ user }) {
     setError("");
     try {
       const res = await http.patch(`/manager/deliveries/${id}/complete`, null, { params: { manager_user_id: managerUserId } });
-      setDeliveries((prev) => (
-        showCompleted
+      setDeliveries((prev) => {
+        const next = showCompleted
           ? prev.map((d) => d.delivery_id === id ? res.data : d)
-          : prev.filter((d) => d.delivery_id !== id)
-      ));
+          : prev.filter((d) => d.delivery_id !== id);
+        writeDeliveryCache(getDeliveryCacheKey(managerUserId, showCompleted), next, hasMore);
+        return next;
+      });
+
+      const pendingCacheKey = getDeliveryCacheKey(managerUserId, false);
+      const pendingCache = deliveryCache.get(pendingCacheKey);
+      if (pendingCache) {
+        writeDeliveryCache(
+          pendingCacheKey,
+          pendingCache.deliveries.filter((d) => d.delivery_id !== id),
+          pendingCache.hasMore,
+        );
+      }
+
+      const completedCacheKey = getDeliveryCacheKey(managerUserId, true);
+      const completedCache = deliveryCache.get(completedCacheKey);
+      if (completedCache) {
+        writeDeliveryCache(
+          completedCacheKey,
+          mergeDeliveryPages([res.data], completedCache.deliveries),
+          completedCache.hasMore,
+        );
+      }
     } catch (err) {
       setError(getManagerRequestErrorMessage(err, "Could not mark this delivery as delivered."));
     }
   }
 
-  if (isLoading && deliveries.length === 0) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-brand-accent" />;
+  if (isLoading && deliveries.length === 0) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-cyan-700" />;
 
   return (
     <div>
@@ -943,23 +1141,23 @@ function DeliveriesTab({ user }) {
           <button
             type="button"
             onClick={() => loadDeliveries({ includeCompleted: showCompleted, maxAttempts: 1 })}
-            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-cyan-200 hover:text-brand-ink"
+            className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-cyan-200 hover:text-slate-950"
           >
             <RefreshCw className="h-4 w-4" /> Refresh
           </button>
         )}
       </div>
-      {error ? <p className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</p> : null}
+      {error ? <p className="mb-4 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</p> : null}
       <div className="space-y-3">
         {deliveries.map((d) => {
           const deliveryStatus = normalizeDeliveryStatus(d);
           const canMarkInTransit = !d.is_completed && deliveryStatus !== "in-transit";
 
           return (
-            <div key={d.delivery_id} className="flex flex-col gap-3 rounded-[1.5rem] border border-slate-200 bg-white/90 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div key={d.delivery_id} className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-semibold text-brand-ink">Delivery #{d.delivery_id}</span>
+                  <span className="text-sm font-semibold text-slate-950">Delivery #{d.delivery_id}</span>
                   <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${getDeliveryStatusClass(deliveryStatus)}`}>
                     {getDeliveryStatusLabel(deliveryStatus)}
                   </span>
@@ -970,11 +1168,11 @@ function DeliveriesTab({ user }) {
               {!d.is_completed ? (
                 <div className="flex shrink-0 flex-wrap gap-2">
                   {canMarkInTransit ? (
-                    <button type="button" onClick={() => handleMarkInTransit(d.delivery_id)} className="inline-flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700 transition hover:bg-amber-100">
+                    <button type="button" onClick={() => handleMarkInTransit(d.delivery_id)} className="inline-flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700 transition hover:bg-amber-100">
                       <Truck className="h-4 w-4" /> Mark in-transit
                     </button>
                   ) : null}
-                  <button type="button" onClick={() => handleComplete(d.delivery_id)} className="inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100">
+                  <button type="button" onClick={() => handleComplete(d.delivery_id)} className="inline-flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100">
                     <CheckCircle2 className="h-4 w-4" /> Mark delivered
                   </button>
                 </div>
@@ -984,6 +1182,24 @@ function DeliveriesTab({ user }) {
         })}
         {deliveries.length === 0 && !error ? <p className="text-center text-sm text-slate-500">{showCompleted ? "No deliveries found." : "No pending deliveries."}</p> : null}
       </div>
+      {hasMore ? (
+        <div className="mt-4 flex justify-center">
+          <button
+            type="button"
+            disabled={isLoadingMore}
+            onClick={() => loadDeliveries({
+              append: true,
+              includeCompleted: showCompleted,
+              offset: deliveries.length,
+              maxAttempts: 1,
+            })}
+            className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-cyan-200 hover:text-slate-950 disabled:opacity-60"
+          >
+            {isLoadingMore ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            {isLoadingMore ? "Loading more deliveries" : "Load more deliveries"}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1015,13 +1231,13 @@ function CommentsTab({ user }) {
     finally { setActionId(null); }
   }
 
-  if (isLoading) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-brand-accent" />;
+  if (isLoading) return <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-cyan-700" />;
 
   if (reviews.length === 0) {
     return (
-      <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white/88 px-6 py-10 text-center">
+      <div className="rounded-lg border border-dashed border-slate-300 bg-white px-6 py-10 text-center">
         <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-500" />
-        <p className="mt-3 text-lg font-semibold text-brand-ink">All caught up.</p>
+        <p className="mt-3 text-lg font-semibold text-slate-950">All caught up.</p>
         <p className="mt-1 text-sm text-slate-500">No pending reviews to moderate.</p>
       </div>
     );
@@ -1030,21 +1246,21 @@ function CommentsTab({ user }) {
   return (
     <div className="space-y-3">
       {reviews.map((r) => (
-        <div key={r.review_id} className="rounded-[1.5rem] border border-slate-200 bg-white/90 p-4">
+        <div key={r.review_id} className="rounded-lg border border-slate-200 bg-white p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex gap-0.5">
                   {[1,2,3,4,5].map((v) => <Star key={v} className={`h-3.5 w-3.5 ${v <= r.rating ? "fill-amber-400 text-amber-400" : "fill-slate-200 text-slate-200"}`} />)}
                 </div>
-                <span className="text-sm font-semibold text-brand-ink">{r.user_name || "Anonymous"}</span>
-                <Link to={`/products/${r.product_id}`} className="text-xs font-semibold text-brand-accent hover:underline">Product #{r.product_id}</Link>
+                <span className="text-sm font-semibold text-slate-950">{r.user_name || "Anonymous"}</span>
+                <Link to={`/products/${r.product_id}`} className="text-xs font-semibold text-cyan-700 hover:underline">Product #{r.product_id}</Link>
               </div>
               {r.comment ? <p className="mt-2 text-sm text-slate-600">{r.comment}</p> : null}
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
-              <button type="button" disabled={actionId === r.review_id} onClick={() => handleAction(r.review_id, "approved")} className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"><CheckCircle2 className="h-3 w-3" /> Approve</button>
-              <button type="button" disabled={actionId === r.review_id} onClick={() => handleAction(r.review_id, "rejected")} className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50"><XCircle className="h-3 w-3" /> Reject</button>
+              <button type="button" disabled={actionId === r.review_id} onClick={() => handleAction(r.review_id, "approved")} className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"><CheckCircle2 className="h-3 w-3" /> Approve</button>
+              <button type="button" disabled={actionId === r.review_id} onClick={() => handleAction(r.review_id, "rejected")} className="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50"><XCircle className="h-3 w-3" /> Reject</button>
             </div>
           </div>
         </div>

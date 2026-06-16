@@ -33,34 +33,34 @@ function formatPrice(price) {
 
 function getDropdownClassName(variant) {
   if (variant === "light") {
-    return "absolute left-0 right-0 top-[calc(100%+0.85rem)] z-40 overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white shadow-[0_28px_60px_rgba(7,17,31,0.14)]";
+    return "absolute left-0 right-0 top-[calc(100%+0.5rem)] z-40 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg";
   }
 
-  return "absolute left-0 right-0 top-[calc(100%+0.85rem)] z-40 overflow-hidden rounded-[1.6rem] border border-slate-800 bg-slate-950 shadow-[0_28px_60px_rgba(2,6,23,0.45)]";
+  return "absolute left-0 right-0 top-[calc(100%+0.5rem)] z-40 overflow-hidden rounded-lg border border-slate-800 bg-slate-950 shadow-xl";
 }
 
 function getResultButtonClassName(variant, isActive) {
   if (variant === "light") {
-    return `flex w-full flex-col items-start justify-between gap-3 rounded-[1.2rem] px-4 py-4 text-left transition min-[420px]:flex-row min-[420px]:gap-4 ${
+    return `flex w-full flex-col items-start justify-between gap-3 rounded-md px-4 py-3 text-left transition min-[420px]:flex-row min-[420px]:gap-4 ${
       isActive ? "bg-slate-100 ring-1 ring-cyan-300/60" : "hover:bg-slate-100"
     }`;
   }
 
-  return `flex w-full flex-col items-start justify-between gap-3 rounded-[1.2rem] px-4 py-4 text-left transition min-[420px]:flex-row min-[420px]:gap-4 ${
+  return `flex w-full flex-col items-start justify-between gap-3 rounded-md px-4 py-3 text-left transition min-[420px]:flex-row min-[420px]:gap-4 ${
     isActive ? "bg-slate-800 ring-1 ring-cyan-300/40" : "hover:bg-slate-800"
   }`;
 }
 
 function getFooterButtonClassName(variant, isActive) {
   if (variant === "light") {
-    return `flex w-full items-center justify-between rounded-[1.2rem] border bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-brand-ink transition ${
+    return `flex w-full items-center justify-between rounded-md border bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-slate-950 transition ${
       isActive
         ? "border-cyan-300/70 text-brand-accent ring-1 ring-cyan-300/40"
         : "border-slate-200 hover:border-cyan-300/50 hover:text-brand-accent"
     }`;
   }
 
-  return `flex w-full items-center justify-between rounded-[1.2rem] border bg-slate-900 px-4 py-3 text-left text-sm font-semibold text-white transition ${
+  return `flex w-full items-center justify-between rounded-md border bg-slate-900 px-4 py-3 text-left text-sm font-semibold text-white transition ${
     isActive
       ? "border-cyan-300/50 text-cyan-100 ring-1 ring-cyan-300/30"
       : "border-slate-800 hover:border-cyan-300/40 hover:bg-slate-800"
@@ -213,7 +213,7 @@ export function StorefrontLiveSearch({
     activeIndex >= 0 ? `${inputId}-option-${activeIndex}` : undefined;
 
   return (
-    <div ref={containerRef} className={`relative ${className}`}>
+    <div ref={containerRef} className={`relative min-w-0 ${className}`}>
       <StorefrontSearchForm
         inputRef={inputRef}
         value={query}

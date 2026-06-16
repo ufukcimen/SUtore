@@ -34,14 +34,34 @@ def _require_manager(db: Session, manager_user_id: int) -> User:
     return user
 
 
-def _serialize_delivery(db: Session, delivery: Delivery) -> DeliveryRead:
+def _build_delivery_read(
+    delivery: Delivery,
+    *,
+    order_number: str | None = None,
+    order_status: str | None = None,
+    customer_name: str | None = None,
+) -> DeliveryRead:
     entry = DeliveryRead.model_validate(delivery)
-    order = db.get(Order, delivery.order_id)
-    entry.order_number = order.order_number if order else None
-    entry.order_status = order.status if order else None
-    customer = db.get(User, delivery.customer_id) if delivery.customer_id else None
-    entry.customer_name = customer.name if customer else None
+    entry.order_number = order_number
+    entry.order_status = order_status
+    entry.customer_name = customer_name
     return entry
+
+
+def _serialize_delivery(db: Session, delivery: Delivery) -> DeliveryRead:
+    order_number = None
+    order_status = None
+    order = db.get(Order, delivery.order_id)
+    if order:
+        order_number = order.order_number
+        order_status = order.status
+    customer = db.get(User, delivery.customer_id) if delivery.customer_id else None
+    return _build_delivery_read(
+        delivery,
+        order_number=order_number,
+        order_status=order_status,
+        customer_name=customer.name if customer else None,
+    )
 
 
 # ── Product CRUD ─────────────────────────────────────────────────────
@@ -452,15 +472,32 @@ def download_invoice_pdf(
 def list_deliveries(
     manager_user_id: int = Query(ge=1),
     show_completed: bool = Query(default=False),
+    limit: int = Query(default=25, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ) -> list[DeliveryRead]:
     _require_manager(db, manager_user_id)
-    statement = select(Delivery).order_by(Delivery.created_at.desc())
+    statement = (
+        select(Delivery, Order.order_number, Order.status, User.name)
+        .outerjoin(Order, Delivery.order_id == Order.order_id)
+        .outerjoin(User, Delivery.customer_id == User.user_id)
+        .order_by(Delivery.created_at.desc())
+    )
     if not show_completed:
         statement = statement.where(Delivery.is_completed == False)
 
-    deliveries = db.scalars(statement).all()
-    return [_serialize_delivery(db, delivery) for delivery in deliveries]
+    statement = statement.limit(limit).offset(offset)
+
+    rows = db.execute(statement).all()
+    return [
+        _build_delivery_read(
+            delivery,
+            order_number=order_number,
+            order_status=order_status,
+            customer_name=customer_name,
+        )
+        for delivery, order_number, order_status, customer_name in rows
+    ]
 
 
 @router.patch("/deliveries/{delivery_id}/in-transit", response_model=DeliveryRead)
