@@ -27,7 +27,7 @@ import {
   TrustBadge,
 } from "../components/RetailPrimitives";
 import { useCategories } from "../context/CategoriesContext";
-import { getDisplayCategories } from "../data/categoryFallbacks";
+import { getHomepageCategories } from "../data/categoryFallbacks";
 import { resolveIcon } from "../data/iconMap";
 import {
   formatPrice,
@@ -45,7 +45,7 @@ const quickLinks = [
 
 export function HomePage() {
   const { categories } = useCategories();
-  const homepageCards = getDisplayCategories(categories).filter((c) => c.is_visible_on_homepage);
+  const homepageCards = getHomepageCategories(categories);
   const [recommendations, setRecommendations] = useState([]);
   const [recsLoading, setRecsLoading] = useState(true);
   const heroProduct =
@@ -225,7 +225,7 @@ export function HomePage() {
       </section>
 
       <section className="mt-5 grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_24rem]">
-        <div className="grid items-start gap-3 md:grid-cols-3">
+        <div className="grid items-stretch gap-3 md:grid-cols-3">
           <TrustBadge icon={Truck} label="Fast shipping" detail="Clear shipping labels before checkout." />
           <TrustBadge icon={ShieldCheck} label="Warranty visibility" detail="Coverage shown on product pages." tone="green" />
           <TrustBadge icon={PackageSearch} label="Compare before buying" detail="Save up to four products for side-by-side review." />

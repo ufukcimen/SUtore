@@ -187,7 +187,7 @@ export function TrustBadge({ icon: Icon = ShieldCheck, label, detail, tone = "cy
         : "bg-cyan-50 text-cyan-700";
 
   return (
-    <div className="flex h-fit items-start gap-3 rounded-lg border border-slate-200 bg-white px-3 py-3">
+    <div className="flex h-full items-start gap-3 rounded-lg border border-slate-200 bg-white px-3 py-3">
       <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-md ${toneClassName}`}>
         <Icon className="h-4 w-4" />
       </div>

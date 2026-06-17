@@ -40,7 +40,7 @@ export const FALLBACK_CATEGORIES = [
     description: "Ready-made desktop systems for fast checkout.",
     icon: "sparkles",
     is_visible_in_sidebar: true,
-    is_visible_on_homepage: true,
+    is_visible_on_homepage: false,
     item_types: [],
   },
   {
@@ -113,6 +113,31 @@ export const FALLBACK_CATEGORIES = [
 
 export function getDisplayCategories(categories) {
   return categories.length > 0 ? categories : FALLBACK_CATEGORIES;
+}
+
+const HOMEPAGE_CATEGORY_SLUGS = [
+  "pc-components",
+  "laptops",
+  "monitors",
+  "storage-devices",
+];
+
+export function getHomepageCategories(categories) {
+  const displayCategories = getDisplayCategories(categories);
+  const categoriesBySlug = new Map(
+    displayCategories
+      .filter((category) => category?.slug)
+      .map((category) => [category.slug, category]),
+  );
+
+  return HOMEPAGE_CATEGORY_SLUGS.map((slug) => {
+    const category = categoriesBySlug.get(slug);
+    if (category) {
+      return category;
+    }
+    const fallbackCategory = FALLBACK_CATEGORIES.find((category) => category.slug === slug);
+    return fallbackCategory ?? null;
+  }).filter(Boolean);
 }
 
 export function resolveFallbackCategory(slug) {
